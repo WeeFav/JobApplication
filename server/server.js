@@ -10,6 +10,9 @@ const corsOptions = {
 // Use CORS Middleware
 app.use(cors(corsOptions));
 
+// Middleware to parse JSON
+app.use(express.json());
+
 app.get('/jobs', (req, res) => {
   const limit = parseInt(req.query._limit);
   if (limit && limit > 0) {
@@ -31,6 +34,12 @@ app.get('/jobs/:id', (req, res) => {
     res.status(404).json({'error': `Job ${id} not found`})
   }
 })
+
+app.post('/jobs', (req, res) => {
+  const newJob = {id: (jobs.jobs.length+1).toString(), ...req.body}; // automatically assign job id
+  jobs.jobs.push(newJob);
+  res.json({message: 'Job added successfully'});
+});
 
 app.listen(
   8000, () => {
