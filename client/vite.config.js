@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // Your backend server URL
+        target: 'http://localhost:8000/', // Your backend server URL
         changeOrigin: true, // Needed for virtual hosted sites
         rewrite: (path) => path.replace(/^\/api/, ''), // Rewrite '/api' to ''
       },
