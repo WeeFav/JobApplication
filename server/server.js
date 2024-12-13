@@ -31,17 +31,39 @@ app.get('/jobs/:id', (req, res) => {
     res.json(job);
   }
   else {
-    res.status(404).json({'error': `Job ${id} not found`})
+    res.status(404).json({ 'error': `Job ${id} not found` })
   }
 })
 
 app.post('/jobs', (req, res) => {
-  const newJob = {id: (jobs.jobs.length+1).toString(), ...req.body}; // automatically assign job id
+  const newJob = { id: (jobs.jobs.length + 1).toString(), ...req.body }; // automatically assign job id
   jobs.jobs.push(newJob);
-  res.json({message: 'Job added successfully'});
+  res.json({ message: 'Job added successfully' });
 });
 
-app.listen(
-  8000, () => {
-    console.log("Server started at port 8000");
-  });
+app.delete('/jobs/:id', (req, res) => {
+  const id = req.params.id;
+  const job = jobs.jobs.find(job => job.id === id);
+  if (!job) {
+    return res.status(404).json({ 'error': `Job ${id} not found` })
+  }
+
+  jobs.jobs = jobs.jobs.filter((job) => job.id != id);
+});
+
+app.put('/jobs/:id', (req, res) => {
+  const id = req.params.id;
+  const updatedjob = req.body;
+  const idx = jobs.jobs.findIndex((job) => job.id === id);
+  console.log(idx)
+  if (idx === -1) {
+    return res.status(404).json({ 'error': `Job ${id} not found` })
+  }
+
+  jobs.jobs[idx] = updatedjob;
+  res.json({ message: 'Job updated successfully' });
+})
+
+app.listen(8000, () => {
+  console.log("Server started at port 8000");
+});
