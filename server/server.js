@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import jobs from "./jobs.json" with { type: "json" };
+import query_db from "./database/database.js";
 
 const app = express();
 const corsOptions = {
@@ -13,14 +13,30 @@ app.use(cors(corsOptions));
 // Middleware to parse JSON
 app.use(express.json());
 
-app.get('/jobs', (req, res) => {
+app.get('/jobs', async (req, res) => {
   const limit = parseInt(req.query._limit);
-  if (limit && limit > 0) {
-    res.json(jobs.jobs.slice(0, limit));
-  }
-  else {
-    res.json(jobs.jobs);
-  }
+  const jobs = await query_db(limit);
+  
+  const jobs_formatted = [];
+
+  jobs.map((job) => {
+    jobs_formatted.push({
+      id: job.job_id,
+      title: job.job_title,
+      type: job.job_type,
+      description: job.job_description,
+      location: job.job_location,
+      salary: job.job_salary,
+      company: {
+        name: job.company_name,
+        description: job.company_description,
+        contactEmail: job.company_email,
+        contactPhone: job.company_phone
+      }
+    })
+  });
+
+  res.json(jobs_formatted);
 });
 
 app.get('/jobs/:id', (req, res) => {

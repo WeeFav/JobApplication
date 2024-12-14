@@ -1,0 +1,14 @@
+insert into companys (company_name, company_description, company_email, company_phone)
+values
+("NewTek Solutions", "NewTek Solutions is a leading technology company specializing in web development and digital solutions. We pride ourselves on delivering high-quality products and services to our clients while fostering a collaborative and innovative work environment.",
+"contact@teksolutions.com", "555-555-5555");
+
+insert into jobs (job_title, job_type, job_description, job_location, job_salary, company_id)
+values
+("Senior React Developer", "Full-Time", "We are seeking a talented Front-End Developer to join our team in Boston, MA. The ideal candidate will have strong skills in HTML, CSS, and JavaScript, with experience working with modern JavaScript frameworks such as React or Angular.",
+"Boston, MA", "$70K - $80K", 1);
+
+delete from jobs
+where job_id > 0;
+
+select * from jobs;
