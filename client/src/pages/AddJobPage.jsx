@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom";
 
-const AddJobPage = ({addJobSubmit}) => {
+const AddJobPage = ({ addJobSubmit }) => {
   const [title, setTitle] = useState('');
   const [type, setType] = useState('Full-Time');
   const [location, setLocation] = useState('');
@@ -12,29 +12,65 @@ const AddJobPage = ({addJobSubmit}) => {
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
 
+  const [companyData, setCompanyData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [companyInfoButton, setCompanyInfoButton] = useState('exist');
+  const [companyID, setCompanyID] = useState('');
+
   const navigate = useNavigate();
 
   const submitForm = (e) => {
     e.preventDefault();
-    
-    const newJob = {
-      title,
-      type,
-      location,
-      description,
-      salary,
-      company: {
-        name: companyName,
-        description: companyDescription,
-        contactEmail,
-        contactPhone
+
+    let newJob;
+
+    if (companyInfoButton === 'exist') {
+      newJob = {
+        title,
+        type,
+        location,
+        description,
+        salary,
+        companyID
+      }
+    }
+    else {
+      newJob = {
+        title,
+        type,
+        location,
+        description,
+        salary,
+        company: {
+          name: companyName,
+          description: companyDescription,
+          contactEmail,
+          contactPhone
+        }
+      }
+    }
+
+    addJobSubmit(newJob);
+    return navigate('/jobs');
+  };
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch('/api/companys');
+        const data = await res.json();
+        setCompanyData(data);
+      }
+      catch (error) {
+        console.log('Error fetching data from backend', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    addJobSubmit(newJob);
-
-    return navigate('/jobs');
-  };
+    fetchData();
+  }, []);
 
   return (
     <>
@@ -139,72 +175,111 @@ const AddJobPage = ({addJobSubmit}) => {
 
               <h3 className="text-2xl mb-5">Company Info</h3>
 
-              <div className="mb-4">
-                <label htmlFor="company" className="block text-gray-700 font-bold mb-2">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  id="company"
-                  name="company"
-                  className="border rounded w-full py-2 px-3"
-                  placeholder="Company Name"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                />
+              <div className="flex items-center justify-center h-full">
+                <div className="flex w-full space-x-4 mb-5">
+                  <button
+                    className={`w-1/2 px-4 py-2 rounded ${companyInfoButton === 'exist' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-black'
+                      } hover:bg-blue-600`}
+                    onClick={() => setCompanyInfoButton('exist')}>
+                    exist
+                  </button>
+                  <button
+                    className={`w-1/2 px-4 py-2 rounded ${companyInfoButton === 'new' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-black'
+                      } hover:bg-blue-600`}
+                    onClick={() => setCompanyInfoButton('new')}>
+                    new
+                  </button>
+                </div>
               </div>
+              {companyInfoButton === 'exist' ?
+                <>
+                  {loading ?
+                    <div>loading</div>
+                    :
+                    // <div>{companyData.map((company) => <div>{company.company_name}</div>)}</div>
+                    <select
+                      id="chooseCompany"
+                      name="chooseCompany"
+                      className="border rounded w-full py-2 px-3 mb-4"
+                      required
+                      value={companyID}
+                      onChange={(e) => setCompanyID(e.target.value)}
+                    >
+                      <option value="" disabled>Select a company</option>
+                      {companyData.map((company) => <option key={company.company_id} value={company.company_id}>{company.company_name}</option>)}
+                    </select>
+                  }
+                </>
+                :
+                <>
+                  <div className="mb-4">
+                    <label htmlFor="company" className="block text-gray-700 font-bold mb-2">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      id="company"
+                      name="company"
+                      className="border rounded w-full py-2 px-3"
+                      placeholder="Company Name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                    />
+                  </div>
 
-              <div className="mb-4">
-                <label
-                  htmlFor="company_description"
-                  className="block text-gray-700 font-bold mb-2">
-                  Company Description
-                </label>
-                <textarea
-                  id="company_description"
-                  name="company_description"
-                  className="border rounded w-full py-2 px-3"
-                  rows="4"
-                  placeholder="What does your company do?"
-                  value={companyDescription}
-                  onChange={(e) => setCompanyDescription(e.target.value)}
-                ></textarea>
-              </div>
+                  <div className="mb-4">
+                    <label
+                      htmlFor="company_description"
+                      className="block text-gray-700 font-bold mb-2">
+                      Company Description
+                    </label>
+                    <textarea
+                      id="company_description"
+                      name="company_description"
+                      className="border rounded w-full py-2 px-3"
+                      rows="4"
+                      placeholder="What does your company do?"
+                      value={companyDescription}
+                      onChange={(e) => setCompanyDescription(e.target.value)}
+                    ></textarea>
+                  </div>
 
-              <div className="mb-4">
-                <label
-                  htmlFor="contact_email"
-                  className="block text-gray-700 font-bold mb-2">
-                  Contact Email
-                </label>
-                <input
-                  type="email"
-                  id="contact_email"
-                  name="contact_email"
-                  className="border rounded w-full py-2 px-3"
-                  placeholder="Email address for applicants"
-                  required
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                />
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="contact_phone"
-                  className="block text-gray-700 font-bold mb-2">
-                  Contact Phone
-                </label>
-                <input
-                  type="tel"
-                  id="contact_phone"
-                  name="contact_phone"
-                  className="border rounded w-full py-2 px-3"
-                  placeholder="Optional phone for applicants"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                />
-              </div>
+                  <div className="mb-4">
+                    <label
+                      htmlFor="contact_email"
+                      className="block text-gray-700 font-bold mb-2">
+                      Contact Email
+                    </label>
+                    <input
+                      type="email"
+                      id="contact_email"
+                      name="contact_email"
+                      className="border rounded w-full py-2 px-3"
+                      placeholder="Email address for applicants"
+                      required
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label
+                      htmlFor="contact_phone"
+                      className="block text-gray-700 font-bold mb-2">
+                      Contact Phone
+                    </label>
+                    <input
+                      type="tel"
+                      id="contact_phone"
+                      name="contact_phone"
+                      className="border rounded w-full py-2 px-3"
+                      placeholder="Optional phone for applicants"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                    />
+                  </div>
 
+                </>
+              }
               <div>
                 <button
                   className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"

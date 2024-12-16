@@ -9,7 +9,7 @@ import EditJobPage from "./pages/EditJobPage";
 
 function App() {
   // function to add new job
-  const addJob = async (newJob) => {
+  const addJobSubmit = async (newJob) => {
     const res = await fetch('/api/jobs', {
       method: 'POST',
       headers: {
@@ -44,7 +44,7 @@ function App() {
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:id" element={<JobPage deleteJob={deleteJob} />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
         <Route path="/jobs/edit/:id" element={<EditJobPage updateJobSubmit={updateJob}/>} loader={jobLoader} />
-        <Route path="/add-job" element={<AddJobPage addJobSubmit={addJob} />} />
+        <Route path="/add-job" element={<AddJobPage addJobSubmit={addJobSubmit} />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     )
