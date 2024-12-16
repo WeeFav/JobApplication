@@ -28,7 +28,7 @@ async function get_jobs_db(limit) {
   return res;
 }
 
-async function get_job_db(id) {
+async function get_job_db(job_id) {
   let query = `
     SELECT *
     FROM jobs
@@ -37,7 +37,7 @@ async function get_job_db(id) {
     WHERE job_id = ?;
   `;
 
-  const [res] = await pool.query(query, [id]);
+  const [res] = await pool.query(query, [job_id]);
   return res;
 }
 
@@ -81,4 +81,13 @@ async function add_job_db(job) {
   await pool.query(query, [job.title, job.type, job.description, job.location, job.salary, company_id]);
 }
 
-export { get_jobs_db, get_job_db, get_companys_db, add_job_db };
+async function delete_job_db(job_id) {
+  let query = `
+    DELETE FROM jobs
+    WHERE job_id = ?
+  `;
+
+  await pool.query(query, [job_id]);
+}
+
+export { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db };

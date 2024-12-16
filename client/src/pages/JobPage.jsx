@@ -2,18 +2,18 @@ import { useParams, useLoaderData, useNavigate } from "react-router-dom"
 import { FaArrowLeft, FaMapMarker } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
-const JobPage = ({ deleteJob }) => {
+const JobPage = ({ deleteJobHandler }) => {
   const job = useLoaderData();
   const navigate = useNavigate();
 
-  const onDeleteClick = (id) => {
+  const onDeleteClick = async () => {
     const confirm = window.confirm('Are you sure you want to delete this job?');
 
     if (confirm) {
-      deleteJob(job.id);
+      await deleteJobHandler(job.id);
+      navigate('/jobs');
     }
 
-    navigate('/jobs');
   };
 
   return (
@@ -90,7 +90,7 @@ const JobPage = ({ deleteJob }) => {
                   Edit Job
                 </Link>
                 <button
-                  onClick={() => onDeleteClick(job.id)}
+                  onClick={onDeleteClick}
                   className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
                 >
                   Delete Job
@@ -104,10 +104,4 @@ const JobPage = ({ deleteJob }) => {
   )
 }
 
-const jobLoader = async ({ params }) => {
-  const res = await fetch(`/api/jobs/${params.id}`);
-  const data = await res.json();
-  return data;
-}
-
-export { JobPage as default, jobLoader };
+export default JobPage;

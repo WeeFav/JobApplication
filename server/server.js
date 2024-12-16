@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { get_jobs_db, get_job_db, get_companys_db, add_job_db } from "./database/database.js";
+import { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db } from "./database/database.js";
 
 const app = express();
 const corsOptions = {
@@ -71,21 +71,16 @@ app.post('/jobs', async (req, res) => {
   res.json({ message: 'Job added successfully' });
 });
 
-app.delete('/jobs/:id', (req, res) => {
+app.delete('/jobs/:id', async (req, res) => {
   const id = req.params.id;
-  const job = jobs.jobs.find(job => job.id === id);
-  if (!job) {
-    return res.status(404).json({ 'error': `Job ${id} not found` })
-  }
-
-  jobs.jobs = jobs.jobs.filter((job) => job.id != id);
+  await delete_job_db(id);
+  res.json({ message: 'Job deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
 
 app.put('/jobs/:id', (req, res) => {
   const id = req.params.id;
   const updatedjob = req.body;
   const idx = jobs.jobs.findIndex((job) => job.id === id);
-  console.log(idx)
   if (idx === -1) {
     return res.status(404).json({ 'error': `Job ${id} not found` })
   }

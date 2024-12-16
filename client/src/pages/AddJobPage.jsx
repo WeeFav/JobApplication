@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { useNavigate } from "react-router-dom";
+import { CompanysContext } from "../App";
 
-const AddJobPage = ({ addJobSubmit }) => {
+const AddJobPage = ({ addJobHandler }) => {
+  const navigate = useNavigate();
+
   const [title, setTitle] = useState('');
   const [type, setType] = useState('Full-Time');
   const [location, setLocation] = useState('');
@@ -12,14 +15,11 @@ const AddJobPage = ({ addJobSubmit }) => {
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
 
-  const [companyData, setCompanyData] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [companyInfoButton, setCompanyInfoButton] = useState('exist');
   const [companyID, setCompanyID] = useState('');
-
-  const navigate = useNavigate();
-
-  const submitForm = (e) => {
+  const {companys, loading} = useContext(CompanysContext);
+  
+  const onSubmitFormClick = (e) => {
     e.preventDefault();
 
     let newJob;
@@ -50,34 +50,17 @@ const AddJobPage = ({ addJobSubmit }) => {
       }
     }
 
-    addJobSubmit(newJob);
+    addJobHandler(newJob);
     return navigate('/jobs');
   };
 
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/companys');
-        const data = await res.json();
-        setCompanyData(data);
-      }
-      catch (error) {
-        console.log('Error fetching data from backend', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   return (
     <>
       <section className="bg-indigo-50">
         <div className="container m-auto max-w-2xl py-24">
           <div className="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0">
-            <form onSubmit={submitForm}>
+            <form onSubmit={onSubmitFormClick}>
               <h2 className="text-3xl text-center font-semibold mb-6">Add Job</h2>
 
               <div className="mb-4">
@@ -196,7 +179,6 @@ const AddJobPage = ({ addJobSubmit }) => {
                   {loading ?
                     <div>loading</div>
                     :
-                    // <div>{companyData.map((company) => <div>{company.company_name}</div>)}</div>
                     <select
                       id="chooseCompany"
                       name="chooseCompany"
@@ -206,7 +188,7 @@ const AddJobPage = ({ addJobSubmit }) => {
                       onChange={(e) => setCompanyID(e.target.value)}
                     >
                       <option value="" disabled>Select a company</option>
-                      {companyData.map((company) => <option key={company.company_id} value={company.company_id}>{company.company_name}</option>)}
+                      {companys.map((company) => <option key={company.company_id} value={company.company_id}>{company.company_name}</option>)}
                     </select>
                   }
                 </>
