@@ -37,7 +37,7 @@ const EditJobPage = ({ updateJobHandler }) => {
 
   return (
     <>
-      <section className="bg-indigo-50">
+      <section className="bg-website-lightGray">
         <div className="container m-auto max-w-2xl py-24">
           <div className="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0">
             <form onSubmit={onSubmitFormClick}>
@@ -156,7 +156,7 @@ const EditJobPage = ({ updateJobHandler }) => {
               </>
               <div>
                 <button
-                  className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
+                  className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
                   type="submit"
                 >
                   Update Job

@@ -57,7 +57,7 @@ const AddJobPage = ({ addJobHandler }) => {
 
   return (
     <>
-      <section className="bg-indigo-50">
+      <section className="bg-website-lightGray">
         <div className="container m-auto max-w-2xl py-24">
           <div className="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0">
             <form onSubmit={onSubmitFormClick}>
@@ -161,14 +161,14 @@ const AddJobPage = ({ addJobHandler }) => {
               <div className="flex items-center justify-center h-full">
                 <div className="flex w-full space-x-4 mb-5">
                   <button
-                    className={`w-1/2 px-4 py-2 rounded ${companyInfoButton === 'exist' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-black'
-                      } hover:bg-blue-600`}
+                    className={`w-1/2 px-4 py-2 rounded ${companyInfoButton === 'exist' ? 'bg-website-blue text-white' : 'bg-gray-100 text-black'
+                      } hover:bg-website-blue hover:text-white`}
                     onClick={() => setCompanyInfoButton('exist')}>
                     exist
                   </button>
                   <button
-                    className={`w-1/2 px-4 py-2 rounded ${companyInfoButton === 'new' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-black'
-                      } hover:bg-blue-600`}
+                    className={`w-1/2 px-4 py-2 rounded ${companyInfoButton === 'new' ? 'bg-website-blue text-white' : 'bg-gray-100 text-black'
+                      } hover:bg-website-blue hover:text-white`}
                     onClick={() => setCompanyInfoButton('new')}>
                     new
                   </button>
@@ -264,7 +264,7 @@ const AddJobPage = ({ addJobHandler }) => {
               }
               <div>
                 <button
-                  className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
+                  className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
                   type="submit"
                 >
                   Add Job

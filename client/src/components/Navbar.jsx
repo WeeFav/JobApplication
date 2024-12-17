@@ -2,27 +2,38 @@ import logo from "../assets/images/logo.png"
 import { NavLink } from "react-router-dom";
 
 const Navbar = () => {
-  const linkClass = ({isActive}) => isActive ? "text-white bg-black hover:bg-gray-900 hover:text-white rounded-md px-3 py-2" : "text-white hover:bg-gray-900 hover:text-white rounded-md px-3 py-2"
-  
+  const linkClass = ({isActive}) => `text-white rounded-md px-2 py-2 ${isActive ? 'bg-website-gold' : 'hover:bg-website-goldHover'  }`;
+    
   return (
-    <nav className="bg-indigo-700 border-b border-indigo-500">
-      <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+    <nav className="bg-website-blue">
+      <div className="px-2 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between">
           <div className="flex flex-1 items-center justify-center md:items-stretch md:justify-start">
-            <NavLink className="flex flex-shrink-0 items-center mr-4" to="/">
-              <img className="h-10 w-auto" src={logo} alt="React Jobs" />
-              <span className="hidden md:block text-white text-2xl font-bold ml-2">React Jobs</span>
+            <NavLink className="bg-website-gold flex flex-shrink-0 items-center" to="/">
+              <span className="hidden md:block text-white text-2xl font-bold ml-2 mr-2">Job Application</span>
             </NavLink>
             <div className="md:ml-auto">
               <div className="flex space-x-2">
                 <NavLink to="/" className={linkClass}>
                   Home
                 </NavLink>
-                <NavLink to="/jobs" className={linkClass}>
-                  Jobs
+                <NavLink to="/applied-jobs" className={linkClass}>
+                  Applied Jobs  
+                </NavLink>
+                <NavLink to="/recommended-jobs" className={linkClass}>
+                  Recommended Jobs
                 </NavLink>
                 <NavLink to="/add-job" className={linkClass}>
                   Add Job
+                </NavLink>
+                <NavLink to="/companies" className={linkClass}>
+                  Companies
+                </NavLink>
+                <NavLink to="/dashboard" className={linkClass}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/profile" className={linkClass}>
+                  Profile
                 </NavLink>
               </div>
             </div>

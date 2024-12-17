@@ -19,15 +19,15 @@ const JobPage = ({ deleteJobHandler }) => {
   return (
     <>
       <section>
-        <div className="container m-auto py-6 px-6">
-          <Link to="/jobs" className="text-indigo-500 hover:text-indigo-600 flex items-center">
+        <div className="container m-auto py-4 px-6">
+          <Link to="/applied-jobs" className="text-website-blue hover:text-website-gold flex items-center">
             <FaArrowLeft className="mr-2" />
             Back to Job Listings
           </Link>
         </div>
       </section>
 
-      <section className="bg-indigo-50">
+      <section className="bg-website-lightGray">
         <div className="container m-auto py-10 px-6">
           <div className="grid grid-cols-1 md:grid-cols-[70%_30%] w-full gap-6">
             <main>
@@ -45,7 +45,7 @@ const JobPage = ({ deleteJobHandler }) => {
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-                <h3 className="text-indigo-800 text-lg font-bold mb-6">
+                <h3 className="text-website-blue text-lg font-bold mb-6">
                   Job Description
                 </h3>
 
@@ -53,7 +53,7 @@ const JobPage = ({ deleteJobHandler }) => {
                   {job.description}
                 </p>
 
-                <h3 className="text-indigo-800 text-lg font-bold mb-2">Salary</h3>
+                <h3 className="text-website-blue text-lg font-bold mb-2">Salary</h3>
 
                 <p className="mb-4">{job.salary} / Year</p>
               </div>
@@ -73,20 +73,20 @@ const JobPage = ({ deleteJobHandler }) => {
 
                 <h3 className="text-xl">Contact Email:</h3>
 
-                <p className="my-2 bg-indigo-100 p-2 font-bold">
+                <p className="my-2 bg-website-lightGray p-2 font-bold">
                   {job.company.contactEmail}
                 </p>
 
                 <h3 className="text-xl">Contact Phone:</h3>
 
-                <p className="my-2 bg-indigo-100 p-2 font-bold">{job.company.contactPhone}</p>
+                <p className="my-2 bg-website-lightGray p-2 font-bold">{job.company.contactPhone}</p>
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                 <h3 className="text-xl font-bold mb-6">Manage Job</h3>
                 <Link
                   to={`/jobs/edit/${job.id}`}
-                  className="bg-indigo-500 hover:bg-indigo-600 text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
+                  className="bg-website-blue hover:bg-website-gold text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
                   Edit Job
                 </Link>
                 <button

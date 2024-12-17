@@ -5,7 +5,17 @@ export default {
       "./src/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
-      extend: {},
+      extend: {
+        colors: {
+          website: {
+            blue: '#223d66',
+            gold: '#cca43b',
+            goldHover: '#d7b763',
+            lightGray: '#e5e5e5',
+            darkGray: '#363636'
+          }
+        }
+      },
     },
     plugins: [],
   }
