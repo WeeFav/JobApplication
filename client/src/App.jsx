@@ -17,12 +17,16 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:id" element={<JobPage deleteJobHandler={deleteJobHandler} />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
-        <Route path="/jobs/edit/:id" element={<EditJobPage updateJobHandler={updateJobHandler} />} loader={jobLoader} />
+        <Route path="/jobs/edit/:id" element={
+          <CompanysProvider>
+            <EditJobPage updateJobHandler={updateJobHandler} />
+          </CompanysProvider>
+        } loader={jobLoader} />
         <Route path="/add-job" element={
           <CompanysProvider>
             <AddJobPage addJobHandler={addJobHandler} />
           </CompanysProvider>
-          }/>
+        }/>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     )
@@ -55,7 +59,6 @@ const deleteJobHandler = async (id) => {
   await fetch(`/api/jobs/${id}`, {
     method: 'DELETE'
   });
-  return;
 };
 
 // function to update job
@@ -102,7 +105,11 @@ const CompanysProvider = ({ children }) => {
   );
 };
 
-// Loaders
+/*
+-----------------------------------------------------------
+Loaders
+-----------------------------------------------------------
+*/
 const jobLoader = async ({ params }) => {
   try {
     const res = await fetch(`/api/jobs/${params.id}`);

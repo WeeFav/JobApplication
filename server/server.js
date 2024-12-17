@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db } from "./database/database.js";
+import { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db, update_job_db } from "./database/database.js";
 
 const app = express();
 const corsOptions = {
@@ -13,8 +13,6 @@ app.use(cors(corsOptions));
 // Middleware to parse JSON
 app.use(express.json());
 
-
-
 function format_job(job_db) {
   return ({
     id: job_db.job_id,
@@ -24,6 +22,7 @@ function format_job(job_db) {
     location: job_db.job_location,
     salary: job_db.job_salary,
     company: {
+      id: job_db.company_id,
       name: job_db.company_name,
       description: job_db.company_description,
       contactEmail: job_db.company_email,
@@ -32,7 +31,11 @@ function format_job(job_db) {
   })
 };
 
-
+/*
+-----------------------------------------------------------
+GET
+-----------------------------------------------------------
+*/
 
 app.get('/jobs', async (req, res) => {
   const limit = parseInt(req.query._limit);
@@ -65,29 +68,47 @@ app.get('/companys', async (req, res) => {
   res.json(companys);
 });
 
+/*
+-----------------------------------------------------------
+POST
+-----------------------------------------------------------
+*/
+
 app.post('/jobs', async (req, res) => {
   const newJob = req.body;
   await add_job_db(newJob);
   res.json({ message: 'Job added successfully' });
 });
 
+/*
+-----------------------------------------------------------
+PUT
+-----------------------------------------------------------
+*/
+
+app.put('/jobs/:id', async (req, res) => {
+  const id = req.params.id;
+  const updatedjob = req.body;
+  await update_job_db(updatedjob);
+
+  res.json({ message: 'Job updated successfully' });
+})
+
+/*
+-----------------------------------------------------------
+DELETE
+-----------------------------------------------------------
+*/
+
 app.delete('/jobs/:id', async (req, res) => {
   const id = req.params.id;
   await delete_job_db(id);
+
   res.json({ message: 'Job deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
 
-app.put('/jobs/:id', (req, res) => {
-  const id = req.params.id;
-  const updatedjob = req.body;
-  const idx = jobs.jobs.findIndex((job) => job.id === id);
-  if (idx === -1) {
-    return res.status(404).json({ 'error': `Job ${id} not found` })
-  }
 
-  jobs.jobs[idx] = updatedjob;
-  res.json({ message: 'Job updated successfully' });
-})
+
 
 app.listen(8000, () => {
   console.log("Server started at port 8000");

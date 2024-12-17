@@ -81,6 +81,21 @@ async function add_job_db(job) {
   await pool.query(query, [job.title, job.type, job.description, job.location, job.salary, company_id]);
 }
 
+async function update_job_db(job) {
+  let query = `
+    UPDATE jobs
+    SET job_title = ?,
+        job_type = ?,
+        job_description = ?,
+        job_location = ?,
+        job_salary = ?,
+        company_id = ?
+    WHERE job_id = ?;
+  `;
+
+  await pool.query(query, [job.title, job.type, job.description, job.location, job.salary, job.companyID, job.id]);
+}
+
 async function delete_job_db(job_id) {
   let query = `
     DELETE FROM jobs
@@ -90,4 +105,4 @@ async function delete_job_db(job_id) {
   await pool.query(query, [job_id]);
 }
 
-export { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db };
+export { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db, update_job_db };

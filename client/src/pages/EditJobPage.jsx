@@ -1,24 +1,25 @@
 import { useParams, useLoaderData, useNavigate } from "react-router-dom"
-import { useState } from "react"
+import { useState, useContext } from "react"
+import { CompanysContext } from "../App";
 
-const EditJobPage = ({updateJobHandler}) => {
+const EditJobPage = ({ updateJobHandler }) => {
+  const navigate = useNavigate();
+
   const job = useLoaderData();
-
   const [title, setTitle] = useState(job.title);
   const [type, setType] = useState(job.type);
   const [location, setLocation] = useState(job.location);
   const [description, setDescription] = useState(job.description);
   const [salary, setSalary] = useState(job.salary);
 
-  const [companyID, setCompanyID] = useState('');
-  const companys = useLoaderData();
+  const [companyID, setCompanyID] = useState(job.company.id);
+  const { companys, loading } = useContext(CompanysContext);
 
-  const navigate = useNavigate();
-  const {id} = useParams();
+  const { id } = useParams();
 
-  const onSubmitFormClick = (e) => {
+  const onSubmitFormClick = async (e) => {
     e.preventDefault();
-    
+
     const updatedJob = {
       id,
       title,
@@ -26,15 +27,10 @@ const EditJobPage = ({updateJobHandler}) => {
       location,
       description,
       salary,
-      company: {
-        name: companyName,
-        description: companyDescription,
-        contactEmail,
-        contactPhone
-      }
+      companyID
     };
 
-    updateJobHandler(updatedJob);
+    await updateJobHandler(updatedJob);
 
     return navigate(`/jobs/${id}`);
   };
@@ -141,73 +137,23 @@ const EditJobPage = ({updateJobHandler}) => {
               </div>
 
               <h3 className="text-2xl mb-5">Company Info</h3>
-
-              <div className="mb-4">
-                <label htmlFor="company" className="block text-gray-700 font-bold mb-2">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  id="company"
-                  name="company"
-                  className="border rounded w-full py-2 px-3"
-                  placeholder="Company Name"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                />
-              </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="company_description"
-                  className="block text-gray-700 font-bold mb-2">
-                  Company Description
-                </label>
-                <textarea
-                  id="company_description"
-                  name="company_description"
-                  className="border rounded w-full py-2 px-3"
-                  rows="4"
-                  placeholder="What does your company do?"
-                  value={companyDescription}
-                  onChange={(e) => setCompanyDescription(e.target.value)}
-                ></textarea>
-              </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="contact_email"
-                  className="block text-gray-700 font-bold mb-2">
-                  Contact Email
-                </label>
-                <input
-                  type="email"
-                  id="contact_email"
-                  name="contact_email"
-                  className="border rounded w-full py-2 px-3"
-                  placeholder="Email address for applicants"
-                  required
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                />
-              </div>
-              <div className="mb-4">
-                <label
-                  htmlFor="contact_phone"
-                  className="block text-gray-700 font-bold mb-2">
-                  Contact Phone
-                </label>
-                <input
-                  type="tel"
-                  id="contact_phone"
-                  name="contact_phone"
-                  className="border rounded w-full py-2 px-3"
-                  placeholder="Optional phone for applicants"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                />
-              </div>
-
+              <>
+                {loading ?
+                  <div>loading</div>
+                  :
+                  <select
+                    id="chooseCompany"
+                    name="chooseCompany"
+                    className="border rounded w-full py-2 px-3 mb-4"
+                    required
+                    value={companyID}
+                    onChange={(e) => setCompanyID(e.target.value)}
+                  >
+                    <option value="" disabled>Select a company</option>
+                    {companys.map((company) => <option key={company.company_id} value={company.company_id}>{company.company_name}</option>)}
+                  </select>
+                }
+              </>
               <div>
                 <button
                   className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
