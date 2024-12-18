@@ -2,7 +2,7 @@ import logo from "../assets/images/logo.png"
 import { NavLink } from "react-router-dom";
 
 const Navbar = () => {
-  const linkClass = ({isActive}) => `text-white rounded-md px-2 py-2 ${isActive ? 'bg-website-gold' : 'hover:bg-website-goldHover'  }`;
+  const linkClass = ({isActive}) => `text-white rounded-md px-2 py-2 ${isActive ? 'bg-website-gold' : 'hover:bg-website-gold'  }`;
     
   return (
     <nav className="bg-website-blue">

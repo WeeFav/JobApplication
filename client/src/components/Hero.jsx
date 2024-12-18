@@ -1,6 +1,6 @@
 const Hero = ({title="Become a React Dev", subtitle="Find the React job that fits your skills and needs"}) => {
   return (
-    <section className="bg-website-lightGray py-20 mb-4">
+    <div className="bg-website-lightGray py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold text-website-blue sm:text-5xl md:text-6xl">
@@ -11,7 +11,7 @@ const Hero = ({title="Become a React Dev", subtitle="Find the React job that fit
           </p>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
