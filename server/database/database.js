@@ -9,7 +9,7 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME
 }).promise()
 
-async function get_jobs_db(limit) {
+async function get_jobs_db(search) {
   let query = `
     SELECT *
     FROM jobs 
@@ -19,9 +19,16 @@ async function get_jobs_db(limit) {
 
   const params = [];
 
-  if (limit && limit > 0) {
+  if (search.limit && search.limit > 0) {
     query += ` LIMIT ?`;
-    params.push(limit);
+    params.push(search.limit);
+  }
+
+  if (search.jobTitle || search.jobType || search.jobLocation) {
+    query += `WHERE job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ?`;
+    params.push(`%${search.jobTitle}%`);
+    params.push(`%${search.jobType}%`);
+    params.push(`%${search.jobLocation}%`);
   }
 
   const [res] = await pool.query(query, params);

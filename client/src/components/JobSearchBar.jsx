@@ -1,4 +1,11 @@
-const JobSearchBar = () => {
+import { useState } from "react";
+import { searchJobHandler } from "../App";
+
+const JobSearchBar = ({onSearchClick}) => {
+  const [jobTitle, setJobTitle] = useState("");
+  const [jobLocation, setJobLocation] = useState("");
+  const [jobType, setJobType] = useState("");
+
   return (
     <div className="flex flex-row gap-4">
       {/* Job Title Input */}
@@ -11,6 +18,8 @@ const JobSearchBar = () => {
           type="text"
           placeholder="e.g., Software Engineer"
           className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-website-blue"
+          value={jobTitle}
+          onChange={(e) => setJobTitle(e.target.value)}
         />
       </div>
 
@@ -24,6 +33,8 @@ const JobSearchBar = () => {
           type="text"
           placeholder="e.g., New York"
           className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-website-blue"
+          value={jobLocation}
+          onChange={(e) => setJobLocation(e.target.value)}
         />
       </div>
 
@@ -37,12 +48,15 @@ const JobSearchBar = () => {
           type="text"
           placeholder="e.g., Full-time"
           className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-website-blue"
+          value={jobType}
+          onChange={(e) => setJobType(e.target.value)}
         />
       </div>
 
       {/* Search Button */}
       <button
-        className="bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-200 mt-6 px-4"
+        className="bg-website-gold hover:bg-website-darkGold text-white rounded mt-6 px-4"
+        onClick={() => onSearchClick(jobTitle, jobLocation, jobType)}
       >
         Search
       </button>

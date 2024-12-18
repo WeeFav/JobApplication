@@ -1,9 +1,12 @@
 import Hero from "../components/Hero"
 import JobListings from "../components/JobListings";
 import ViewAllJobs from "../components/ViewAllJobs";
+import { useState, useContext } from "react"
+import { JobsContext } from "../App";
 
+const HomePage = () => {
+  const { jobs, loading } = useContext(JobsContext);
 
-const HomePage = ({ jobData }) => {
   return (
     <>
       <section className="mb-8">
@@ -16,7 +19,7 @@ const HomePage = ({ jobData }) => {
               Recent Jobs
             </h2>
           </div>
-          <JobListings isHome={true} />
+          <JobListings jobs={jobs} loading={loading} isHome={true} />
         </div>
         <div>
           <div className="mb-6">
@@ -24,7 +27,7 @@ const HomePage = ({ jobData }) => {
               Recent Jobs
             </h2>
           </div>
-          <JobListings isHome={true} />
+          <JobListings jobs={jobs} loading={loading} isHome={true} />
         </div>
       </section>
       {/* <ViewAllJobs /> */}

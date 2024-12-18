@@ -10,7 +10,7 @@ export default {
           website: {
             blue: '#223d66',
             gold: '#cca43b',
-            goldHover: '#d7b763',
+            darkGold: '#bc9631',
             lightGray: '#e5e5e5',
             darkGray: '#363636'
           }

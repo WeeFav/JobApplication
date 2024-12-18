@@ -38,8 +38,7 @@ GET
 */
 
 app.get('/jobs', async (req, res) => {
-  const limit = parseInt(req.query._limit);
-  const jobs = await get_jobs_db(limit);
+  const jobs = await get_jobs_db(req.query);
 
   const jobs_formatted = [];
 

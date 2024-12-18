@@ -51,7 +51,7 @@ const AddJobPage = ({ addJobHandler }) => {
     }
 
     addJobHandler(newJob);
-    return navigate('/jobs');
+    return navigate('/applied-jobs');
   };
 
 

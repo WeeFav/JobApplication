@@ -1,7 +1,32 @@
 import JobListings from "../components/JobListings"
 import JobSearchBar from "../components/JobSearchBar"
+import { useState, useContext } from "react"
+import { JobsContext } from "../App";
 
-const AppliedJobsPage = () => {
+const AppliedJobsPage = ({searchJobHandler}) => {
+  let jobs;
+  let loading;
+
+  const unFiltered = useContext(JobsContext);
+  const unfilteredJobs = unFiltered.jobs;
+  const unfilteredJobsLoading = unFiltered.loading;
+
+  const  [filteredJobs, setFilteredJobs]  = useState(null);
+  const [filteredJobsLoading, setFilteredJobsLoading] = useState(true);
+
+  const onSearchClick = async (jobTitle, jobLocation, jobType) => {
+    setFilteredJobs(await searchJobHandler(jobTitle, jobLocation, jobType));
+    setFilteredJobsLoading(false);
+  };
+
+  if (!filteredJobsLoading) {
+    jobs = filteredJobs;
+  }
+  else {
+    jobs = unfilteredJobs;
+    loading = unfilteredJobsLoading;
+  }
+  
   return (
     <>
       <section className="mx-40">
@@ -11,10 +36,10 @@ const AppliedJobsPage = () => {
           </h2>
         </div>
         <div className="px-7">
-          <JobSearchBar />
+          <JobSearchBar onSearchClick={onSearchClick}/>
         </div>
         <div className="mt-10">
-          <JobListings />
+          <JobListings jobs={jobs} loading={loading}/>
         </div>
       </section>
     </>

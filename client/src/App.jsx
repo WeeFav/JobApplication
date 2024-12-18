@@ -13,13 +13,22 @@ import EditJobPage from "./pages/EditJobPage";
 import { useState, useEffect, createContext } from "react";
 
 export const CompanysContext = createContext();
+export const JobsContext = createContext();
 
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/" element={<MainLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="/applied-jobs" element={<AppliedJobsPage />} />
+        <Route index element={
+          <JobsProvider>
+            <HomePage />
+          </JobsProvider>
+        } />
+        <Route path="/applied-jobs" element={
+          <JobsProvider>
+            <AppliedJobsPage searchJobHandler={searchJobHandler}/>
+          </JobsProvider>
+        } />
         <Route path="/recommended-jobs" element={<RecommendedJobsPage />} />
         <Route path="/companies" element={<CompanysPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -80,11 +89,45 @@ const updateJobHandler = async (updatedJob) => {
   });
 };
 
+// function to search job
+export const searchJobHandler = async (jobTitle, jobLocation, jobType) => {
+  const res = await fetch(`/api/jobs?jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+  const data = await res.json();
+  return data;
+};
+
 /*
 -----------------------------------------------------------
 Context
 -----------------------------------------------------------
 */
+const JobsProvider = ({ children }) => {
+  const [jobs, setjobs] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch('/api/jobs');
+        const data = await res.json();
+        setjobs(data);
+      } catch (error) {
+        console.log("Error fetching data from backend", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+
+  return (
+    <JobsContext.Provider value={{ jobs, loading }}>
+      {children}
+    </JobsContext.Provider>
+  );
+};
+
 
 const CompanysProvider = ({ children }) => {
   const [companys, setCompanys] = useState(null);
