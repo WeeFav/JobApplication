@@ -20,20 +20,8 @@ const Navbar = () => {
                 <NavLink to="/applied-jobs" className={linkClass}>
                   Applied Jobs  
                 </NavLink>
-                <NavLink to="/recommended-jobs" className={linkClass}>
-                  Recommended Jobs
-                </NavLink>
                 <NavLink to="/add-job" className={linkClass}>
                   Add Job
-                </NavLink>
-                <NavLink to="/companies" className={linkClass}>
-                  Companies
-                </NavLink>
-                <NavLink to="/dashboard" className={linkClass}>
-                  Dashboard
-                </NavLink>
-                <NavLink to="/profile" className={linkClass}>
-                  Profile
                 </NavLink>
               </div>
             </div>

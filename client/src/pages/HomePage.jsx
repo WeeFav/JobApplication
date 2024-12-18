@@ -21,14 +21,6 @@ const HomePage = () => {
           </div>
           <JobListings jobs={jobs} loading={loading} isHome={true} />
         </div>
-        <div>
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-website-darkGray text-center">
-              Recent Jobs
-            </h2>
-          </div>
-          <JobListings jobs={jobs} loading={loading} isHome={true} />
-        </div>
       </section>
       {/* <ViewAllJobs /> */}
     </>

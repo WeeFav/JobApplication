@@ -11,7 +11,7 @@ const JobPage = ({ deleteJobHandler }) => {
 
     if (confirm) {
       await deleteJobHandler(job.id);
-      navigate('/jobs');
+      navigate('/applied-jobs');
     }
 
   };

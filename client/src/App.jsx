@@ -5,10 +5,6 @@ import AppliedJobsPage from "./pages/AppliedJobsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import JobPage from "./pages/JobPage";
 import AddJobPage from "./pages/AddJobPage";
-import RecommendedJobsPage from "./pages/RecommendedJobsPage";
-import CompanysPage from "./pages/CompanysPage";
-import DashboardPage from "./pages/DashboardPage";
-import ProfilePage from "./pages/ProfilePage";
 import EditJobPage from "./pages/EditJobPage";
 import { useState, useEffect, createContext } from "react";
 
@@ -29,10 +25,6 @@ function App() {
             <AppliedJobsPage searchJobHandler={searchJobHandler}/>
           </JobsProvider>
         } />
-        <Route path="/recommended-jobs" element={<RecommendedJobsPage />} />
-        <Route path="/companies" element={<CompanysPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/jobs/:id" element={<JobPage deleteJobHandler={deleteJobHandler} />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
         <Route path="/jobs/edit/:id" element={
           <CompanysProvider>
