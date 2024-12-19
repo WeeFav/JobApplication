@@ -73,8 +73,23 @@ POST
 -----------------------------------------------------------
 */
 
-app.post('/jobs', async (req, res) => {
-  const newJob = req.body;
+app.post('/add-job', async (req, res) => {
+  const job = req.body;
+
+  // if custom company, then add to companys  
+  if (job.company) {
+    await db_add_company(job.company);
+  }
+
+  // add job
+  await db_add_job(job);
+
+  // if custom job, then add to applications
+  if (job.is_custom) {
+    await db_add_application();
+  }
+
+
   await add_job_db(newJob);
   res.json({ message: 'Job added successfully' });
 });

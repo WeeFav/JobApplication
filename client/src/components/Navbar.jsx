@@ -2,8 +2,8 @@ import logo from "../assets/images/logo.png"
 import { NavLink } from "react-router-dom";
 
 const Navbar = () => {
-  const linkClass = ({isActive}) => `text-white rounded-md px-2 py-2 ${isActive ? 'bg-website-gold' : 'hover:bg-website-gold'  }`;
-    
+  const linkClass = ({ isActive }) => `text-white rounded-md px-2 py-2 ${isActive ? 'bg-website-gold' : 'hover:bg-website-gold'}`;
+
   return (
     <nav className="bg-website-blue">
       <div className="px-2 sm:px-6 lg:px-8">
@@ -17,11 +17,26 @@ const Navbar = () => {
                 <NavLink to="/" className={linkClass}>
                   Home
                 </NavLink>
+                <NavLink to="/jobs" className={linkClass}>
+                  Jobs
+                </NavLink>
+                <NavLink to="/companies" className={linkClass}>
+                  Companies
+                </NavLink>
                 <NavLink to="/applied-jobs" className={linkClass}>
-                  Applied Jobs  
+                  Applied Jobs
                 </NavLink>
                 <NavLink to="/add-job" className={linkClass}>
-                  Add Job
+                  Add Custom Job
+                </NavLink>
+                <NavLink to="/dashboard" className={linkClass}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/profile" className={linkClass}>
+                  Profile
+                </NavLink>
+                <NavLink to="/dev" className={linkClass}>
+                  Dev
                 </NavLink>
               </div>
             </div>

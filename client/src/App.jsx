@@ -4,8 +4,13 @@ import MainLayout from "./layouts/MainLayout";
 import AppliedJobsPage from "./pages/AppliedJobsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import JobPage from "./pages/JobPage";
-import AddJobPage from "./pages/AddJobPage";
+import AddCustomJobPage from "./pages/AddCustomJobPage";
 import EditJobPage from "./pages/EditJobPage";
+import CompaniesPage from "./pages/CompaniesPage";
+import DashboardPage from "./pages/DashboardPage";
+import DevPage from "./pages/DevPage";
+import JobsPage from "./pages/JobsPage";
+import ProfilePage from "./pages/ProfilePage";
 import { useState, useEffect, createContext } from "react";
 
 export const CompanysContext = createContext();
@@ -20,6 +25,8 @@ function App() {
             <HomePage />
           </JobsProvider>
         } />
+        <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/companies" element={<CompaniesPage />} />
         <Route path="/applied-jobs" element={
           <JobsProvider>
             <AppliedJobsPage searchJobHandler={searchJobHandler}/>
@@ -33,10 +40,12 @@ function App() {
         } loader={jobLoader} />
         <Route path="/add-job" element={
           <CompanysProvider>
-            <AddJobPage addJobHandler={addJobHandler} />
+            <AddCustomJobPage addJobHandler={addJobHandler} />
           </CompanysProvider>
         }/>
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/dev" element={<DevPage />} />
       </Route>
     )
   );
@@ -54,7 +63,7 @@ API Handler
 
 // function to add job
 const addJobHandler = async (newJob) => {
-  const res = await fetch('/api/jobs', {
+  const res = await fetch('/api/add-job', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
