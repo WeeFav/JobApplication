@@ -1,7 +1,7 @@
 # Job Application V1
 
 
-Features
+Features  
 - Home
 - Applied jobs
 - Add job
