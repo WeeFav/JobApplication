@@ -11,6 +11,7 @@ import DashboardPage from "./pages/DashboardPage";
 import DevPage from "./pages/DevPage";
 import JobsPage from "./pages/JobsPage";
 import ProfilePage from "./pages/ProfilePage";
+import LoginPage from "./pages/LoginPage";
 import { useState, useEffect, createContext } from "react";
 
 export const CompanysContext = createContext();
@@ -19,34 +20,37 @@ export const JobsContext = createContext();
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={
-          <JobsProvider>
-            <HomePage />
-          </JobsProvider>
-        } />
-        <Route path="/jobs" element={<JobsPage />} />
-        <Route path="/companies" element={<CompaniesPage />} />
-        <Route path="/applied-jobs" element={
-          <JobsProvider>
-            <AppliedJobsPage searchJobHandler={searchJobHandler}/>
-          </JobsProvider>
-        } />
-        <Route path="/jobs/:id" element={<JobPage deleteJobHandler={deleteJobHandler} />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
-        <Route path="/jobs/edit/:id" element={
-          <CompanysProvider>
-            <EditJobPage updateJobHandler={updateJobHandler} />
-          </CompanysProvider>
-        } loader={jobLoader} />
-        <Route path="/add-job" element={
-          <CompanysProvider>
-            <AddCustomJobPage addJobHandler={addJobHandler} />
-          </CompanysProvider>
-        }/>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/dev" element={<DevPage />} />
-      </Route>
+      <>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={
+            <JobsProvider>
+              <HomePage />
+            </JobsProvider>
+          } />
+          <Route path="/jobs" element={<JobsPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/applied-jobs" element={
+            <JobsProvider>
+              <AppliedJobsPage searchJobHandler={searchJobHandler} />
+            </JobsProvider>
+          } />
+          <Route path="/jobs/:id" element={<JobPage deleteJobHandler={deleteJobHandler} />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
+          <Route path="/jobs/edit/:id" element={
+            <CompanysProvider>
+              <EditJobPage updateJobHandler={updateJobHandler} />
+            </CompanysProvider>
+          } loader={jobLoader} />
+          <Route path="/add-job" element={
+            <CompanysProvider>
+              <AddCustomJobPage addJobHandler={addJobHandler} />
+            </CompanysProvider>
+          } />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/dev" element={<DevPage />} />
+        </Route>
+      </>
     )
   );
 
