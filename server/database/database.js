@@ -112,4 +112,22 @@ async function delete_job_db(job_id) {
   await pool.query(query, [job_id]);
 }
 
+export async function db_add_user(user) {
+  const is_company = user.accountType === 'company' ? true : false;
+
+  const query = `
+    INSERT INTO users (user_email, user_password, is_company)
+    VALUES (?, ?, ?)
+  `;
+  await pool.query(query, [user.email, user.password, is_company]);
+}
+
+export async function db_check_user(user) {
+  const query = `
+    SELECT user_id FROM users WHERE user_email = ? AND user_password = ?
+  `;
+  const [res] = await pool.query(query, [user.email, user.password]);
+  return res;
+}
+
 export { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db, update_job_db };

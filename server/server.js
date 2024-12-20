@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db, update_job_db } from "./database/database.js";
+import { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db, update_job_db, db_add_user, db_check_user } from "./database/database.js";
 
 const app = express();
 const corsOptions = {
@@ -93,6 +93,27 @@ app.post('/add-job', async (req, res) => {
   await add_job_db(newJob);
   res.json({ message: 'Job added successfully' });
 });
+
+app.post('/user', async (req, res) => {
+  const user = req.body;
+  try {
+    await db_add_user(user);
+    res.json({message: 'success'});
+  } catch (e) {
+    res.json({message: e.code});
+  }
+})
+
+app.post('/check-user', async (req, res) => {
+  const user = req.body;
+  const result = await db_check_user(user);
+  if (result.length > 0) {
+    res.json(result[0]);
+  }
+  else {
+    res.json({ user_id: 'failed' });
+  }
+})
 
 /*
 -----------------------------------------------------------

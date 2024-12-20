@@ -12,8 +12,8 @@ import DevPage from "./pages/DevPage";
 import JobsPage from "./pages/JobsPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { useState, useEffect, createContext } from "react";
-
 export const CompanysContext = createContext();
 export const JobsContext = createContext();
 
@@ -21,8 +21,8 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<MainLayout />}>
+        <Route path="/login" element={<LoginPage addUserHander={addUserHander} checkUserHandler={checkUserHandler} />} />
+        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route index element={
             <JobsProvider>
               <HomePage />
@@ -101,6 +101,36 @@ export const searchJobHandler = async (jobTitle, jobLocation, jobType) => {
   return data;
 };
 
+// function to add user account
+const addUserHander = async (user) => {
+  const res = await fetch('/api/user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(user)
+  });
+
+  return await res.json();
+};
+
+// function to check user account
+const checkUserHandler = async (user) => {
+  const res = await fetch('/api/check-user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(user)
+  });
+  const {user_id} = await res.json();
+  if (user_id === 'failed') {
+    return false;
+  }
+
+  return user_id;
+}
+
 /*
 -----------------------------------------------------------
 Context
@@ -160,6 +190,8 @@ const CompanysProvider = ({ children }) => {
     </CompanysContext.Provider>
   );
 };
+
+
 
 /*
 -----------------------------------------------------------
