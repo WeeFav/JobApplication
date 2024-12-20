@@ -1,19 +1,30 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { addUserHander, checkUserHandler } from '../App';
+import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
 
-function LoginPage({addUserHander, checkUserHandler}) {
+function LoginPage() {
   const navigate = useNavigate();
 
+  // first check if user already logged in
+  // if logged in, redirect to home page
   useEffect(() => {
-    if (sessionStorage.getItem("id") !== null) {
+    if (sessionStorage.getItem("user_id") !== null) {
       navigate('/');
     }
-  }, []);  
+  }, []);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [accountType, setAccountType] = useState('applicant');
   const [accountStatus, setAccountStatus] = useState('exist');
+
+  // alert popup
+  const [open, setOpen] = useState(false);
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
@@ -25,18 +36,24 @@ function LoginPage({addUserHander, checkUserHandler}) {
     };
 
     if (accountStatus === 'new') {
-      const {message} = await addUserHander(user);
+      const message = await addUserHander(user);
       if (message === 'ER_DUP_ENTRY') {
         alert('email already exist');
       }
+      else {
+        setOpen(true);
+      }
+
       setAccountStatus('exist');
       return navigate('/login');
     }
 
     if (accountStatus === 'exist') {
-      const user_id = await checkUserHandler(user);
-      if (user_id) {
-        sessionStorage.setItem("id", user_id);
+      const user_db = await checkUserHandler(user);
+      if (user_db) {
+        sessionStorage.setItem("user_id", user_db.user_id);
+        sessionStorage.setItem("user_email", user_db.user_email);
+        sessionStorage.setItem("is_company", user_db.is_company);
         return navigate('/');
       }
       else {
@@ -73,6 +90,7 @@ function LoginPage({addUserHander, checkUserHandler}) {
                 id="email"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-website-blue focus:border-website-blue sm:text-sm"
                 placeholder="Enter your email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -86,6 +104,7 @@ function LoginPage({addUserHander, checkUserHandler}) {
                 id="password"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-website-blue focus:border-website-blue sm:text-sm"
                 placeholder="Enter your password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -101,6 +120,16 @@ function LoginPage({addUserHander, checkUserHandler}) {
                   accountStatus === 'exist' ? 'Login as company' : 'Create account as company'
                 }
               </button>
+              <Snackbar open={open} autoHideDuration={3000} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+                <Alert
+                  onClose={handleClose}
+                  severity="success"
+                  variant="filled"
+                  sx={{ width: '100%' }}
+                >
+                  Succesfully created account
+                </Alert>
+              </Snackbar>
             </div>
           </form>
           {accountStatus === 'exist' ?

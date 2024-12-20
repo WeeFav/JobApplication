@@ -14,6 +14,7 @@ import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useState, useEffect, createContext } from "react";
+
 export const CompanysContext = createContext();
 export const JobsContext = createContext();
 
@@ -21,7 +22,7 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
-        <Route path="/login" element={<LoginPage addUserHander={addUserHander} checkUserHandler={checkUserHandler} />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route index element={
             <JobsProvider>
@@ -32,18 +33,18 @@ function App() {
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/applied-jobs" element={
             <JobsProvider>
-              <AppliedJobsPage searchJobHandler={searchJobHandler} />
+              <AppliedJobsPage />
             </JobsProvider>
           } />
-          <Route path="/jobs/:id" element={<JobPage deleteJobHandler={deleteJobHandler} />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
+          <Route path="/jobs/:id" element={<JobPage />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
           <Route path="/jobs/edit/:id" element={
             <CompanysProvider>
-              <EditJobPage updateJobHandler={updateJobHandler} />
+              <EditJobPage />
             </CompanysProvider>
           } loader={jobLoader} />
           <Route path="/add-job" element={
             <CompanysProvider>
-              <AddCustomJobPage addJobHandler={addJobHandler} />
+              <AddCustomJobPage />
             </CompanysProvider>
           } />
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -66,7 +67,7 @@ API Handler
 */
 
 // function to add job
-const addJobHandler = async (newJob) => {
+export const addJobHandler = async (newJob) => {
   const res = await fetch('/api/add-job', {
     method: 'POST',
     headers: {
@@ -77,14 +78,14 @@ const addJobHandler = async (newJob) => {
 };
 
 // function to delete job
-const deleteJobHandler = async (id) => {
+export const deleteJobHandler = async (id) => {
   await fetch(`/api/jobs/${id}`, {
     method: 'DELETE'
   });
 };
 
 // function to update job
-const updateJobHandler = async (updatedJob) => {
+export const updateJobHandler = async (updatedJob) => {
   const res = await fetch(`/api/jobs/${updatedJob.id}`, {
     method: 'PUT',
     headers: {
@@ -102,7 +103,7 @@ export const searchJobHandler = async (jobTitle, jobLocation, jobType) => {
 };
 
 // function to add user account
-const addUserHander = async (user) => {
+export const addUserHander = async (user) => {
   const res = await fetch('/api/user', {
     method: 'POST',
     headers: {
@@ -111,11 +112,13 @@ const addUserHander = async (user) => {
     body: JSON.stringify(user)
   });
 
-  return await res.json();
+  const {message} = await res.json()
+
+  return message;
 };
 
 // function to check user account
-const checkUserHandler = async (user) => {
+export const checkUserHandler = async (user) => {
   const res = await fetch('/api/check-user', {
     method: 'POST',
     headers: {
@@ -123,12 +126,13 @@ const checkUserHandler = async (user) => {
     },
     body: JSON.stringify(user)
   });
-  const {user_id} = await res.json();
-  if (user_id === 'failed') {
+
+  const user_db = await res.json();
+  if (user_db.user_id === 'failed') {
     return false;
   }
 
-  return user_id;
+  return user_db;
 }
 
 /*
@@ -190,8 +194,6 @@ const CompanysProvider = ({ children }) => {
     </CompanysContext.Provider>
   );
 };
-
-
 
 /*
 -----------------------------------------------------------

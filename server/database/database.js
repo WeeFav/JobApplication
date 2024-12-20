@@ -2,14 +2,14 @@ import mysql from 'mysql2';
 import dotenv from "dotenv";
 dotenv.config();
 
-const pool = mysql.createPool({
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME
 }).promise()
 
-async function get_jobs_db(search) {
+export async function get_jobs(search) {
   let query = `
     SELECT *
     FROM jobs 
@@ -31,11 +31,11 @@ async function get_jobs_db(search) {
     params.push(`%${search.jobLocation}%`);
   }
 
-  const [res] = await pool.query(query, params);
+  const [res] = await db.query(query, params);
   return res;
 }
 
-async function get_job_db(job_id) {
+export async function get_job(job_id) {
   let query = `
     SELECT *
     FROM jobs
@@ -44,11 +44,11 @@ async function get_job_db(job_id) {
     WHERE job_id = ?;
   `;
 
-  const [res] = await pool.query(query, [job_id]);
+  const [res] = await db.query(query, [job_id]);
   return res;
 }
 
-async function get_companys_db(limit) {
+export async function get_companys(limit) {
   let query = `
     SELECT *
     FROM companys
@@ -61,11 +61,11 @@ async function get_companys_db(limit) {
     params.push(limit);
   }
 
-  const [res] = await pool.query(query, params);
+  const [res] = await db.query(query, params);
   return res;
 }
 
-async function add_job_db(job) {
+export async function add_job(job) {
   let query;
   let id;
 
@@ -75,7 +75,7 @@ async function add_job_db(job) {
       INSERT INTO companys (company_name, company_description, company_email, company_phone)
       VALUES (?, ?, ?, ?)
     `;
-    const [res] = await pool.query(query, [job.company.name, job.company.description, job.company.contactEmail, job.company.contactPhone]);
+    const [res] = await db.query(query, [job.company.name, job.company.description, job.company.contactEmail, job.company.contactPhone]);
     id = res.insertId;
   };
 
@@ -85,10 +85,10 @@ async function add_job_db(job) {
     INSERT INTO jobs (job_title, job_type, job_description, job_location, job_salary, company_id)
     VALUES (?, ?, ?, ?, ?, ?)
   `;
-  await pool.query(query, [job.title, job.type, job.description, job.location, job.salary, company_id]);
+  await db.query(query, [job.title, job.type, job.description, job.location, job.salary, company_id]);
 }
 
-async function update_job_db(job) {
+export async function update_job(job) {
   let query = `
     UPDATE jobs
     SET job_title = ?,
@@ -100,34 +100,34 @@ async function update_job_db(job) {
     WHERE job_id = ?;
   `;
 
-  await pool.query(query, [job.title, job.type, job.description, job.location, job.salary, job.companyID, job.id]);
+  await db.query(query, [job.title, job.type, job.description, job.location, job.salary, job.companyID, job.id]);
 }
 
-async function delete_job_db(job_id) {
+export async function delete_job(job_id) {
   let query = `
     DELETE FROM jobs
     WHERE job_id = ?
   `;
 
-  await pool.query(query, [job_id]);
+  await db.query(query, [job_id]);
 }
 
-export async function db_add_user(user) {
+export async function add_user(user) {
   const is_company = user.accountType === 'company' ? true : false;
 
   const query = `
     INSERT INTO users (user_email, user_password, is_company)
     VALUES (?, ?, ?)
   `;
-  await pool.query(query, [user.email, user.password, is_company]);
+  await db.query(query, [user.email, user.password, is_company]);
 }
 
-export async function db_check_user(user) {
+export async function check_user(user) {
+  const is_company = user.accountType === 'company' ? true : false;
+  
   const query = `
-    SELECT user_id FROM users WHERE user_email = ? AND user_password = ?
+    SELECT * FROM users WHERE user_email = ? AND user_password = ? AND is_company = ?
   `;
-  const [res] = await pool.query(query, [user.email, user.password]);
+  const [res] = await db.query(query, [user.email, user.password, is_company]);
   return res;
 }
-
-export { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db, update_job_db };

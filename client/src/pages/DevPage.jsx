@@ -6,14 +6,14 @@ const DevPage = () => {
 
   const [inputText, setInputText] = useState();
 
-  const x = sessionStorage.getItem("id")
+  const x = sessionStorage.getItem("user_id")
 
   return (
     x ? 
     <>
       <div>welcome {x}</div>
       <button onClick={() => {
-        sessionStorage.removeItem("id")
+        sessionStorage.clear();
         navigate("/dev")
       }}>
         log out

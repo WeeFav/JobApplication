@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { get_jobs_db, get_job_db, get_companys_db, add_job_db, delete_job_db, update_job_db, db_add_user, db_check_user } from "./database/database.js";
+import * as db from "./database/database.js";
 
 const app = express();
 const corsOptions = {
@@ -38,7 +38,7 @@ GET
 */
 
 app.get('/jobs', async (req, res) => {
-  const jobs = await get_jobs_db(req.query);
+  const jobs = await db.get_jobs(req.query);
 
   const jobs_formatted = [];
 
@@ -51,7 +51,7 @@ app.get('/jobs', async (req, res) => {
 
 app.get('/jobs/:id', async (req, res) => {
   const id = req.params.id;
-  const [job] = await get_job_db(id);
+  const [job] = await db.get_job(id);
 
   if (job) {
     res.json(format_job(job));
@@ -63,7 +63,7 @@ app.get('/jobs/:id', async (req, res) => {
 
 app.get('/companys', async (req, res) => {
   const limit = parseInt(req.query._limit);
-  const companys = await get_companys_db(limit);
+  const companys = await db.get_companys(limit);
   res.json(companys);
 });
 
@@ -97,16 +97,16 @@ app.post('/add-job', async (req, res) => {
 app.post('/user', async (req, res) => {
   const user = req.body;
   try {
-    await db_add_user(user);
+    await db.add_user(user);
     res.json({message: 'success'});
   } catch (e) {
     res.json({message: e.code});
   }
-})
+});
 
 app.post('/check-user', async (req, res) => {
   const user = req.body;
-  const result = await db_check_user(user);
+  const result = await db.check_user(user);
   if (result.length > 0) {
     res.json(result[0]);
   }
@@ -124,7 +124,7 @@ PUT
 app.put('/jobs/:id', async (req, res) => {
   const id = req.params.id;
   const updatedjob = req.body;
-  await update_job_db(updatedjob);
+  await db.update_job(updatedjob);
 
   res.json({ message: 'Job updated successfully' });
 })
@@ -137,7 +137,7 @@ DELETE
 
 app.delete('/jobs/:id', async (req, res) => {
   const id = req.params.id;
-  await delete_job_db(id);
+  await db.delete_job(id);
 
   res.json({ message: 'Job deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
