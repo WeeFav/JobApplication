@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addUserHander, checkUserHandler } from '../App';
+import { addAccountHandler, checkAccountHandler } from '../App';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import { UserContext } from "../App";
@@ -23,6 +23,7 @@ function LoginPage() {
     console.log("LoginPage useEffect");
   }, []);
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [accountType, setAccountType] = useState('applicant');
@@ -37,15 +38,16 @@ function LoginPage() {
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
 
-    const user = {
+    const account = {
+      name,
       email,
       password,
       accountType
     };
 
     if (accountStatus === 'new') {
-      const message = await addUserHander(user);
-      if (message === 'ER_DUP_ENTRY') {
+      const account_id = await addAccountHandler(account);
+      if (account_id === 'ER_DUP_ENTRY') {
         alert('email already exist');
       }
       else {
@@ -57,7 +59,7 @@ function LoginPage() {
     }
 
     if (accountStatus === 'exist') {
-      const user_db = await checkUserHandler(user);
+      const user_db = await checkAccountHandler(user);
       if (user_db) {
         sessionStorage.setItem("user_id", user_db.user_id);
         sessionStorage.setItem("user_email", user_db.user_email);
@@ -93,7 +95,21 @@ function LoginPage() {
           </div>
         </div>
         <div className="bg-white p-8 rounded-b-lg rounded-tr-lg shadow-md">
-          <form className="space-y-4" onSubmit={onSubmitFormClick}>
+          <form className="space-y-3" onSubmit={onSubmitFormClick}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                {accountType === 'applicant' ? 'Name' : 'Company Name'}
+              </label>
+              <input
+                type="text"
+                id="name"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-website-blue focus:border-website-blue sm:text-sm"
+                placeholder={`Enter your ${accountType === 'applicant' ? 'name' : 'company name'}`}
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email

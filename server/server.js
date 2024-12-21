@@ -94,14 +94,28 @@ app.post('/add-job', async (req, res) => {
   res.json({ message: 'Job added successfully' });
 });
 
+app.post('/account', async (req, res) => {
+  const account = req.body;
+  try {
+    const account_id = await db.add_account(account);
+    res.json({account_id: account_id});
+  } catch (e) {
+    res.json({account_id: e.code});
+  }
+});
+
 app.post('/user', async (req, res) => {
   const user = req.body;
-  try {
-    await db.add_user(user);
-    res.json({message: 'success'});
-  } catch (e) {
-    res.json({message: e.code});
-  }
+
+  await db.add_user(user);
+  res.json({message: 'success'});
+});
+
+app.post('/company', async (req, res) => {
+  const company = req.body;
+
+  await db.add_company(company);
+  res.json({message: 'success'});
 });
 
 app.post('/check-user', async (req, res) => {

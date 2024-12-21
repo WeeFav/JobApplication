@@ -112,14 +112,32 @@ export async function delete_job(job_id) {
   await db.query(query, [job_id]);
 }
 
-export async function add_user(user) {
-  const is_company = user.accountType === 'company' ? true : false;
+export async function add_account(account) {
+  const is_company = account.accountType === 'company' ? true : false;
 
   const query = `
-    INSERT INTO users (user_email, user_password, is_company)
+    INSERT INTO accounts (account_email, account_password, is_company)
     VALUES (?, ?, ?)
   `;
-  await db.query(query, [user.email, user.password, is_company]);
+  const [result] = await db.query(query, [account.email, account.password, is_company]);
+  const account_id = result.insertId;
+  return account_id;
+}
+
+export async function add_user(user) {
+  const query = `
+    INSERT INTO users (user_name, account_id)
+    VALUES (?, ?)
+  `;
+  await db.query(query, [user.user_name, user.account_id]);
+}
+
+export async function add_company(company) {
+  const query = `
+    INSERT INTO companys (company_name, company_description, company_email, company_phone, is_custom, account_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+  await db.query(query, [company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom, company.account_id]);
 }
 
 export async function check_user(user) {

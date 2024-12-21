@@ -109,23 +109,60 @@ export const searchJobHandler = async (jobTitle, jobLocation, jobType) => {
   return data;
 };
 
-// function to add user account
-export const addUserHander = async (user) => {
-  const res = await fetch('/api/user', {
+// function to add account
+export const addAccountHandler = async (account) => {
+  // add new account
+  let res = await fetch('/api/account', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(user)
+    body: JSON.stringify(account)
   });
 
-  const { message } = await res.json()
-
-  return message;
+  // return if account email exist
+  const { account_id } = await res.json()
+  if (account_id === 'ER_DUP_ENTRY') {
+    return account_id;
+  }
+  
+  // add new user or company
+  if (account.accountType === 'applicant') {
+    const user = {
+      user_name: account.name,
+      account_id: account_id
+    }
+    
+    res = await fetch('/api/user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(user)
+    });
+  }
+  else {
+    const company = {
+      company_name: account.name,
+      company_description: '',
+      company_email: '',
+      company_phone: '',
+      is_custom: false,
+      account_id: account_id
+    }
+    
+    res = await fetch('/api/company', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(company)
+    });
+  }
 };
 
 // function to check user account
-export const checkUserHandler = async (user) => {
+export const checkAccountHandler = async (user) => {
   const res = await fetch('/api/check-user', {
     method: 'POST',
     headers: {
