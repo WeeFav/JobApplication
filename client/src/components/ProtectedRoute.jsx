@@ -1,16 +1,19 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { UserContext } from "../App";
+import { useContext } from "react";
 
 const ProtectedRoute = ({ children }) => {
+  const userContext = useContext(UserContext);
   const navigate = useNavigate();
-  const user = sessionStorage.getItem("user_id");
-
+  
+  console.log("ProtectedRoute");
   useEffect(() => {
-    if (user === null) {
+    if (isNaN(userContext.userID)) {
       navigate('/login', { replace: true });
     }
-
-  }, [navigate, user]);
+    console.log("ProtectedRoute useEffect");
+  }, []);
 
   return children;
 }

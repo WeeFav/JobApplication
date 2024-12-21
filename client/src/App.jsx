@@ -8,22 +8,28 @@ import AddCustomJobPage from "./pages/AddCustomJobPage";
 import EditJobPage from "./pages/EditJobPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import DashboardPage from "./pages/DashboardPage";
-import DevPage from "./pages/DevPage";
 import JobsPage from "./pages/JobsPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useState, useEffect, createContext } from "react";
+import RegisterCompanyPage from "./pages/RegisterCompanyPage";
 
 export const CompanysContext = createContext();
 export const JobsContext = createContext();
+export const UserContext = createContext();
 
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route path="/register" element={<RegisterCompanyPage />} />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
           <Route index element={
             <JobsProvider>
               <HomePage />
@@ -49,14 +55,15 @@ function App() {
           } />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/dev" element={<DevPage />} />
         </Route>
       </>
     )
   );
 
   return (
-    <RouterProvider router={router} />
+    <UserProvider>
+      <RouterProvider router={router} />
+    </UserProvider>
   )
 };
 
@@ -112,7 +119,7 @@ export const addUserHander = async (user) => {
     body: JSON.stringify(user)
   });
 
-  const {message} = await res.json()
+  const { message } = await res.json()
 
   return message;
 };
@@ -192,6 +199,24 @@ const CompanysProvider = ({ children }) => {
     <CompanysContext.Provider value={{ companys, loading }}>
       {children}
     </CompanysContext.Provider>
+  );
+};
+
+const UserProvider = ({ children }) => {
+  const [userID, setUserID] = useState(parseInt(sessionStorage.getItem("user_id")));
+  const [userEmail, setUserEmail] = useState(sessionStorage.getItem("user_email"));
+  const [isCompany, setIsCompany] = useState(parseInt(sessionStorage.getItem("is_company")));
+  const [isRegistered, setIsRegistered] = useState(parseInt(sessionStorage.getItem("is_registered")));
+
+  console.log("UserProvider");
+  useEffect(() => {
+    console.log("UserProvider useEffect");
+  }, []);
+
+  return (
+    <UserContext.Provider value={{ userID, userEmail, isCompany, isRegistered, setUserID, setUserEmail, setIsCompany, setIsRegistered }}>
+      {children}
+    </UserContext.Provider>
   );
 };
 

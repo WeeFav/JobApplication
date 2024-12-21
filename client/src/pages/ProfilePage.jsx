@@ -1,6 +1,78 @@
+import { UserContext } from "../App";
+import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
+
 const ProfilePage = () => {
+  const navigate = useNavigate();
+  const userContext = useContext(UserContext);
+
+  const { userID, userEmail, isCompany, isRegistered } = useContext(UserContext);
+
   return (
-    <div>ProfilePage</div>
+    <div className="bg-website-blue flex flex-auto flex-col items-center justify-center">
+      <div className="max-w-4xl mt-auto p-6 bg-white shadow-md rounded-lg">
+        {/* Profile Header */}
+        <div className="flex items-center space-x-4">
+          <img className="object-cover h-24 w-24" src={isCompany ? `https://www.svgrepo.com/show/490660/company.svg` : `https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png`} alt="Profile Picture" />
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{userEmail}</h2>
+            <p className="text-gray-600">{isCompany ? (isRegistered ? "Company | Registered" : "Company | Unregistered") : "Applicant"}</p>
+          </div>
+        </div>
+
+        {/* Bio Section */}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900">Bio</h3>
+          <p className="mt-2 text-gray-600">
+            {`User ID : ${sessionStorage.getItem('user_id')}`}
+          </p>
+        </div>
+
+        {/* Contact Info */}
+        {/* <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900">Contact Info</h3>
+          <p className="mt-2 text-gray-600">Email: john.doe@example.com</p>
+          <p className="text-gray-600">Phone: +123 456 7890</p>
+          <p className="text-gray-600">Location: New York, USA</p>
+        </div> */}
+
+        {/* Social Links */}
+        {/* <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900">Follow Me</h3>
+          <div className="flex space-x-4 mt-2">
+            <a href="#" className="text-blue-500 hover:text-blue-700">
+              <i className="fab fa-facebook-f"></i> Facebook
+            </a>
+            <a href="#" className="text-blue-400 hover:text-blue-600">
+              <i className="fab fa-twitter"></i> Twitter
+            </a>
+            <a href="#" className="text-blue-600 hover:text-blue-800">
+              <i className="fab fa-linkedin-in"></i> LinkedIn
+            </a>
+          </div>
+        </div> */}
+
+        {/* About Me */}
+        {/* <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900">About Me</h3>
+          <p className="mt-2 text-gray-600">
+            I am a passionate developer with experience in building web applications using modern technologies like React, Tailwind CSS, Node.js, and more.
+          </p>
+        </div> */}
+      </div>
+      <button 
+      className="bg-website-gold hover:bg-website-darkGold text-white font-bold py-2 px-4 rounded mb-auto mt-5"
+      onClick={() => {
+        sessionStorage.clear();
+        userContext.setUserID(NaN);
+        userContext.setUserEmail(null);
+        userContext.setIsCompany(NaN);
+        userContext.setIsRegistered(NaN);
+        navigate('/login')
+      }}>
+        Log out
+      </button>
+    </div>
   )
 }
 

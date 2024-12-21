@@ -3,16 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { addUserHander, checkUserHandler } from '../App';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
+import { UserContext } from "../App";
+import { useContext } from "react";
 
 function LoginPage() {
+  const userContext = useContext(UserContext);
   const navigate = useNavigate();
 
   // first check if user already logged in
   // if logged in, redirect to home page
   useEffect(() => {
-    if (sessionStorage.getItem("user_id") !== null) {
+    if (!isNaN(userContext.userID)) {
       navigate('/');
     }
+  }, []);
+
+  console.log("LoginPage");
+  useEffect(() => {
+    console.log("LoginPage useEffect");
   }, []);
 
   const [email, setEmail] = useState('');
@@ -54,6 +62,11 @@ function LoginPage() {
         sessionStorage.setItem("user_id", user_db.user_id);
         sessionStorage.setItem("user_email", user_db.user_email);
         sessionStorage.setItem("is_company", user_db.is_company);
+        sessionStorage.setItem("is_registered", user_db.is_registered);
+        userContext.setUserID(user_db.user_id);
+        userContext.setUserEmail(user_db.user_email);
+        userContext.setIsCompany(user_db.is_company);
+        userContext.setIsRegistered(user_db.is_registered);
         return navigate('/');
       }
       else {
