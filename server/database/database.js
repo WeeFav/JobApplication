@@ -48,6 +48,16 @@ export async function get_job(job_id) {
   return res;
 }
 
+export async function get_user(account_id) {
+  let query = `
+    SELECT * FROM users
+    WHERE account_id = ?;
+  `;
+
+  const [res] = await db.query(query, [account_id]);
+  return res;
+}
+
 export async function get_companys(limit) {
   let query = `
     SELECT *
@@ -140,12 +150,12 @@ export async function add_company(company) {
   await db.query(query, [company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom, company.account_id]);
 }
 
-export async function check_user(user) {
-  const is_company = user.accountType === 'company' ? true : false;
+export async function check_account(account) {
+  const is_company = account.accountType === 'company' ? true : false;
   
   const query = `
-    SELECT * FROM users WHERE user_email = ? AND user_password = ? AND is_company = ?
+    SELECT account_id, account_email, is_company FROM accounts WHERE account_email = ? AND account_password = ? AND is_company = ?
   `;
-  const [res] = await db.query(query, [user.email, user.password, is_company]);
+  const [res] = await db.query(query, [account.email, account.password, is_company]);
   return res;
 }

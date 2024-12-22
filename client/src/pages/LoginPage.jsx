@@ -3,17 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { addAccountHandler, checkAccountHandler } from '../App';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
-import { UserContext } from "../App";
+import { AccountContext } from "../App";
 import { useContext } from "react";
 
 function LoginPage() {
-  const userContext = useContext(UserContext);
+  const accountContext = useContext(AccountContext);
   const navigate = useNavigate();
 
   // first check if user already logged in
   // if logged in, redirect to home page
   useEffect(() => {
-    if (!isNaN(userContext.userID)) {
+    if (!isNaN(accountContext.accountID)) {
       navigate('/');
     }
   }, []);
@@ -37,7 +37,7 @@ function LoginPage() {
 
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
-
+    
     const account = {
       name,
       email,
@@ -59,16 +59,14 @@ function LoginPage() {
     }
 
     if (accountStatus === 'exist') {
-      const user_db = await checkAccountHandler(user);
-      if (user_db) {
-        sessionStorage.setItem("user_id", user_db.user_id);
-        sessionStorage.setItem("user_email", user_db.user_email);
-        sessionStorage.setItem("is_company", user_db.is_company);
-        sessionStorage.setItem("is_registered", user_db.is_registered);
-        userContext.setUserID(user_db.user_id);
-        userContext.setUserEmail(user_db.user_email);
-        userContext.setIsCompany(user_db.is_company);
-        userContext.setIsRegistered(user_db.is_registered);
+      const account_db = await checkAccountHandler(account);
+      if (account_db) {
+        sessionStorage.setItem("account_id", account_db.account_id);
+        sessionStorage.setItem("account_email", account_db.account_email);
+        sessionStorage.setItem("is_company", account_db.is_company);
+        accountContext.setAccountID(account_db.account_id);
+        accountContext.setAccountEmail(account_db.account_email);
+        accountContext.setIsCompany(account_db.is_company);
         return navigate('/');
       }
       else {
@@ -96,20 +94,24 @@ function LoginPage() {
         </div>
         <div className="bg-white p-8 rounded-b-lg rounded-tr-lg shadow-md">
           <form className="space-y-3" onSubmit={onSubmitFormClick}>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                {accountType === 'applicant' ? 'Name' : 'Company Name'}
-              </label>
-              <input
-                type="text"
-                id="name"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-website-blue focus:border-website-blue sm:text-sm"
-                placeholder={`Enter your ${accountType === 'applicant' ? 'name' : 'company name'}`}
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
+            {accountStatus === 'new' ?
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {accountType === 'applicant' ? 'Name' : 'Company Name'}
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-website-blue focus:border-website-blue sm:text-sm"
+                  placeholder={`Enter your ${accountType === 'applicant' ? 'name' : 'company name'}`}
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              :
+              <></>
+            }
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email

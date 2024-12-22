@@ -67,6 +67,11 @@ app.get('/companys', async (req, res) => {
   res.json(companys);
 });
 
+app.get('/user/account/:id', async (req, res) => {
+  const account_id = req.params.id;
+  const user = await db.get_user(account_id);
+  res.json(user);
+});
 /*
 -----------------------------------------------------------
 POST
@@ -118,14 +123,14 @@ app.post('/company', async (req, res) => {
   res.json({message: 'success'});
 });
 
-app.post('/check-user', async (req, res) => {
-  const user = req.body;
-  const result = await db.check_user(user);
+app.post('/account/check', async (req, res) => {
+  const account = req.body;
+  const result = await db.check_account(account);
   if (result.length > 0) {
     res.json(result[0]);
   }
   else {
-    res.json({ user_id: 'failed' });
+    res.json({ account_id: 'failed' });
   }
 })
 

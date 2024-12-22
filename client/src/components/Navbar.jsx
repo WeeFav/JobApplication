@@ -1,10 +1,10 @@
 import logo from "../assets/images/logo.png"
 import { NavLink } from "react-router-dom";
-import { UserContext } from "../App";
+import { AccountContext } from "../App";
 import { useContext } from "react";
 
 const Navbar = () => {
-  const { userID, userEmail, isCompany, isRegistered } = useContext(UserContext);
+  const accountContext = useContext(AccountContext);
 
   const linkClass = ({ isActive }) => `text-white rounded-md px-2 py-2 ${isActive ? 'bg-website-gold' : 'hover:bg-website-gold'}`;
 
@@ -17,7 +17,7 @@ const Navbar = () => {
               <span className="hidden md:block text-white text-2xl font-bold ml-2 mr-2">Job Application</span>
             </NavLink>
             <div className="md:ml-auto">
-              {isCompany ?
+              {accountContext.isCompany ?
                 <div className="flex space-x-2">
                   <NavLink to="/" className={linkClass}>
                     Home

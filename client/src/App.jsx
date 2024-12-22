@@ -17,7 +17,7 @@ import RegisterCompanyPage from "./pages/RegisterCompanyPage";
 
 export const CompanysContext = createContext();
 export const JobsContext = createContext();
-export const UserContext = createContext();
+export const AccountContext = createContext();
 
 function App() {
   const router = createBrowserRouter(
@@ -61,9 +61,9 @@ function App() {
   );
 
   return (
-    <UserProvider>
+    <AccountProvider>
       <RouterProvider router={router} />
-    </UserProvider>
+    </AccountProvider>
   )
 };
 
@@ -145,7 +145,7 @@ export const addAccountHandler = async (account) => {
     const company = {
       company_name: account.name,
       company_description: '',
-      company_email: '',
+      company_email: account.email,
       company_phone: '',
       is_custom: false,
       account_id: account_id
@@ -162,21 +162,22 @@ export const addAccountHandler = async (account) => {
 };
 
 // function to check user account
-export const checkAccountHandler = async (user) => {
-  const res = await fetch('/api/check-user', {
+export const checkAccountHandler = async (account) => {
+  const res = await fetch('/api/account/check', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(user)
+    body: JSON.stringify(account)
   });
 
-  const user_db = await res.json();
-  if (user_db.user_id === 'failed') {
+  const account_db = await res.json();
+
+  if (account_db.account_id === 'failed') {
     return false;
   }
 
-  return user_db;
+  return account_db;
 }
 
 /*
@@ -239,21 +240,20 @@ const CompanysProvider = ({ children }) => {
   );
 };
 
-const UserProvider = ({ children }) => {
-  const [userID, setUserID] = useState(parseInt(sessionStorage.getItem("user_id")));
-  const [userEmail, setUserEmail] = useState(sessionStorage.getItem("user_email"));
+const AccountProvider = ({ children }) => {
+  const [accountID, setAccountID] = useState(parseInt(sessionStorage.getItem("account_id")));
+  const [accountEmail, setAccountEmail] = useState(sessionStorage.getItem("account_email"));
   const [isCompany, setIsCompany] = useState(parseInt(sessionStorage.getItem("is_company")));
-  const [isRegistered, setIsRegistered] = useState(parseInt(sessionStorage.getItem("is_registered")));
 
-  console.log("UserProvider");
+  console.log("accountProvider");
   useEffect(() => {
-    console.log("UserProvider useEffect");
+    console.log("accountProvider useEffect");
   }, []);
 
   return (
-    <UserContext.Provider value={{ userID, userEmail, isCompany, isRegistered, setUserID, setUserEmail, setIsCompany, setIsRegistered }}>
+    <AccountContext.Provider value={{ accountID, accountEmail, isCompany, setAccountID, setAccountEmail, setIsCompany }}>
       {children}
-    </UserContext.Provider>
+    </AccountContext.Provider>
   );
 };
 
