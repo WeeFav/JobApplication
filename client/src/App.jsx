@@ -25,30 +25,31 @@ function App() {
       <>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={
-          <ProtectedRoute>
+          <ProtectedRoute validUser={'user and company'} redirectPath={'/login'}>
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route index element={
-            <HomePage />
-          } />
-          <Route path="/company-jobs" element={<CompanyJobsPage />} />
-          <Route path="/jobs" element={<JobsPage />} />
-          <Route path="/companies" element={<CompaniesPage />} />
-          <Route path="/applied-jobs" element={
-            <AppliedJobsPage />
-          } />
+          {/* All */}
+          <Route index element={<HomePage />} />
           <Route path="/jobs/:id" element={<JobPage />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
-          <Route path="/jobs/edit/:id" element={
-            <CompanysProvider>
-              <EditJobPage />
-            </CompanysProvider>
-          } loader={jobLoader} />
-          <Route path="/add-job" element={
-            <AddJobPage />
-          } />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/add-job" element={<AddJobPage />} />
+          {/* User Only */}
+          <Route element={<ProtectedRoute validUser={'user'} redirectPath={'/'} />}>
+            <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/applied-jobs" element={<AppliedJobsPage />} />
+            <Route path="/companies" element={<CompaniesPage />} />
+          </Route>
+          {/* Company Only */}
+          <Route element={<ProtectedRoute validUser={'company'} redirectPath={'/'} />}>
+            <Route path="/company-jobs" element={<CompanyJobsPage />} />
+            <Route path="/jobs/edit/:id" element={
+              <CompanysProvider>
+                <EditJobPage />
+              </CompanysProvider>
+            } loader={jobLoader} />
+          </Route>
         </Route>
       </>
     )

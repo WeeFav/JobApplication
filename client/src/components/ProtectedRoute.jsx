@@ -1,21 +1,34 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 import { AccountContext } from "../App";
 import { useContext } from "react";
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ validUser, redirectPath, children }) => {
   const accountContext = useContext(AccountContext);
   const navigate = useNavigate();
   
   console.log("ProtectedRoute");
+
   useEffect(() => {
-    if (isNaN(accountContext.accountID)) {
-      navigate('/login', { replace: true });
+    if (validUser === 'user and company') {
+      if (isNaN(accountContext.accountID)) {
+        return navigate(redirectPath, { replace: true });
+      }
+    }
+    else if (validUser === 'user') {
+      if (accountContext.isCompany) {
+        return navigate(redirectPath, { replace: true });
+      }
+    }
+    else if (validUser === 'company') {
+      if (!accountContext.isCompany) {
+        return navigate(redirectPath, { replace: true });
+      }
     }
     console.log("ProtectedRoute useEffect");
   }, []);
 
-  return children;
+  return children ? children : <Outlet />;
 }
 
 export default ProtectedRoute;
