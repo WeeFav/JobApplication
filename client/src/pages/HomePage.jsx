@@ -2,11 +2,9 @@ import Hero from "../components/Hero"
 import JobListings from "../components/JobListings";
 import ViewAllJobs from "../components/ViewAllJobs";
 import { useState, useContext } from "react"
-import { JobsContext } from "../App";
 
 const HomePage = () => {
-  const { jobs, loading } = useContext(JobsContext);
-
+  
   return (
     <>
       <section className="mb-8">

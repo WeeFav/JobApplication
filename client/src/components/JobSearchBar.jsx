@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { searchJobHandler } from "../App";
 
 const JobSearchBar = ({onSearchClick}) => {
   const [jobTitle, setJobTitle] = useState("");

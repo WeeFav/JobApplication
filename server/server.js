@@ -31,65 +31,13 @@ function format_job(job_db) {
   })
 };
 
-/*
------------------------------------------------------------
-GET
------------------------------------------------------------
+
+
+/* 
+===============================================================================
+account
+===============================================================================
 */
-
-app.get('/jobs', async (req, res) => {
-  const jobs = await db.get_jobs(req.query);
-
-  const jobs_formatted = [];
-
-  jobs.map((job) => {
-    jobs_formatted.push(format_job(job))
-  });
-
-  res.json(jobs_formatted);
-});
-
-app.get('/jobs/:id', async (req, res) => {
-  const id = req.params.id;
-  const [job] = await db.get_job(id);
-
-  if (job) {
-    res.json(format_job(job));
-  }
-  else {
-    res.status(404).json({ 'error': `Job ${id} not found` })
-  }
-})
-
-app.get('/companys', async (req, res) => {
-  const limit = parseInt(req.query._limit);
-  const companys = await db.get_companys(limit);
-  res.json(companys);
-});
-
-app.get('/user/:id', async (req, res) => {
-  const user_id = req.params.id;
-  const [user] = await db.get_user(user_id);
-  res.json(user);
-});
-
-app.get('/company/:id', async (req, res) => {
-  const company_id = req.params.id;
-  const [company] = await db.get_company(company_id);
-  res.json(company);
-});
-
-/*
------------------------------------------------------------
-POST
------------------------------------------------------------
-*/
-
-app.post('/add-job', async (req, res) => {
-  const newJob = req.body;
-  await db.add_job(newJob);
-  res.json({ message: 'Job added successfully' });
-});
 
 app.post('/account', async (req, res) => {
   const account = req.body;
@@ -99,20 +47,6 @@ app.post('/account', async (req, res) => {
   } catch (e) {
     res.json({account_id: e.code});
   }
-});
-
-app.post('/user', async (req, res) => {
-  const user = req.body;
-
-  await db.add_user(user);
-  res.json({message: 'success'});
-});
-
-app.post('/company', async (req, res) => {
-  const company = req.body;
-
-  await db.add_company(company);
-  res.json({message: 'success'});
 });
 
 app.post('/account/check', async (req, res) => {
@@ -125,6 +59,116 @@ app.post('/account/check', async (req, res) => {
     res.json({ account_id: 'failed' });
   }
 })
+
+/* 
+===============================================================================
+user
+===============================================================================
+*/
+
+app.get('/user/:id', async (req, res) => {
+  const user_id = req.params.id;
+  const [user] = await db.get_user(user_id);
+  res.json(user);
+});
+
+app.post('/user', async (req, res) => {
+  const user = req.body;
+
+  await db.add_user(user);
+  res.json({message: 'success'});
+});
+
+/* 
+===============================================================================
+company
+===============================================================================
+*/
+
+app.get('/company/:id', async (req, res) => {
+  const company_id = req.params.id;
+  const [company] = await db.get_company(company_id);
+  res.json(company);
+});
+
+app.post('/company', async (req, res) => {
+  const company = req.body;
+
+  await db.add_company(company);
+  res.json({message: 'success'});
+});
+
+/* 
+===============================================================================
+job
+===============================================================================
+*/
+
+app.get('/jobs', async (req, res) => {
+  const jobs = await db.get_jobs(req.query);
+  res.json(jobs);
+});
+
+app.get('/jobs/:id', async (req, res) => {
+  const job_id = req.params.id;
+  const [job] = await db.get_job(job_id);
+
+  if (job) {
+    res.json(job);
+  }
+  else {
+    res.status(404).json({ 'error': `Job ${id} not found` })
+  }
+})
+
+app.post('/add-job', async (req, res) => {
+  const newJob = req.body;
+  await db.add_job(newJob);
+  res.json({ message: 'Job added successfully' });
+});
+
+/* 
+===============================================================================
+application
+===============================================================================
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+app.get('/companys', async (req, res) => {
+  const limit = parseInt(req.query._limit);
+  const companys = await db.get_companys(limit);
+  res.json(companys);
+});
+
+
+
+
+
+/*
+-----------------------------------------------------------
+POST
+-----------------------------------------------------------
+*/
+
+
+
+
+
+
+
+
+
+
 
 /*
 -----------------------------------------------------------

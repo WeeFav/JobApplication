@@ -12,7 +12,7 @@ const JobListings = ({jobs, loading, isHome=false}) => {
           {loading ? <h2>Loading...</h2> :
             <>
               {jobs.map((job) => (
-                <JobListing key={job.id} job={job} />
+                <JobListing key={job.job_id} job={job} />
               ))}
             </>
           }

@@ -1,8 +1,12 @@
-import { useParams, useLoaderData, useNavigate } from "react-router-dom"
+import { useLoaderData, useNavigate } from "react-router-dom"
 import { FaArrowLeft, FaMapMarker } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { useState, useContext, useEffect } from "react"
+import { AccountContext } from "../App";
 
 const JobPage = ({ deleteJobHandler }) => {
+  const accountContext = useContext(AccountContext);
+
   const job = useLoaderData();
   const navigate = useNavigate();
 
@@ -11,7 +15,7 @@ const JobPage = ({ deleteJobHandler }) => {
 
     if (confirm) {
       await deleteJobHandler(job.id);
-      navigate('/applied-jobs');
+      navigate('/company-jobs');
     }
 
   };
@@ -20,7 +24,7 @@ const JobPage = ({ deleteJobHandler }) => {
     <>
       <section>
         <div className="container m-auto py-4 px-6">
-          <Link to="/applied-jobs" className="text-website-blue hover:text-website-gold flex items-center">
+          <Link to={accountContext.isCompany ? "/company-jobs" : "/jobs"} className="text-website-blue hover:text-website-gold flex items-center">
             <FaArrowLeft className="mr-2" />
             Back to Job Listings
           </Link>
@@ -34,13 +38,13 @@ const JobPage = ({ deleteJobHandler }) => {
               <div
                 className="bg-white p-6 rounded-lg shadow-md text-center md:text-left"
               >
-                <div className="text-gray-500 mb-4">{job.type}</div>
+                <div className="text-gray-500 mb-4">{job.job_type}</div>
                 <h1 className="text-3xl font-bold mb-4">
-                  {job.title}
+                  {job.job_title}
                 </h1>
                 <div className="text-gray-500 mb-4 flex align-middle justify-center md:justify-start">
                   <FaMapMarker className="text-orange-700 mr-1 mt-1" />
-                  <p className="text-orange-700">{job.location}</p>
+                  <p className="text-orange-700">{job.job_location}</p>
                 </div>
               </div>
 
@@ -50,12 +54,12 @@ const JobPage = ({ deleteJobHandler }) => {
                 </h3>
 
                 <p className="mb-4">
-                  {job.description}
+                  {job.job_description}
                 </p>
 
                 <h3 className="text-website-blue text-lg font-bold mb-2">Salary</h3>
 
-                <p className="mb-4">{job.salary} / Year</p>
+                <p className="mb-4">{job.job_salary} / Year</p>
               </div>
             </main>
 
@@ -63,10 +67,10 @@ const JobPage = ({ deleteJobHandler }) => {
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="text-xl font-bold mb-6">Company Info</h3>
 
-                <h2 className="text-2xl">{job.company.name}</h2>
+                <h2 className="text-2xl">{job.company_name}</h2>
 
                 <p className="my-2">
-                  {job.company.description}
+                  {job.company_description}
                 </p>
 
                 <hr className="my-4" />
@@ -74,27 +78,37 @@ const JobPage = ({ deleteJobHandler }) => {
                 <h3 className="text-xl">Contact Email:</h3>
 
                 <p className="my-2 bg-website-lightGray p-2 font-bold">
-                  {job.company.contactEmail}
+                  {job.company_email}
                 </p>
 
                 <h3 className="text-xl">Contact Phone:</h3>
 
-                <p className="my-2 bg-website-lightGray p-2 font-bold">{job.company.contactPhone}</p>
+                <p className="my-2 bg-website-lightGray p-2 font-bold">{job.company_phone}</p>
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                 <h3 className="text-xl font-bold mb-6">Manage Job</h3>
-                <Link
-                  to={`/jobs/edit/${job.id}`}
-                  className="bg-website-blue hover:bg-website-gold text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
-                  Edit Job
-                </Link>
-                <button
-                  onClick={onDeleteClick}
-                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
-                >
-                  Delete Job
-                </button>
+                {accountContext.isCompany ?
+                  <>
+                    <Link
+                      to={`/jobs/edit/${job.job_id}`}
+                      className="bg-website-blue hover:bg-website-gold text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
+                      Edit Job
+                    </Link>
+                    <button
+                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                      onClick={onDeleteClick}
+                    >
+                      Delete Job
+                    </button>
+                  </>
+                  :
+                  <button
+                    className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                  >
+                    Apply Job
+                  </button>
+                }
               </div>
             </aside>
           </div>

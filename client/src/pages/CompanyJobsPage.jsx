@@ -1,8 +1,11 @@
 import JobListings from "../components/JobListings"
 import JobSearchBar from "../components/JobSearchBar"
 import { useState, useContext, useEffect } from "react"
+import { AccountContext } from "../App";
 
-const JobsPage = () => {  
+const CompanyJobsPage = () => {
+  const accountContext = useContext(AccountContext);
+  
   let jobs;
   let loading;
 
@@ -10,14 +13,14 @@ const JobsPage = () => {
   const [unfilteredJobsLoading, setUnfilteredJobsLoading] = useState(true);
 
   useEffect(() => {
-    loadJobs(setUnfilteredJobs, setUnfilteredJobsLoading);
+    loadCompanyJobs(accountContext.accountID, setUnfilteredJobs, setUnfilteredJobsLoading);
   }, [])
 
   const [filteredJobs, setFilteredJobs] = useState(null);
   const [filteredJobsLoading, setFilteredJobsLoading] = useState(true);
 
   const onSearchClick = async (jobTitle, jobLocation, jobType) => {
-    setFilteredJobs(await searchJobHandler(jobTitle, jobLocation, jobType));
+    setFilteredJobs(await searchJobHandler(accountContext.accountID, jobTitle, jobLocation, jobType));
     setFilteredJobsLoading(false);
   };
 
@@ -45,9 +48,10 @@ const JobsPage = () => {
         </div>
       </section>
     </>
-  )}
+  )
+}
 
-export default JobsPage
+export default CompanyJobsPage
 
 /* 
 ===============================================================================
@@ -56,9 +60,9 @@ API
 */
 
 // function to load company jobs
-const loadJobs = async (setUnfilteredJobs, setUnfilteredJobsLoading) => {
+const loadCompanyJobs = async (company_id, setUnfilteredJobs, setUnfilteredJobsLoading) => {
   try {
-    const res = await fetch(`/api/jobs`);
+    const res = await fetch(`/api/jobs?company_id=${company_id}`);
     const data = await res.json();
     setUnfilteredJobs(data);
   } catch (error) {
@@ -69,8 +73,8 @@ const loadJobs = async (setUnfilteredJobs, setUnfilteredJobsLoading) => {
 }
 
 // function to search job
-const searchJobHandler = async (jobTitle, jobLocation, jobType) => {
-  const res = await fetch(`/api/jobs?jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+const searchJobHandler = async (company_id, jobTitle, jobLocation, jobType) => {
+  const res = await fetch(`/api/jobs?company_id=${company_id}&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
   const data = await res.json();
   return data;
 }

@@ -13,10 +13,10 @@ import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddJobPage from "./pages/AddJobPage";
+import CompanyJobsPage from "./pages/CompanyJobsPage";
 import { useState, useEffect, createContext } from "react";
 
 export const CompanysContext = createContext();
-export const JobsContext = createContext();
 export const AccountContext = createContext();
 
 function App() {
@@ -30,16 +30,13 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={
-            <JobsProvider>
-              <HomePage />
-            </JobsProvider>
+            <HomePage />
           } />
+          <Route path="/company-jobs" element={<CompanyJobsPage />} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/applied-jobs" element={
-            <JobsProvider>
-              <AppliedJobsPage />
-            </JobsProvider>
+            <AppliedJobsPage />
           } />
           <Route path="/jobs/:id" element={<JobPage />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
           <Route path="/jobs/edit/:id" element={
@@ -99,44 +96,11 @@ export const updateJobHandler = async (updatedJob) => {
   });
 };
 
-// function to search job
-export const searchJobHandler = async (jobTitle, jobLocation, jobType) => {
-  const res = await fetch(`/api/jobs?jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
-  const data = await res.json();
-  return data;
-};
-
 /*
 -----------------------------------------------------------
 Context
 -----------------------------------------------------------
 */
-const JobsProvider = ({ children }) => {
-  const [jobs, setjobs] = useState(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/jobs');
-        const data = await res.json();
-        setjobs(data);
-      } catch (error) {
-        console.log("Error fetching data from backend", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-
-  return (
-    <JobsContext.Provider value={{ jobs, loading }}>
-      {children}
-    </JobsContext.Provider>
-  );
-};
 
 
 const CompanysProvider = ({ children }) => {

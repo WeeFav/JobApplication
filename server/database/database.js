@@ -11,10 +11,10 @@ const db = mysql.createPool({
 
 export async function get_jobs(search) {
   let query = `
-    SELECT *
-    FROM jobs 
+    SELECT job_id, job_title, job_type, job_description, job_location, job_salary, jobs.company_id, company_name, company_description, company_email, company_phone FROM jobs 
     INNER JOIN companys
     ON jobs.company_id = companys.company_id
+    WHERE job_id LIKE ? AND jobs.is_custom LIKE ? AND jobs.company_id LIKE ? AND job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ?
   `;
 
   const params = [];
@@ -24,13 +24,12 @@ export async function get_jobs(search) {
     params.push(search.limit);
   }
 
-  if (search.jobTitle || search.jobType || search.jobLocation) {
-    query += `WHERE job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ?`;
-    params.push(`%${search.jobTitle}%`);
-    params.push(`%${search.jobType}%`);
-    params.push(`%${search.jobLocation}%`);
-  }
-
+  params.push(search.job_id ? search.job_id : "%");
+  params.push(search.is_custom ? search.is_custom : "%");
+  params.push(search.company_id ? search.company_id : "%");
+  params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
+  params.push(search.jobType ? `%${search.jobType}%` : "%");
+  params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
   const [res] = await db.query(query, params);
   return res;
 }
@@ -90,7 +89,7 @@ export async function add_job(newJob) {
     INSERT INTO jobs (job_title, job_type, job_description, job_location, job_salary, company_id, is_custom)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
-  await db.query(query, [newJob.jobTitle, newJob.jobType, newJob.jobLocation, newJob.jobDescription, newJob.jobSalary, newJob.companyID, newJob.is_custom]);
+  await db.query(query, [newJob.jobTitle, newJob.jobType, newJob.jobDescription, newJob.jobLocation, newJob.jobSalary, newJob.companyID, newJob.is_custom]);
 }
 
 export async function update_job(job) {
@@ -147,7 +146,7 @@ export async function add_company(company) {
 
 export async function check_account(account) {
   const is_company = account.accountType === 'company' ? true : false;
-  
+
   const query = `
     SELECT account_id, is_company FROM accounts WHERE account_email = ? AND account_password = ? AND is_company = ?
   `;
