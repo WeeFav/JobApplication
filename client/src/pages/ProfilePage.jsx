@@ -1,8 +1,8 @@
 import { AccountContext } from "../App";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import UserProfile from "../components/UserProfile";
-import CompanyProfile from "../components/CompanyProfile";
+import UserProfile from "../components/Profile/UserProfile";
+import CompanyProfile from "../components/Profile/CompanyProfile";
 
 const ProfilePage = () => {
   const navigate = useNavigate();

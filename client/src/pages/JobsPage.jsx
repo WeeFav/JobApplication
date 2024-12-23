@@ -1,5 +1,5 @@
-import JobListings from "../components/JobListings"
-import JobSearchBar from "../components/JobSearchBar"
+import JobListings from "../components/Jobs/JobListings"
+import JobSearchBar from "../components/Jobs/JobSearchBar"
 import { useState, useContext, useEffect } from "react"
 
 const JobsPage = () => {  
@@ -31,7 +31,7 @@ const JobsPage = () => {
 
   return (
     <>
-      <section className="mx-40">
+      <section className="mx-40 mb-12">
         <div className="my-12">
           <h2 className="text-3xl font-bold text-website-darkGray text-center">
             Company Jobs

@@ -1,5 +1,5 @@
-import JobListings from "../components/JobListings"
-import JobSearchBar from "../components/JobSearchBar"
+import JobListings from "../components/Jobs/JobListings"
+import JobSearchBar from "../components/Jobs/JobSearchBar"
 import { useState, useContext } from "react"
 
 const AppliedJobsPage = ({searchJobHandler}) => {

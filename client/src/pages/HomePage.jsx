@@ -1,10 +1,10 @@
-import Hero from "../components/Hero"
-import JobListings from "../components/JobListings";
+import Hero from "../components/Home/Hero"
+import JobListings from "../components/Jobs/JobListings";
 import ViewAllJobs from "../components/ViewAllJobs";
 import { useState, useContext } from "react"
 
 const HomePage = () => {
-  
+
   return (
     <>
       <section className="mb-8">

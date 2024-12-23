@@ -1,7 +1,6 @@
 import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import MainLayout from "./layouts/MainLayout";
-import AppliedJobsPage from "./pages/AppliedJobsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import JobPage from "./pages/JobPage";
 import AddCustomJobPage from "./pages/AddCustomJobPage";
@@ -14,6 +13,7 @@ import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AddJobPage from "./pages/AddJobPage";
 import CompanyJobsPage from "./pages/CompanyJobsPage";
+import AppliedJobsPage from "./pages/AppliedJobsPage";
 import { useState, useEffect, createContext } from "react";
 
 export const CompanysContext = createContext();
@@ -50,6 +50,8 @@ function App() {
               </CompanysProvider>
             } loader={jobLoader} />
           </Route>
+          {/* Not Found Page */}
+          <Route path="/*" element={<NotFoundPage />} />
         </Route>
       </>
     )

@@ -1,8 +1,9 @@
 import { useState, useContext } from "react";
-import { AccountContext } from "../App";
+import { AccountContext } from "../../App";
 import { useNavigate } from "react-router-dom";
 
-const CompanyProfile = ({profileInfo}) => {
+
+const UserProfile = ({ profileInfo }) => {
   const navigate = useNavigate();
   const accountContext = useContext(AccountContext);
   const [tab, setTab] = useState('my profile')
@@ -15,17 +16,12 @@ const CompanyProfile = ({profileInfo}) => {
         <div className="w-40 mt-[53px]">
           <nav className="space-y-4">
             <button className={`pl-4 w-full text-left ${tab === 'my profile' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('my profile')}}
+              onClick={() => { setTab('my profile') }}
             >
               My Profile
             </button>
-            <button className={`pl-4 w-full text-left ${tab === 'company info' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('company info')}}
-            >
-              Company Info
-            </button>
             <button className={`pl-4 w-full text-left ${tab === 'change password' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('change password')}}
+              onClick={() => { setTab('change password') }}
             >
               Change Password
             </button>
@@ -41,7 +37,7 @@ const CompanyProfile = ({profileInfo}) => {
               Log Out
             </button>
             <button className={`pl-4 w-full text-left ${tab === 'delete account' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('delete account')}}
+              onClick={() => { setTab('delete account') }}
             >
               Delete Account
             </button>
@@ -56,13 +52,13 @@ const CompanyProfile = ({profileInfo}) => {
           <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex">
               <img
-                src="https://www.svgrepo.com/show/490660/company.svg"
+                src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
                 alt="Profile"
                 className="w-16 h-16 rounded-full mr-4"
               />
               <div>
                 <div className="flex items-center gap-[148px] mb-1">
-                  <h2 className="text-lg font-semibold">{profileInfo.company_name}</h2>
+                  <h2 className="text-lg font-semibold">{profileInfo.user_name}</h2>
                   <button className="text-gray-400 hover:text-gray-600">
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,9 +69,9 @@ const CompanyProfile = ({profileInfo}) => {
                   </button>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-gray-500">Company</p>
-                  <p className="text-gray-500">Email: {profileInfo.company_email}</p>
-                  <p className="text-gray-500">Company ID: {profileInfo.company_id}</p>
+                  <p className="text-gray-500">Applicant</p>
+                  <p className="text-gray-500">Email: {profileInfo.user_email}</p>
+                  <p className="text-gray-500">User ID: {profileInfo.user_id}</p>
                   <p className="text-gray-500">Account ID: {accountContext.accountID}</p>
                 </div>
               </div>
@@ -155,6 +151,6 @@ const CompanyProfile = ({profileInfo}) => {
       </div>
     </div>
   );
-}
+};
 
-export default CompanyProfile
+export default UserProfile;
