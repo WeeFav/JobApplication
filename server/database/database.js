@@ -58,6 +58,16 @@ export async function get_user(account_id) {
   return res;
 }
 
+export async function get_company(account_id) {
+  let query = `
+    SELECT * FROM companys
+    WHERE account_id = ?;
+  `;
+
+  const [res] = await db.query(query, [account_id]);
+  return res;
+}
+
 export async function get_companys(limit) {
   let query = `
     SELECT *

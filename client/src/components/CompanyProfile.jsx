@@ -1,8 +1,7 @@
 import { useState, useContext } from "react";
 import { AccountContext } from "../App";
 
-
-const UserProfile = ({profileInfo}) => {
+const CompanyProfile = ({profileInfo}) => {
   const accountContext = useContext(AccountContext);
   const [tab, setTab] = useState('my profile')
   const selectedTab = "bg-website-blue text-white rounded py-1 font-medium"
@@ -17,6 +16,11 @@ const UserProfile = ({profileInfo}) => {
               onClick={() => {setTab('my profile')}}
             >
               My Profile
+            </button>
+            <button className={`pl-4 w-full text-left ${tab === 'company info' ? selectedTab : "text-gray-500"}`}
+              onClick={() => {setTab('company info')}}
+            >
+              Company Info
             </button>
             <button className={`pl-4 w-full text-left ${tab === 'change password' ? selectedTab : "text-gray-500"}`}
               onClick={() => {setTab('change password')}}
@@ -50,7 +54,7 @@ const UserProfile = ({profileInfo}) => {
               />
               <div>
                 <div className="flex items-center gap-[148px] mb-1">
-                  <h2 className="text-lg font-semibold">{profileInfo.user_name}</h2>
+                  <h2 className="text-lg font-semibold">{profileInfo.company_name}</h2>
                   <button className="text-gray-400 hover:text-gray-600">
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,9 +65,9 @@ const UserProfile = ({profileInfo}) => {
                   </button>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-gray-500">Applicant</p>
+                  <p className="text-gray-500">Company</p>
                   <p className="text-gray-500">Email: {accountContext.accountEmail}</p>
-                  <p className="text-gray-500">User ID: {profileInfo.user_id}</p>
+                  <p className="text-gray-500">Company ID: {profileInfo.company_id}</p>
                   <p className="text-gray-500">Account ID: {accountContext.accountID}</p>
                 </div>
               </div>
@@ -143,6 +147,6 @@ const UserProfile = ({profileInfo}) => {
       </div>
     </div>
   );
-};
+}
 
-export default UserProfile;
+export default CompanyProfile

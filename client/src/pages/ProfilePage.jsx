@@ -2,6 +2,7 @@ import { AccountContext } from "../App";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UserProfile from "../components/UserProfile";
+import CompanyProfile from "../components/CompanyProfile";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -10,21 +11,12 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        console.log(accountContext.accountID)
-        const res = await fetch(`/api/user/account/${accountContext.accountID}`);
-        const data = await res.json();
-        console.log(data)
-        setProfileInfo(data);
-      } catch (error) {
-        console.log("Error fetching data from backend", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    if (accountContext.isCompany) {
+      loadCompanyProfile(accountContext.accountID, setProfileInfo, setLoading);
+    }
+    else {
+      loadUserProfile(accountContext.accountID, setProfileInfo, setLoading);
+    }
   }, [])
 
   return (
@@ -91,10 +83,52 @@ const ProfilePage = () => {
     //     Log out
     //   </button>
     // </div>
-    <div className="bg-website-blue flex flex-auto flex-col items-center justify-center">
-      <UserProfile />
-    </div>
+    <>
+      {loading ?
+        <div>loading</div>
+        :
+        <div className="bg-website-blue flex flex-auto flex-col items-center justify-center">
+          {accountContext.isCompany ?
+            <CompanyProfile profileInfo={profileInfo} />
+            :
+            <UserProfile profileInfo={profileInfo} />
+          }
+        </div>
+      }
+    </>
   )
 }
 
 export default ProfilePage
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to load user profile
+const loadUserProfile = async (accountID, setProfileInfo, setLoading) => {
+  try {
+    const res = await fetch(`/api/user/account/${accountID}`);
+    const data = await res.json();
+    setProfileInfo(data);
+  } catch (error) {
+    console.log("Error fetching data from backend", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// function to load company profile
+const loadCompanyProfile = async (accountID, setProfileInfo, setLoading) => {
+  try {
+    const res = await fetch(`/api/company/account/${accountID}`);
+    const data = await res.json();
+    setProfileInfo(data);
+  } catch (error) {
+    console.log("Error fetching data from backend", error);
+  } finally {
+    setLoading(false);
+  }
+};

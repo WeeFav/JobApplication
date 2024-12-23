@@ -69,9 +69,16 @@ app.get('/companys', async (req, res) => {
 
 app.get('/user/account/:id', async (req, res) => {
   const account_id = req.params.id;
-  const user = await db.get_user(account_id);
+  const [user] = await db.get_user(account_id);
   res.json(user);
 });
+
+app.get('/company/account/:id', async (req, res) => {
+  const account_id = req.params.id;
+  const [company] = await db.get_company(account_id);
+  res.json(company);
+});
+
 /*
 -----------------------------------------------------------
 POST
