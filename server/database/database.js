@@ -48,23 +48,23 @@ export async function get_job(job_id) {
   return res;
 }
 
-export async function get_user(account_id) {
+export async function get_user(user_id) {
   let query = `
     SELECT * FROM users
-    WHERE account_id = ?;
+    WHERE user_id = ?;
   `;
 
-  const [res] = await db.query(query, [account_id]);
+  const [res] = await db.query(query, [user_id]);
   return res;
 }
 
-export async function get_company(account_id) {
+export async function get_company(company_id) {
   let query = `
     SELECT * FROM companys
-    WHERE account_id = ?;
+    WHERE company_id = ?;
   `;
 
-  const [res] = await db.query(query, [account_id]);
+  const [res] = await db.query(query, [company_id]);
   return res;
 }
 
@@ -85,27 +85,12 @@ export async function get_companys(limit) {
   return res;
 }
 
-export async function add_job(job) {
-  let query;
-  let id;
-
-  // if adding new company to database
-  if (job.company) {
-    query = `
-      INSERT INTO companys (company_name, company_description, company_email, company_phone)
-      VALUES (?, ?, ?, ?)
-    `;
-    const [res] = await db.query(query, [job.company.name, job.company.description, job.company.contactEmail, job.company.contactPhone]);
-    id = res.insertId;
-  };
-
-  const company_id = job.company ? id : job.companyID;
-
-  query = `
-    INSERT INTO jobs (job_title, job_type, job_description, job_location, job_salary, company_id)
-    VALUES (?, ?, ?, ?, ?, ?)
+export async function add_job(newJob) {
+  const query = `
+    INSERT INTO jobs (job_title, job_type, job_description, job_location, job_salary, company_id, is_custom)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
-  await db.query(query, [job.title, job.type, job.description, job.location, job.salary, company_id]);
+  await db.query(query, [newJob.jobTitle, newJob.jobType, newJob.jobLocation, newJob.jobDescription, newJob.jobSalary, newJob.companyID, newJob.is_custom]);
 }
 
 export async function update_job(job) {
@@ -146,25 +131,25 @@ export async function add_account(account) {
 
 export async function add_user(user) {
   const query = `
-    INSERT INTO users (user_name, account_id)
-    VALUES (?, ?)
+    INSERT INTO users (user_id, user_name, user_email)
+    VALUES (?, ?, ?)
   `;
-  await db.query(query, [user.user_name, user.account_id]);
+  await db.query(query, [user.user_id, user.user_name, user.user_email]);
 }
 
 export async function add_company(company) {
   const query = `
-    INSERT INTO companys (company_name, company_description, company_email, company_phone, is_custom, account_id)
+    INSERT INTO companys (company_id, company_name, company_description, company_email, company_phone, is_custom)
     VALUES (?, ?, ?, ?, ?, ?)
   `;
-  await db.query(query, [company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom, company.account_id]);
+  await db.query(query, [company.company_id, company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom]);
 }
 
 export async function check_account(account) {
   const is_company = account.accountType === 'company' ? true : false;
   
   const query = `
-    SELECT account_id, account_email, is_company FROM accounts WHERE account_email = ? AND account_password = ? AND is_company = ?
+    SELECT account_id, is_company FROM accounts WHERE account_email = ? AND account_password = ? AND is_company = ?
   `;
   const [res] = await db.query(query, [account.email, account.password, is_company]);
   return res;

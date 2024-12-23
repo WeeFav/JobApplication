@@ -1,8 +1,10 @@
 import { useState, useContext } from "react";
 import { AccountContext } from "../App";
+import { useNavigate } from "react-router-dom";
 
 
-const UserProfile = ({profileInfo}) => {
+const UserProfile = ({ profileInfo }) => {
+  const navigate = useNavigate();
   const accountContext = useContext(AccountContext);
   const [tab, setTab] = useState('my profile')
   const selectedTab = "bg-website-blue text-white rounded py-1 font-medium"
@@ -14,22 +16,28 @@ const UserProfile = ({profileInfo}) => {
         <div className="w-40 mt-[53px]">
           <nav className="space-y-4">
             <button className={`pl-4 w-full text-left ${tab === 'my profile' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('my profile')}}
+              onClick={() => { setTab('my profile') }}
             >
               My Profile
             </button>
             <button className={`pl-4 w-full text-left ${tab === 'change password' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('change password')}}
+              onClick={() => { setTab('change password') }}
             >
               Change Password
             </button>
             <button className={`pl-4 w-full text-left ${tab === 'log out' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('log out')}}
+              onClick={() => {
+                setTab('log out')
+                sessionStorage.clear();
+                accountContext.setAccountID(NaN);
+                accountContext.setIsCompany(NaN);
+                navigate('/login')
+              }}
             >
               Log Out
             </button>
             <button className={`pl-4 w-full text-left ${tab === 'delete account' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('delete account')}}
+              onClick={() => { setTab('delete account') }}
             >
               Delete Account
             </button>
@@ -62,7 +70,7 @@ const UserProfile = ({profileInfo}) => {
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-gray-500">Applicant</p>
-                  <p className="text-gray-500">Email: {accountContext.accountEmail}</p>
+                  <p className="text-gray-500">Email: {profileInfo.user_email}</p>
                   <p className="text-gray-500">User ID: {profileInfo.user_id}</p>
                   <p className="text-gray-500">Account ID: {accountContext.accountID}</p>
                 </div>

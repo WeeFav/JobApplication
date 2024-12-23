@@ -110,7 +110,7 @@ API
 // function to load user profile
 const loadUserProfile = async (accountID, setProfileInfo, setLoading) => {
   try {
-    const res = await fetch(`/api/user/account/${accountID}`);
+    const res = await fetch(`/api/user/${accountID}`);
     const data = await res.json();
     setProfileInfo(data);
   } catch (error) {
@@ -123,7 +123,7 @@ const loadUserProfile = async (accountID, setProfileInfo, setLoading) => {
 // function to load company profile
 const loadCompanyProfile = async (accountID, setProfileInfo, setLoading) => {
   try {
-    const res = await fetch(`/api/company/account/${accountID}`);
+    const res = await fetch(`/api/company/${accountID}`);
     const data = await res.json();
     setProfileInfo(data);
   } catch (error) {

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addAccountHandler, checkAccountHandler } from '../App';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import { AccountContext } from "../App";
@@ -37,7 +36,7 @@ function LoginPage() {
 
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
-    
+
     const account = {
       name,
       email,
@@ -59,18 +58,16 @@ function LoginPage() {
     }
 
     if (accountStatus === 'exist') {
-      const account_db = await checkAccountHandler(account);
-      if (account_db) {
-        sessionStorage.setItem("account_id", account_db.account_id);
-        sessionStorage.setItem("account_email", account_db.account_email);
-        sessionStorage.setItem("is_company", account_db.is_company);
-        accountContext.setAccountID(account_db.account_id);
-        accountContext.setAccountEmail(account_db.account_email);
-        accountContext.setIsCompany(account_db.is_company);
-        return navigate('/');
+      const { account_id, is_company } = await checkAccountHandler(account);
+      if (account_id === 'failed') {
+        alert("Incorrect email and password");
       }
       else {
-        alert("Incorrect email and password");
+        sessionStorage.setItem("account_id", account_id);
+        sessionStorage.setItem("is_company", is_company);
+        accountContext.setAccountID(account_id);
+        accountContext.setIsCompany(is_company);
+        return navigate('/');
       }
     }
   };
@@ -187,3 +184,75 @@ function LoginPage() {
 }
 
 export default LoginPage;
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to add account
+export const addAccountHandler = async (account) => {
+  // add new account
+  let res = await fetch('/api/account', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(account)
+  });
+
+  // return if account email exist
+  const { account_id } = await res.json()
+  if (account_id === 'ER_DUP_ENTRY') {
+    return account_id;
+  }
+
+  // add new user or company
+  if (account.accountType === 'applicant') {
+    const user = {
+      user_id: account_id,
+      user_name: account.name,
+      user_email: account.email
+    }
+
+    res = await fetch('/api/user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(user)
+    });
+  }
+  else {
+    const company = {
+      company_id: account_id,
+      company_name: account.name,
+      company_description: '',
+      company_email: account.email,
+      company_phone: '',
+      is_custom: false,
+    }
+
+    res = await fetch('/api/company', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(company)
+    });
+  }
+};
+
+// function to check user account
+export const checkAccountHandler = async (account) => {
+  const res = await fetch('/api/account/check', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(account)
+  });
+
+  return await res.json();
+}

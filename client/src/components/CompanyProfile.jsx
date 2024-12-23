@@ -1,7 +1,9 @@
 import { useState, useContext } from "react";
 import { AccountContext } from "../App";
+import { useNavigate } from "react-router-dom";
 
 const CompanyProfile = ({profileInfo}) => {
+  const navigate = useNavigate();
   const accountContext = useContext(AccountContext);
   const [tab, setTab] = useState('my profile')
   const selectedTab = "bg-website-blue text-white rounded py-1 font-medium"
@@ -28,7 +30,13 @@ const CompanyProfile = ({profileInfo}) => {
               Change Password
             </button>
             <button className={`pl-4 w-full text-left ${tab === 'log out' ? selectedTab : "text-gray-500"}`}
-              onClick={() => {setTab('log out')}}
+              onClick={() => {
+                setTab('log out')
+                sessionStorage.clear();
+                accountContext.setAccountID(NaN);
+                accountContext.setIsCompany(NaN);
+                navigate('/login')
+              }}
             >
               Log Out
             </button>
@@ -48,7 +56,7 @@ const CompanyProfile = ({profileInfo}) => {
           <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex">
               <img
-                src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                src="https://www.svgrepo.com/show/490660/company.svg"
                 alt="Profile"
                 className="w-16 h-16 rounded-full mr-4"
               />
@@ -66,7 +74,7 @@ const CompanyProfile = ({profileInfo}) => {
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-gray-500">Company</p>
-                  <p className="text-gray-500">Email: {accountContext.accountEmail}</p>
+                  <p className="text-gray-500">Email: {profileInfo.company_email}</p>
                   <p className="text-gray-500">Company ID: {profileInfo.company_id}</p>
                   <p className="text-gray-500">Account ID: {accountContext.accountID}</p>
                 </div>

@@ -67,15 +67,15 @@ app.get('/companys', async (req, res) => {
   res.json(companys);
 });
 
-app.get('/user/account/:id', async (req, res) => {
-  const account_id = req.params.id;
-  const [user] = await db.get_user(account_id);
+app.get('/user/:id', async (req, res) => {
+  const user_id = req.params.id;
+  const [user] = await db.get_user(user_id);
   res.json(user);
 });
 
-app.get('/company/account/:id', async (req, res) => {
-  const account_id = req.params.id;
-  const [company] = await db.get_company(account_id);
+app.get('/company/:id', async (req, res) => {
+  const company_id = req.params.id;
+  const [company] = await db.get_company(company_id);
   res.json(company);
 });
 
@@ -86,23 +86,8 @@ POST
 */
 
 app.post('/add-job', async (req, res) => {
-  const job = req.body;
-
-  // if custom company, then add to companys  
-  if (job.company) {
-    await db_add_company(job.company);
-  }
-
-  // add job
-  await db_add_job(job);
-
-  // if custom job, then add to applications
-  if (job.is_custom) {
-    await db_add_application();
-  }
-
-
-  await add_job_db(newJob);
+  const newJob = req.body;
+  await db.add_job(newJob);
   res.json({ message: 'Job added successfully' });
 });
 

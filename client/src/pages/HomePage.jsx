@@ -19,7 +19,7 @@ const HomePage = () => {
               Recently Applied Jobs
             </h2>
           </div>
-          <JobListings jobs={jobs} loading={loading} isHome={true} />
+          {/* <JobListings jobs={jobs} loading={loading} isHome={true} /> */}
         </div>
       </section>
       {/* <ViewAllJobs /> */}
