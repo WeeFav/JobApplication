@@ -11,7 +11,7 @@ const ProtectedRoute = ({ validUser, redirectPath, children }) => {
 
   useEffect(() => {
     if (validUser === 'user and company') {
-      if (isNaN(accountContext.accountID)) {
+      if (isNaN(accountContext.ID)) {
         return navigate(redirectPath, { replace: true });
       }
     }

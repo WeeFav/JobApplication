@@ -46,7 +46,7 @@ const CompanyProfile = ({ profileInfo }) => {
               onClick={() => {
                 setTab('log out')
                 sessionStorage.clear();
-                accountContext.setAccountID(NaN);
+                accountContext.setID(NaN);
                 accountContext.setIsCompany(NaN);
                 navigate('/login')
               }}
@@ -72,3 +72,20 @@ const CompanyProfile = ({ profileInfo }) => {
 }
 
 export default CompanyProfile
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to update company
+export const updateCompanyHandler = async (updatedCompany) => {
+  const res = await fetch('/api/company', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updatedCompany)
+  });
+};

@@ -13,14 +13,14 @@ const CompanyJobsPage = () => {
   const [unfilteredJobsLoading, setUnfilteredJobsLoading] = useState(true);
 
   useEffect(() => {
-    loadCompanyJobs(accountContext.accountID, setUnfilteredJobs, setUnfilteredJobsLoading);
+    loadCompanyJobs(accountContext.ID, setUnfilteredJobs, setUnfilteredJobsLoading);
   }, [])
 
   const [filteredJobs, setFilteredJobs] = useState(null);
   const [filteredJobsLoading, setFilteredJobsLoading] = useState(true);
 
   const onSearchClick = async (jobTitle, jobLocation, jobType) => {
-    setFilteredJobs(await searchJobHandler(accountContext.accountID, jobTitle, jobLocation, jobType));
+    setFilteredJobs(await searchJobHandler(accountContext.ID, jobTitle, jobLocation, jobType));
     setFilteredJobsLoading(false);
   };
 

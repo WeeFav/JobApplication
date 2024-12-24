@@ -56,7 +56,7 @@ app.post('/account/check', async (req, res) => {
     res.json(result[0]);
   }
   else {
-    res.json({ account_id: 'failed' });
+    res.json({ id: 'failed' });
   }
 })
 
@@ -91,10 +91,20 @@ app.get('/company/:id', async (req, res) => {
   res.json(company);
 });
 
+app.get('/company', async (req, res) => {
+  const companys = await db.get_companys(req.query);
+  res.json(companys);
+});
+
 app.post('/company', async (req, res) => {
   const company = req.body;
+  const company_id = await db.add_company(company);
+  res.json({company_id: company_id});
+});
 
-  await db.add_company(company);
+app.put('/company', async (req, res) => {
+  const updatedCompany = req.body;
+  await db.update_company(updatedCompany);
   res.json({message: 'success'});
 });
 
@@ -121,7 +131,7 @@ app.get('/jobs/:id', async (req, res) => {
   }
 })
 
-app.post('/add-job', async (req, res) => {
+app.post('/job', async (req, res) => {
   const newJob = req.body;
   await db.add_job(newJob);
   res.json({ message: 'Job added successfully' });
@@ -144,11 +154,7 @@ application
 
 
 
-app.get('/companys', async (req, res) => {
-  const limit = parseInt(req.query._limit);
-  const companys = await db.get_companys(limit);
-  res.json(companys);
-});
+
 
 
 

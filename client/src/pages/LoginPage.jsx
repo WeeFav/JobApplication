@@ -12,7 +12,7 @@ function LoginPage() {
   // first check if user already logged in
   // if logged in, redirect to home page
   useEffect(() => {
-    if (!isNaN(accountContext.accountID)) {
+    if (!isNaN(accountContext.ID)) {
       navigate('/');
     }
   }, []);
@@ -45,8 +45,8 @@ function LoginPage() {
     };
 
     if (accountStatus === 'new') {
-      const account_id = await addAccountHandler(account);
-      if (account_id === 'ER_DUP_ENTRY') {
+      const successCreateAccount = await addAccountHandler(account);
+      if (!successCreateAccount) {
         alert('email already exist');
       }
       else {
@@ -58,14 +58,14 @@ function LoginPage() {
     }
 
     if (accountStatus === 'exist') {
-      const { account_id, is_company } = await checkAccountHandler(account);
-      if (account_id === 'failed') {
+      const { id, is_company } = await checkAccountHandler(account);
+      if (id === 'failed') {
         alert("Incorrect email and password");
       }
       else {
-        sessionStorage.setItem("account_id", account_id);
+        sessionStorage.setItem(`${is_company ? 'company' : 'user'}_id`, id);
         sessionStorage.setItem("is_company", is_company);
-        accountContext.setAccountID(account_id);
+        accountContext.setID(id);
         accountContext.setIsCompany(is_company);
         return navigate('/');
       }
@@ -205,7 +205,7 @@ export const addAccountHandler = async (account) => {
   // return if account email exist
   const { account_id } = await res.json()
   if (account_id === 'ER_DUP_ENTRY') {
-    return account_id;
+    return false;
   }
 
   // add new user or company
@@ -226,12 +226,12 @@ export const addAccountHandler = async (account) => {
   }
   else {
     const company = {
-      company_id: account_id,
       company_name: account.name,
       company_description: '',
       company_email: account.email,
       company_phone: '',
       is_custom: false,
+      account_id: account_id
     }
 
     res = await fetch('/api/company', {
@@ -242,6 +242,8 @@ export const addAccountHandler = async (account) => {
       body: JSON.stringify(company)
     });
   }
+
+  return true
 };
 
 // function to check user account

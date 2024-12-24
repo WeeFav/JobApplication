@@ -12,10 +12,10 @@ const ProfilePage = () => {
 
   useEffect(() => {
     if (accountContext.isCompany) {
-      loadCompanyProfile(accountContext.accountID, setProfileInfo, setLoading);
+      loadCompanyProfile(accountContext.ID, setProfileInfo, setLoading);
     }
     else {
-      loadUserProfile(accountContext.accountID, setProfileInfo, setLoading);
+      loadUserProfile(accountContext.ID, setProfileInfo, setLoading);
     }
   }, [])
 
@@ -108,9 +108,9 @@ API
 */
 
 // function to load user profile
-const loadUserProfile = async (accountID, setProfileInfo, setLoading) => {
+const loadUserProfile = async (user_id, setProfileInfo, setLoading) => {
   try {
-    const res = await fetch(`/api/user/${accountID}`);
+    const res = await fetch(`/api/user/${user_id}`);
     const data = await res.json();
     setProfileInfo(data);
   } catch (error) {
@@ -121,9 +121,9 @@ const loadUserProfile = async (accountID, setProfileInfo, setLoading) => {
 };
 
 // function to load company profile
-const loadCompanyProfile = async (accountID, setProfileInfo, setLoading) => {
+const loadCompanyProfile = async (company_id, setProfileInfo, setLoading) => {
   try {
-    const res = await fetch(`/api/company/${accountID}`);
+    const res = await fetch(`/api/company/${company_id}`);
     const data = await res.json();
     setProfileInfo(data);
   } catch (error) {

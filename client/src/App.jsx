@@ -34,7 +34,11 @@ function App() {
           <Route path="/jobs/:id" element={<JobPage />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/add-job" element={<AddJobPage />} />
+          <Route path="/add-job" element={
+            <CompanysProvider>
+              <AddJobPage />
+            </CompanysProvider>
+          } />
           {/* User Only */}
           <Route element={<ProtectedRoute validUser={'user'} redirectPath={'/'} />}>
             <Route path="/jobs" element={<JobsPage />} />
@@ -105,15 +109,14 @@ Context
 -----------------------------------------------------------
 */
 
-
 const CompanysProvider = ({ children }) => {
-  const [companys, setCompanys] = useState(null);
+  const [companys, setCompanys] = useState();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/companys');
+        const res = await fetch('/api/company');
         const data = await res.json();
         setCompanys(data);
       } catch (error) {
@@ -134,8 +137,8 @@ const CompanysProvider = ({ children }) => {
 };
 
 const AccountProvider = ({ children }) => {
-  const [accountID, setAccountID] = useState(parseInt(sessionStorage.getItem("account_id")));
   const [isCompany, setIsCompany] = useState(parseInt(sessionStorage.getItem("is_company")));
+  const [ID, setID] = useState(parseInt(sessionStorage.getItem(`${isCompany ? 'company' : 'user'}_id`)));
 
   console.log("accountProvider");
   useEffect(() => {
@@ -143,7 +146,7 @@ const AccountProvider = ({ children }) => {
   }, []);
 
   return (
-    <AccountContext.Provider value={{ accountID, isCompany, setAccountID, setIsCompany }}>
+    <AccountContext.Provider value={{ ID, isCompany, setID, setIsCompany }}>
       {children}
     </AccountContext.Provider>
   );

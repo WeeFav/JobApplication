@@ -1,6 +1,8 @@
 import { useState, useEffect, useContext } from "react"
 import { useNavigate } from "react-router-dom";
 import { AccountContext } from "../App";
+import { CompanysContext } from "../App";
+import CustomCompany from "../components/AddJob/CustomCompany";
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 
@@ -14,6 +16,14 @@ const AddJobPage = () => {
   const [jobDescription, setJobDescription] = useState('');
   const [jobSalary, setJobSalary] = useState('Under $50K');
 
+  const [companyName, setCompanyName] = useState('');
+  const [companyDescription, setCompanyDescription] = useState('');
+  const [companyEmail, setCompanyEmail] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [companyID, setCompanyID] = useState('');
+
+  const [companyInfoButton, setCompanyInfoButton] = useState('exist');
+
   // alert popup
   const [open, setOpen] = useState(false);
   const handleClose = () => {
@@ -22,17 +32,50 @@ const AddJobPage = () => {
 
   const onSubmitFormClick = (e) => {
     e.preventDefault();
+    let newJob;
 
-    const newJob = {
-      jobTitle,
-      jobType,
-      jobLocation,
-      jobDescription,
-      jobSalary,
-      companyID: accountContext.accountID,
-      is_custom: 0
+    if (accountContext.isCompany) {
+      newJob = {
+        jobTitle,
+        jobType,
+        jobLocation,
+        jobDescription,
+        jobSalary,
+        companyID: accountContext.ID,
+        is_custom: 0
+      }
     }
-
+    else {
+      if (companyInfoButton === 'exist') {
+        newJob = {
+          jobTitle,
+          jobType,
+          jobLocation,
+          jobDescription,
+          jobSalary,
+          companyID,
+          is_custom: 1
+        }
+      }
+      else {
+        newJob = {
+          jobTitle,
+          jobType,
+          jobLocation,
+          jobDescription,
+          jobSalary,
+          is_custom: 1,
+          company: {
+            company_name: companyName,
+            company_description: companyDescription,
+            company_email: companyEmail,
+            company_phone: companyPhone,
+            is_custom: 1
+          }
+        }
+      }
+    }
+    
     addJobHandler(newJob);
     setOpen(true);
     setJobTitle('');
@@ -52,6 +95,7 @@ const AddJobPage = () => {
             <form onSubmit={onSubmitFormClick}>
               <h2 className="text-3xl text-center font-semibold mb-6">Add Job</h2>
 
+              {/* Job Section */}
               <div className="mb-4">
                 <label htmlFor="type" className="block text-gray-700 font-bold mb-2">
                   Job Type
@@ -145,6 +189,25 @@ const AddJobPage = () => {
                 />
               </div>
 
+              {accountContext.isCompany ?
+                <></>
+                :
+                <CustomCompany param={
+                  {companyName,
+                  companyDescription,
+                  companyEmail,
+                  companyPhone,
+                  companyID,
+                  companyInfoButton,
+                  setCompanyName,
+                  setCompanyDescription,
+                  setCompanyEmail,
+                  setCompanyPhone,
+                  setCompanyID,
+                  setCompanyInfoButton}
+                } />}
+
+              {/* Add Job Button */}
               <div>
                 <button
                   className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
@@ -181,11 +244,28 @@ API
 
 // function to add job
 export const addJobHandler = async (newJob) => {
-  const res = await fetch('/api/add-job', {
+  
+  // if custom company, add to database first
+  if (newJob.company) {
+    const res = await fetch('/api/company', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newJob.company)
+    }); 
+
+    const {company_id} = await res.json();
+    console.log(company_id)
+    newJob['companyID'] = company_id;
+  }
+
+  const res = await fetch('/api/job', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(newJob)
   });
+  console.log(newJob)
 };

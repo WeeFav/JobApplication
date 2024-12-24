@@ -29,7 +29,7 @@ const UserProfile = ({ profileInfo }) => {
               onClick={() => {
                 setTab('log out')
                 sessionStorage.clear();
-                accountContext.setAccountID(NaN);
+                accountContext.setID(NaN);
                 accountContext.setIsCompany(NaN);
                 navigate('/login')
               }}
@@ -72,7 +72,6 @@ const UserProfile = ({ profileInfo }) => {
                   <p className="text-gray-500">Applicant</p>
                   <p className="text-gray-500">Email: {profileInfo.user_email}</p>
                   <p className="text-gray-500">User ID: {profileInfo.user_id}</p>
-                  <p className="text-gray-500">Account ID: {accountContext.accountID}</p>
                 </div>
               </div>
             </div>

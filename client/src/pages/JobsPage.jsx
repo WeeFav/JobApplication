@@ -58,7 +58,7 @@ API
 // function to load company jobs
 const loadJobs = async (setUnfilteredJobs, setUnfilteredJobsLoading) => {
   try {
-    const res = await fetch(`/api/jobs`);
+    const res = await fetch(`/api/jobs?is_custom=0`);
     const data = await res.json();
     setUnfilteredJobs(data);
   } catch (error) {

@@ -28,7 +28,6 @@ const MyProfileTab = ({ profileInfo }) => {
             <p className="text-gray-500">Company</p>
             <p className="text-gray-500">Email: {profileInfo.company_email}</p>
             <p className="text-gray-500">Company ID: {profileInfo.company_id}</p>
-            <p className="text-gray-500">Account ID: {accountContext.accountID}</p>
           </div>
         </div>
       </div>
