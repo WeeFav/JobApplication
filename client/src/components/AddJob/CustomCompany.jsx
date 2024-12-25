@@ -1,8 +1,11 @@
 import { useContext, useState } from "react";
 import { CompanysContext } from "../../App";
+import { Autocomplete } from "@mui/material";
+import TextField from '@mui/material/TextField';
 
 const CustomCompany = ({ param }) => {
   const { companys, loading } = useContext(CompanysContext);
+  const [selectedId, setSelectedId] = useState();
   const {
     companyName,
     companyDescription,

@@ -76,7 +76,7 @@ const AddJobPage = () => {
       }
     }
     
-    addJobHandler(newJob);
+    addJobHandler(newJob, accountContext.ID);
     setOpen(true);
     setJobTitle('');
     setJobType('Full-Time');
@@ -243,11 +243,12 @@ API
 */
 
 // function to add job
-export const addJobHandler = async (newJob) => {
-  
+export const addJobHandler = async (newJob, user_id) => {
+  let res;
+
   // if custom company, add to database first
   if (newJob.company) {
-    const res = await fetch('/api/company', {
+    res = await fetch('/api/company', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -256,16 +257,33 @@ export const addJobHandler = async (newJob) => {
     }); 
 
     const {company_id} = await res.json();
-    console.log(company_id)
     newJob['companyID'] = company_id;
   }
 
-  const res = await fetch('/api/job', {
+  // add job to database
+  res = await fetch('/api/job', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(newJob)
   });
-  console.log(newJob)
+
+  const {job_id} = await res.json();
+
+  // if custom job, add application to database
+  if (newJob.is_custom) {
+    const application = {
+      job_id: job_id,
+      user_id: user_id
+    }
+  
+    res = await fetch('/api/application', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(application)
+    });
+  }
 };

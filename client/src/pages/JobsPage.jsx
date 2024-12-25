@@ -58,7 +58,7 @@ API
 // function to load company jobs
 const loadJobs = async (setUnfilteredJobs, setUnfilteredJobsLoading) => {
   try {
-    const res = await fetch(`/api/jobs?is_custom=0`);
+    const res = await fetch(`/api/job?is_custom=0`);
     const data = await res.json();
     setUnfilteredJobs(data);
   } catch (error) {
@@ -70,7 +70,7 @@ const loadJobs = async (setUnfilteredJobs, setUnfilteredJobsLoading) => {
 
 // function to search job
 const searchJobHandler = async (jobTitle, jobLocation, jobType) => {
-  const res = await fetch(`/api/jobs?jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+  const res = await fetch(`/api/job?is_custom=0&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
   const data = await res.json();
   return data;
 }

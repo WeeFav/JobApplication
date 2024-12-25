@@ -114,12 +114,12 @@ job
 ===============================================================================
 */
 
-app.get('/jobs', async (req, res) => {
+app.get('/job', async (req, res) => {
   const jobs = await db.get_jobs(req.query);
   res.json(jobs);
 });
 
-app.get('/jobs/:id', async (req, res) => {
+app.get('/job/:id', async (req, res) => {
   const job_id = req.params.id;
   const [job] = await db.get_job(job_id);
 
@@ -133,8 +133,8 @@ app.get('/jobs/:id', async (req, res) => {
 
 app.post('/job', async (req, res) => {
   const newJob = req.body;
-  await db.add_job(newJob);
-  res.json({ message: 'Job added successfully' });
+  const job_id = await db.add_job(newJob);
+  res.json({ job_id: job_id });
 });
 
 /* 
@@ -142,6 +142,17 @@ app.post('/job', async (req, res) => {
 application
 ===============================================================================
 */
+
+app.get('/application', async (req, res) => {
+  const applications = await db.get_applications(req.query);
+  res.json(applications);
+});
+
+app.post('/application', async (req, res) => {
+  const application = req.body;
+  await db.add_application(application);
+  res.json({ message: 'Application added successfully' });
+});
 
 
 

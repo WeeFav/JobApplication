@@ -1,29 +1,35 @@
 import JobListings from "../components/Jobs/JobListings"
 import JobSearchBar from "../components/Jobs/JobSearchBar"
-import { useState, useContext } from "react"
+import { useState, useContext, useEffect } from "react"
+import { AccountContext } from "../App";
 
 const AppliedJobsPage = ({searchJobHandler}) => {
+  const accountContext = useContext(AccountContext);
+  
   let jobs;
   let loading;
 
-  const unFiltered = useContext(JobsContext);
-  const unfilteredJobs = unFiltered.jobs;
-  const unfilteredJobsLoading = unFiltered.loading;
+  const [unfilteredApplications, setUnfilteredApplications] = useState(null);
+  const [unfilteredApplicationsLoading, setUnfilteredApplicationsLoading] = useState(true);
 
-  const  [filteredJobs, setFilteredJobs]  = useState(null);
-  const [filteredJobsLoading, setFilteredJobsLoading] = useState(true);
+  useEffect(() => {
+    loadApplications(accountContext.ID, setUnfilteredApplications, setUnfilteredApplicationsLoading);
+  }, [])
+
+  const  [filteredApplications, setFilteredApplications]  = useState(null);
+  const [filteredApplicationsLoading, setFilteredApplicationsLoading] = useState(true);
 
   const onSearchClick = async (jobTitle, jobLocation, jobType) => {
-    setFilteredJobs(await searchJobHandler(jobTitle, jobLocation, jobType));
-    setFilteredJobsLoading(false);
+    setFilteredApplications(await searchApplicationHandler(accountContext.ID, jobTitle, jobLocation, jobType));
+    setFilteredApplicationsLoading(false);
   };
 
-  if (!filteredJobsLoading) {
-    jobs = filteredJobs;
+  if (!filteredApplicationsLoading) {
+    jobs = filteredApplications;
   }
   else {
-    jobs = unfilteredJobs;
-    loading = unfilteredJobsLoading;
+    jobs = unfilteredApplications;
+    loading = unfilteredApplicationsLoading;
   }
   
   return (
@@ -46,3 +52,29 @@ const AppliedJobsPage = ({searchJobHandler}) => {
 }
 
 export default AppliedJobsPage
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to load user application
+const loadApplications = async (user_id, setUnfilteredApplications, setUnfilteredApplicationsLoading) => {
+  try {
+    const res = await fetch(`/api/application?user_id=${user_id}`);
+    const data = await res.json();
+    setUnfilteredApplications(data);
+  } catch (error) {
+    console.log("Error fetching data from backend", error);
+  } finally {
+    setUnfilteredApplicationsLoading(false);
+  }
+}
+
+// function to search job
+const searchApplicationHandler = async (jobTitle, jobLocation, jobType) => {
+  const res = await fetch(`/api/applications?user_id=${user_id}&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+  const data = await res.json();
+  return data;
+}

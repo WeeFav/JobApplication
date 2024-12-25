@@ -6,9 +6,15 @@ import { AccountContext } from "../App";
 
 const JobPage = ({ deleteJobHandler }) => {
   const accountContext = useContext(AccountContext);
+  const navigate = useNavigate();
 
   const job = useLoaderData();
-  const navigate = useNavigate();
+  const [application, setApplication] = useState();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadApplication(accountContext.ID, job.job_id, setApplication, setLoading)
+  }, []);
 
   const onDeleteClick = async () => {
     const confirm = window.confirm('Are you sure you want to delete this job?');
@@ -86,30 +92,40 @@ const JobPage = ({ deleteJobHandler }) => {
                 <p className="my-2 bg-website-lightGray p-2 font-bold">{job.company_phone}</p>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-                <h3 className="text-xl font-bold mb-6">Manage Job</h3>
-                {accountContext.isCompany ?
-                  <>
-                    <Link
-                      to={`/jobs/edit/${job.job_id}`}
-                      className="bg-website-blue hover:bg-website-gold text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
-                      Edit Job
-                    </Link>
-                    <button
-                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
-                      onClick={onDeleteClick}
-                    >
-                      Delete Job
-                    </button>
-                  </>
-                  :
-                  <button
-                    className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
-                  >
-                    Apply Job
-                  </button>
-                }
-              </div>
+              {loading ?
+                <div>loading</div>
+                :
+                <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+                  <h3 className="text-xl font-bold mb-6">Manage Job</h3>
+                  {accountContext.isCompany ?
+                    <>
+                      <Link
+                        to={`/jobs/edit/${job.job_id}`}
+                        className="bg-website-blue hover:bg-website-gold text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
+                        Edit Job
+                      </Link>
+                      <button
+                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                        onClick={onDeleteClick}
+                      >
+                        Delete Job
+                      </button>
+                    </>
+                    :
+                    <>
+                      {application.length > 0 ?
+                        <div>Applied</div>
+                        :
+                        <button
+                          className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                        >
+                          Apply Job
+                        </button>
+                      }
+                    </>
+                  }
+                </div>
+              }
             </aside>
           </div>
         </div>
@@ -119,3 +135,22 @@ const JobPage = ({ deleteJobHandler }) => {
 }
 
 export default JobPage;
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to load application to this job
+const loadApplication = async (user_id, job_id, setApplication, setLoading) => {
+  try {
+    const res = await fetch(`/api/application?user_id=${user_id}&job_id=${job_id}`);
+    const data = await res.json();
+    setApplication(data);
+  } catch (error) {
+    console.log("Error fetching data from backend", error);
+  } finally {
+    setLoading(false);
+  }
+}
