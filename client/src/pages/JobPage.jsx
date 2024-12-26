@@ -3,18 +3,35 @@ import { FaArrowLeft, FaMapMarker } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { useState, useContext, useEffect } from "react"
 import { AccountContext } from "../App";
+import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
 
-const JobPage = ({ deleteJobHandler }) => {
+const JobPage = () => {
   const accountContext = useContext(AccountContext);
   const navigate = useNavigate();
 
   const job = useLoaderData();
-  const [application, setApplication] = useState();
+  const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [applied, setApplied] = useState(false);
+
+  const [openApply, setOpenApply] = useState(false);
+  const [openUnapply, setOpenUnapply] = useState(false);
+  const handleApplyClose = () => {
+    setOpenApply(false);
+  };
+  const handleUnapplyClose = () => {
+    setOpenUnapply(false);
+  };
+
   useEffect(() => {
-    loadApplication(accountContext.ID, job.job_id, setApplication, setLoading)
-  }, []);
+    loadApplications(accountContext.ID, job.job_id, setApplications, setLoading)
+  }, [applied]);
+
+  useEffect(() => {
+    setApplied(applications.length > 0);
+  }, [applications])
 
   const onDeleteClick = async () => {
     const confirm = window.confirm('Are you sure you want to delete this job?');
@@ -26,8 +43,27 @@ const JobPage = ({ deleteJobHandler }) => {
 
   };
 
+
+  const onApplyClick = async () => {
+    const application = {
+      job_id: job.job_id,
+      user_id: accountContext.ID
+    }
+
+    await applyJobHandler(application);
+    setOpenApply(true);
+    setApplied(true);
+  }
+
+  const onUnapplyClick = async () => {
+    await unapplyJobHandler(applications[0].application_id)
+    setOpenUnapply(true);
+    setApplied(false);
+  }
+
+
   return (
-    <>
+    <div className="flex flex-col flex-grow">
       <section>
         <div className="container m-auto py-4 px-6">
           <Link to={accountContext.isCompany ? "/company-jobs" : "/jobs"} className="text-website-blue hover:text-website-gold flex items-center">
@@ -37,7 +73,7 @@ const JobPage = ({ deleteJobHandler }) => {
         </div>
       </section>
 
-      <section className="bg-website-lightGray">
+      <section className="bg-website-lightGray flex-grow">
         <div className="container m-auto py-10 px-6">
           <div className="grid grid-cols-1 md:grid-cols-[70%_30%] w-full gap-6">
             <main>
@@ -97,7 +133,7 @@ const JobPage = ({ deleteJobHandler }) => {
                 :
                 <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                   <h3 className="text-xl font-bold mb-6">Manage Job</h3>
-                  {accountContext.isCompany ?
+                  {accountContext.isCompany || (!accountContext.isCompany && job.is_custom) ?
                     <>
                       <Link
                         to={`/jobs/edit/${job.job_id}`}
@@ -113,24 +149,55 @@ const JobPage = ({ deleteJobHandler }) => {
                     </>
                     :
                     <>
-                      {application.length > 0 ?
-                        <div>Applied</div>
+                      {applied ?
+                        <>
+                          <button
+                            className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                            onClick={onUnapplyClick}
+                          >
+                            Unapply
+                          </button>
+
+                        </>
                         :
-                        <button
-                          className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
-                        >
-                          Apply Job
-                        </button>
+                        <>
+                          <button
+                            className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                            onClick={onApplyClick}
+                          >
+                            Apply Job
+                          </button>
+                        </>
                       }
                     </>
                   }
+                  <Snackbar open={openUnapply} autoHideDuration={3000} onClose={handleUnapplyClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+                    <Alert
+                      onClose={handleUnapplyClose}
+                      severity="success"
+                      variant="filled"
+                      sx={{ width: '100%' }}
+                    >
+                      Job unapplied
+                    </Alert>
+                  </Snackbar>
+                  <Snackbar open={openApply} autoHideDuration={3000} onClose={handleApplyClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+                    <Alert
+                      onClose={handleApplyClose}
+                      severity="success"
+                      variant="filled"
+                      sx={{ width: '100%' }}
+                    >
+                      Job applied
+                    </Alert>
+                  </Snackbar>
                 </div>
               }
             </aside>
           </div>
         </div>
       </section>
-    </>
+    </div>
   )
 }
 
@@ -143,14 +210,50 @@ API
 */
 
 // function to load application to this job
-const loadApplication = async (user_id, job_id, setApplication, setLoading) => {
+const loadApplications = async (user_id, job_id, setApplications, setLoading) => {
   try {
     const res = await fetch(`/api/application?user_id=${user_id}&job_id=${job_id}`);
     const data = await res.json();
-    setApplication(data);
+    setApplications(data);
   } catch (error) {
     console.log("Error fetching data from backend", error);
   } finally {
     setLoading(false);
   }
 }
+
+// function to delete job
+const deleteJobHandler = async (id) => {
+  await fetch(`/api/jobs/${id}`, {
+    method: 'DELETE'
+  });
+};
+
+// function to update job
+const updateJobHandler = async (updatedJob) => {
+  const res = await fetch(`/api/jobs/${updatedJob.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updatedJob)
+  });
+};
+
+// function to apply job
+const applyJobHandler = async (application) => {
+  const res = await fetch('/api/application', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(application)
+  });
+}
+
+// function to delete job
+const unapplyJobHandler = async (application_id) => {
+  const res = await fetch(`/api/application?application_id=${application_id}`, {
+    method: 'DELETE'
+  });
+};

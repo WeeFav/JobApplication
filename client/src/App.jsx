@@ -69,44 +69,9 @@ function App() {
 };
 
 /*
------------------------------------------------------------
-API Handler
------------------------------------------------------------
-*/
-
-// function to add job
-export const addJobHandler = async (newJob) => {
-  const res = await fetch('/api/add-job', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(newJob)
-  });
-};
-
-// function to delete job
-export const deleteJobHandler = async (id) => {
-  await fetch(`/api/jobs/${id}`, {
-    method: 'DELETE'
-  });
-};
-
-// function to update job
-export const updateJobHandler = async (updatedJob) => {
-  const res = await fetch(`/api/jobs/${updatedJob.id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(updatedJob)
-  });
-};
-
-/*
------------------------------------------------------------
+===============================================================================
 Context
------------------------------------------------------------
+===============================================================================
 */
 
 const CompanysProvider = ({ children }) => {

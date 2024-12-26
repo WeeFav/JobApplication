@@ -34,7 +34,7 @@ const CompanyJobsPage = () => {
 
   return (
     <>
-      <section className="mx-40 mb-12">
+      <section className="mx-40 mb-12 flex-grow">
         <div className="my-12">
           <h2 className="text-3xl font-bold text-website-darkGray text-center">
             Company Jobs
@@ -62,7 +62,7 @@ API
 // function to load company jobs
 const loadCompanyJobs = async (company_id, setUnfilteredJobs, setUnfilteredJobsLoading) => {
   try {
-    const res = await fetch(`/api/job?company_id=${company_id}`);
+    const res = await fetch(`/api/job?is_custom=0&company_id=${company_id}`);
     const data = await res.json();
     setUnfilteredJobs(data);
   } catch (error) {
@@ -74,7 +74,7 @@ const loadCompanyJobs = async (company_id, setUnfilteredJobs, setUnfilteredJobsL
 
 // function to search job
 const searchJobHandler = async (company_id, jobTitle, jobLocation, jobType) => {
-  const res = await fetch(`/api/job?company_id=${company_id}&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+  const res = await fetch(`/api/job?is_custom=0&company_id=${company_id}&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
   const data = await res.json();
   return data;
 }

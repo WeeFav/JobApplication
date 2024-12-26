@@ -6,7 +6,7 @@ import TextField from '@mui/material/TextField';
 const CustomCompany = ({ param }) => {
   const { companys, loading } = useContext(CompanysContext);
   const [selectedId, setSelectedId] = useState();
-  const {
+  const { 
     companyName,
     companyDescription,
     companyEmail,

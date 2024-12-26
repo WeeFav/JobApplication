@@ -7,11 +7,11 @@ const MainLayout = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <Outlet />
-      <section>
+      <footer>
         <Footer />
-      </section>
+      </footer>
     </div>
-    
+
   );
 };
 

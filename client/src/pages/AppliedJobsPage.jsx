@@ -34,7 +34,7 @@ const AppliedJobsPage = ({searchJobHandler}) => {
   
   return (
     <>
-      <section className="mx-40">
+      <section className="mx-40 mb-12 flex-grow">
         <div className="my-12">
           <h2 className="text-3xl font-bold text-website-darkGray text-center">
             Applied Jobs

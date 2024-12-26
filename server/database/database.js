@@ -218,7 +218,7 @@ application
 
 export async function get_applications(search) {
   let query = `
-    SELECT jobs.job_id, job_title, job_type, job_description, job_location, job_salary, application_date, application_status FROM applications
+    SELECT jobs.job_id, job_title, job_type, job_description, job_location, job_salary, application_id, application_date, application_status FROM applications
     INNER JOIN jobs
     ON applications.job_id = jobs.job_id
     WHERE user_id LIKE ? AND jobs.job_id LIKE ? AND application_date LIKE ? AND application_status LIKE ? AND job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ?
@@ -248,4 +248,12 @@ export async function add_application(application) {
   VALUES (?, ?)
 `;
   await db.query(query, [application.job_id, application.user_id]);
+}
+
+export async function delete_application(search) {
+  const query = `
+  DELETE FROM applications
+  WHERE application_id = ?
+`;
+  await db.query(query, [search.application_id]);  
 }

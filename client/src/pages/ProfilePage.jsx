@@ -87,7 +87,7 @@ const ProfilePage = () => {
       {loading ?
         <div>loading</div>
         :
-        <div className="bg-website-blue flex flex-auto flex-col items-center justify-center">
+        <div className="bg-website-blue flex flex-col flex-grow items-center justify-center">
           {accountContext.isCompany ?
             <CompanyProfile profileInfo={profileInfo} />
             :

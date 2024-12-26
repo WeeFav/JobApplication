@@ -31,7 +31,7 @@ const JobsPage = () => {
 
   return (
     <>
-      <section className="mx-40 mb-12">
+      <section className="mx-40 mb-12 flex-grow">
         <div className="my-12">
           <h2 className="text-3xl font-bold text-website-darkGray text-center">
             Company Jobs

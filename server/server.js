@@ -154,7 +154,10 @@ app.post('/application', async (req, res) => {
   res.json({ message: 'Application added successfully' });
 });
 
-
+app.delete('/application', async (req, res) => {
+  await db.delete_application(req.query);
+  res.json({ message: 'Application deleted successfully' }) // backend must respond or else frontend fetch will not resolve
+});
 
 
 

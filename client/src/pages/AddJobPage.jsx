@@ -83,6 +83,10 @@ const AddJobPage = () => {
     setJobLocation('');
     setJobDescription('');
     setJobSalary('Under $50K');
+    setCompanyName('');
+    setCompanyDescription('');
+    setCompanyEmail('');
+    setCompanyPhone('');
     // return navigate('/');
   };
 

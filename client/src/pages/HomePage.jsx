@@ -6,7 +6,7 @@ import { useState, useContext } from "react"
 const HomePage = () => {
 
   return (
-    <>
+    <div className="flex-grow">
       <section className="mb-8">
         <Hero />
       </section>
@@ -21,7 +21,7 @@ const HomePage = () => {
         </div>
       </section>
       {/* <ViewAllJobs /> */}
-    </>
+    </div>
   );
 }
 
