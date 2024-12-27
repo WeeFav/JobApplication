@@ -15,6 +15,7 @@ import AddJobPage from "./pages/AddJobPage";
 import CompanyJobsPage from "./pages/CompanyJobsPage";
 import AppliedJobsPage from "./pages/AppliedJobsPage";
 import { useState, useEffect, createContext } from "react";
+import CompanyPage from "./pages/CompanyPage";
 
 export const CompanysContext = createContext();
 export const AccountContext = createContext();
@@ -43,7 +44,12 @@ function App() {
           <Route element={<ProtectedRoute validUser={'user'} redirectPath={'/'} />}>
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/applied-jobs" element={<AppliedJobsPage />} />
-            <Route path="/companies" element={<CompaniesPage />} />
+            <Route path="/companies" element={
+              <CompanysProvider>
+                <CompaniesPage />
+              </CompanysProvider>
+            } />
+            <Route path="/companies/:id" element={<CompanyPage />} />
           </Route>
           {/* Company Only */}
           <Route element={<ProtectedRoute validUser={'company'} redirectPath={'/'} />}>
@@ -81,7 +87,7 @@ const CompanysProvider = ({ children }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/company');
+        const res = await fetch('/api/company?is_custom=0');
         const data = await res.json();
         setCompanys(data);
       } catch (error) {

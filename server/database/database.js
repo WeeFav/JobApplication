@@ -95,6 +95,7 @@ export async function get_companys(search) {
   let query = `
     SELECT *
     FROM companys
+    WHERE is_custom = ?
   `;
 
   const params = [];
@@ -105,7 +106,7 @@ export async function get_companys(search) {
   }
 
   // params.push(search.job_id ? search.job_id : "%");
-  // params.push(search.is_custom ? search.is_custom : "%");
+  params.push(search.is_custom ? search.is_custom : "%");
   // params.push(search.company_id ? search.company_id : "%");
   // params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
   // params.push(search.jobType ? `%${search.jobType}%` : "%");
