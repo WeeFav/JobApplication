@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
 import * as db from "./database/database.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import multer from "multer";
 
 const app = express();
 const corsOptions = {
@@ -13,25 +17,10 @@ app.use(cors(corsOptions));
 // Middleware to parse JSON
 app.use(express.json());
 
-function format_job(job_db) {
-  return ({
-    id: job_db.job_id,
-    title: job_db.job_title,
-    type: job_db.job_type,
-    description: job_db.job_description,
-    location: job_db.job_location,
-    salary: job_db.job_salary,
-    company: {
-      id: job_db.company_id,
-      name: job_db.company_name,
-      description: job_db.company_description,
-      contactEmail: job_db.company_email,
-      contactPhone: job_db.company_phone
-    }
-  })
-};
-
-
+// Serve static files from the "images" directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+app.use("/images", express.static(path.join(__dirname, "images")));
 
 /* 
 ===============================================================================
@@ -60,6 +49,12 @@ app.post('/account/check', async (req, res) => {
   }
 })
 
+app.put('/account', async (req, res) => {
+  const updatedAccount = req.body;
+  await db.update_account(updatedAccount);
+  res.json({message: 'success'});
+});
+
 /* 
 ===============================================================================
 user
@@ -76,6 +71,12 @@ app.post('/user', async (req, res) => {
   const user = req.body;
 
   await db.add_user(user);
+  res.json({message: 'success'});
+});
+
+app.put('/user', async (req, res) => {
+  const updatedUser = req.body;
+  await db.update_user(updatedUser);
   res.json({message: 'success'});
 });
 
@@ -159,65 +160,30 @@ app.delete('/application', async (req, res) => {
   res.json({ message: 'Application deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
------------------------------------------------------------
-POST
------------------------------------------------------------
+/* 
+===============================================================================
+others
+===============================================================================
 */
 
-
-
-
-
-
-
-
-
-
-
-/*
------------------------------------------------------------
-PUT
------------------------------------------------------------
-*/
-
-app.put('/jobs/:id', async (req, res) => {
-  const id = req.params.id;
-  const updatedjob = req.body;
-  await db.update_job(updatedjob);
-
-  res.json({ message: 'Job updated successfully' });
-})
-
-/*
------------------------------------------------------------
-DELETE
------------------------------------------------------------
-*/
-
-app.delete('/jobs/:id', async (req, res) => {
-  const id = req.params.id;
-  await db.delete_job(id);
-
-  res.json({ message: 'Job deleted successfully' }) // backend must respond or else frontend fetch will not resolve
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, "images")); // Save images to "/images"
+  },
+  filename: (req, file, cb) => {
+    cb(null, req.body.customFilename); // Unique file name
+  },
 });
 
+const upload = multer({ storage });
 
+app.post("/save-image", upload.single("image"), (req, res) => {
+  try {
+    res.status(200).json({ message: "Image uploaded successfully!", file: req.file });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to upload image" });
+  }
+});
 
 
 app.listen(8000, () => {

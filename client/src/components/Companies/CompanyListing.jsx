@@ -7,9 +7,9 @@ const CompanyListing = ({company}) => {
         <div className="flex flex-col items-center">
           <div className="w-[100px] h-[100px] rounded-full flex items-center justify-center">
             <img
-              src="https://www.svgrepo.com/show/490660/company.svg"
+              src={company.company_image}
               alt="Profile"
-              className="w-[80px] h-[80px] rounded-full mr-4"
+              className="object-contain w-[80px] h-[80px] rounded-full"
             />
           </div>
           <span className="mt-3 text-gray-600 font-medium">

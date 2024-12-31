@@ -213,7 +213,8 @@ export const addAccountHandler = async (account) => {
     const user = {
       user_id: account_id,
       user_name: account.name,
-      user_email: account.email
+      user_email: account.email,
+      user_image: "http://localhost:8000/images/user.png"
     }
 
     res = await fetch('/api/user', {
@@ -231,7 +232,8 @@ export const addAccountHandler = async (account) => {
       company_email: account.email,
       company_phone: '',
       is_custom: false,
-      account_id: account_id
+      account_id: account_id,
+      company_image: "http://localhost:8000/images/company.png"
     }
 
     res = await fetch('/api/company', {

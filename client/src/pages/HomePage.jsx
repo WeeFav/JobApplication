@@ -1,6 +1,5 @@
 import Hero from "../components/Home/Hero"
 import JobListings from "../components/Jobs/JobListings";
-import ViewAllJobs from "../components/ViewAllJobs";
 import { useState, useContext } from "react"
 
 const HomePage = () => {
@@ -17,10 +16,8 @@ const HomePage = () => {
               Recently Applied Jobs
             </h2>
           </div>
-          {/* <JobListings jobs={jobs} loading={loading} isHome={true} /> */}
         </div>
       </section>
-      {/* <ViewAllJobs /> */}
     </div>
   );
 }

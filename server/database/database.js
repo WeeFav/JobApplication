@@ -52,6 +52,15 @@ export async function check_account(account) {
   return res;
 }
 
+export async function update_account(updatedAccount) {
+  const query = `
+    UPDATE accounts
+    SET account_email = ?
+    WHERE account_id = ?;
+  `;
+  await db.query(query, [updatedAccount.account_email, updatedAccount.account_id]);
+}
+
 /* 
 ===============================================================================
 user
@@ -69,10 +78,21 @@ export async function get_user(user_id) {
 
 export async function add_user(user) {
   const query = `
-    INSERT INTO users (user_id, user_name, user_email)
-    VALUES (?, ?, ?)
+    INSERT INTO users (user_id, user_name, user_email, user_image)
+    VALUES (?, ?, ?, ?)
   `;
-  await db.query(query, [user.user_id, user.user_name, user.user_email]);
+  await db.query(query, [user.user_id, user.user_name, user.user_email, user.user_image]);
+}
+
+export async function update_user(updatedUser) {
+  const query = `
+    UPDATE users
+    SET user_name = ?,
+        user_email = ?,
+        user_image = ?
+    WHERE user_id = ?;
+  `;
+  await db.query(query, [updatedUser.user_name, updatedUser.user_email, updatedUser.user_image, updatedUser.user_id]);
 }
 
 /* 
@@ -117,10 +137,10 @@ export async function get_companys(search) {
 
 export async function add_company(company) {
   const query = `
-    INSERT INTO companys (company_name, company_description, company_email, company_phone, is_custom, account_id)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO companys (company_name, company_description, company_email, company_phone, is_custom, account_id, company_image)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
-  const [res] = await db.query(query, [company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom, company.account_id]);
+  const [res] = await db.query(query, [company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom, company.account_id, company.company_image]);
   const company_id = res.insertId;
   return company_id;
 }
@@ -131,10 +151,11 @@ export async function update_company(updatedCompany) {
     SET company_name = ?,
         company_description = ?,
         company_email = ?,
-        company_phone = ?
+        company_phone = ?,
+        company_image = ?
     WHERE company_id = ?;
   `;
-  await db.query(query, [updatedCompany.company_name, updatedCompany.company_description, updatedCompany.company_email, updatedCompany.company_phone, updatedCompany.company_id]);
+  await db.query(query, [updatedCompany.company_name, updatedCompany.company_description, updatedCompany.company_email, updatedCompany.company_phone, updatedCompany.company_image, updatedCompany.company_id]);
 }
 
 /* 
@@ -222,7 +243,7 @@ export async function get_applications(search) {
     SELECT jobs.job_id, job_title, job_type, job_description, job_location, job_salary, application_id, application_date, application_status FROM applications
     INNER JOIN jobs
     ON applications.job_id = jobs.job_id
-    WHERE user_id LIKE ? AND jobs.job_id LIKE ? AND application_date LIKE ? AND application_status LIKE ? AND job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ?
+    WHERE user_id LIKE ? AND jobs.job_id LIKE ? AND application_date LIKE ? AND application_status LIKE ? AND job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ? AND company_id LIKE ?
   `;
 
   const params = [];
@@ -239,6 +260,7 @@ export async function get_applications(search) {
   params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
   params.push(search.jobType ? `%${search.jobType}%` : "%");
   params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
+  params.push(search.company_id ? search.company_id : "%");
   const [res] = await db.query(query, params);
   return res;
 }

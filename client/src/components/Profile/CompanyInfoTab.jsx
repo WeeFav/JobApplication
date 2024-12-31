@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { updateCompanyHandler } from "./CompanyProfile"
 
 const CompanyInfoTab = ({ profileInfo }) => {
   const [edit, setEdit] = useState(false)
@@ -7,15 +6,16 @@ const CompanyInfoTab = ({ profileInfo }) => {
   const [companyPhone, setCompanyPhone] = useState(profileInfo.company_phone)
 
   const onSubmitFormClick = () => {
-    const updateCompany = {
+    const updatedCompany = {
       company_id: profileInfo.company_id,
       company_name: profileInfo.company_name,
       company_description: companyDescription,
       company_email: profileInfo.company_email,
-      company_phone:companyPhone,
-      is_custom: profileInfo.is_custom
+      company_phone: companyPhone,
+      is_custom: profileInfo.is_custom,
+      company_image: profileInfo.company_image
     }
-    updateCompanyHandler(updateCompany)
+    updateCompanyHandler(updatedCompany)
   }
 
   return (
@@ -84,3 +84,20 @@ const CompanyInfoTab = ({ profileInfo }) => {
 }
 
 export default CompanyInfoTab
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to update company
+const updateCompanyHandler = async (updatedCompany) => {
+  const res = await fetch('/api/company', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updatedCompany)
+  });
+};
