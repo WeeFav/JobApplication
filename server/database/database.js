@@ -158,6 +158,14 @@ export async function update_company(updatedCompany) {
   await db.query(query, [updatedCompany.company_name, updatedCompany.company_description, updatedCompany.company_email, updatedCompany.company_phone, updatedCompany.company_image, updatedCompany.company_id]);
 }
 
+export async function delete_company(search) {
+  const query = `
+  DELETE FROM companys
+  WHERE company_id = ?
+`;
+  await db.query(query, [search.company_id]);  
+}
+
 /* 
 ===============================================================================
 job
@@ -172,24 +180,26 @@ export async function get_jobs(search) {
 
   const params = [];
 
-  if (search.limit && search.limit > 0) {
-    query += ` LIMIT ?`;
-    params.push(search.limit);
-  }
-
+  
   params.push(search.job_id ? search.job_id : "%");
   params.push(search.is_custom ? search.is_custom : "%");
   params.push(search.company_id ? search.company_id : "%");
   params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
   params.push(search.jobType ? `%${search.jobType}%` : "%");
   params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
+
+  if (search.limit && search.limit > 0) {
+    query += ` LIMIT ?`;
+    params.push(parseInt(search.limit));
+  }
+
   const [res] = await db.query(query, params);
   return res;
 }
 
 export async function get_job(job_id) {
   let query = `
-    SELECT job_id, job_title, job_type, job_description, job_location, job_salary, jobs.is_custom, company_name, company_description, company_email, company_phone
+    SELECT job_id, job_title, job_type, job_description, job_location, job_salary, jobs.is_custom AS custom_job, company_name, company_description, company_email, company_phone, companys.is_custom AS custom_company, jobs.company_id
     FROM jobs
     INNER JOIN companys
     ON jobs.company_id = companys.company_id
@@ -210,7 +220,7 @@ export async function add_job(newJob) {
   return job_id;
 }
 
-export async function update_job(job) {
+export async function update_job(updatedJob) {
   let query = `
     UPDATE jobs
     SET job_title = ?,
@@ -221,7 +231,7 @@ export async function update_job(job) {
         company_id = ?
     WHERE job_id = ?;
   `;
-  await db.query(query, [job.title, job.type, job.description, job.location, job.salary, job.companyID, job.id]);
+  await db.query(query, [updatedJob.jobTitle, updatedJob.jobType, updatedJob.jobDescription, updatedJob.jobLocation, updatedJob.jobSalary, updatedJob.companyID, updatedJob.job_id]);
 }
 
 export async function delete_job(job_id) {
@@ -247,12 +257,7 @@ export async function get_applications(search) {
   `;
 
   const params = [];
-
-  if (search.limit && search.limit > 0) {
-    query += ` LIMIT ?`;
-    params.push(search.limit);
-  }
-
+  
   params.push(search.user_id ? search.user_id : "%");
   params.push(search.job_id ? search.job_id : "%");
   params.push(search.application_date ? search.application_date : "%");
@@ -261,6 +266,12 @@ export async function get_applications(search) {
   params.push(search.jobType ? `%${search.jobType}%` : "%");
   params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
   params.push(search.company_id ? search.company_id : "%");
+  
+  if (search.limit && search.limit > 0) {
+    query += `LIMIT ?`;
+    params.push(parseInt(search.limit));
+  }
+  
   const [res] = await db.query(query, params);
   return res;
 }

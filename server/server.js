@@ -86,12 +86,6 @@ company
 ===============================================================================
 */
 
-app.get('/company/:id', async (req, res) => {
-  const company_id = req.params.id;
-  const [company] = await db.get_company(company_id);
-  res.json(company);
-});
-
 app.get('/company', async (req, res) => {
   const companys = await db.get_companys(req.query);
   res.json(companys);
@@ -107,6 +101,11 @@ app.put('/company', async (req, res) => {
   const updatedCompany = req.body;
   await db.update_company(updatedCompany);
   res.json({message: 'success'});
+});
+
+app.delete('/company', async (req, res) => {
+  await db.delete_company(req.query);
+  res.json({ message: 'Company deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
 
 /* 
@@ -128,7 +127,7 @@ app.get('/job/:id', async (req, res) => {
     res.json(job);
   }
   else {
-    res.status(404).json({ 'error': `Job ${id} not found` })
+    res.status(404).json({ 'error': `Job ${job_id} not found` })
   }
 })
 
@@ -136,6 +135,12 @@ app.post('/job', async (req, res) => {
   const newJob = req.body;
   const job_id = await db.add_job(newJob);
   res.json({ job_id: job_id });
+});
+
+app.put('/job', async (req, res) => {
+  const updatedJob = req.body;
+  await db.update_job(updatedJob);
+  res.json({message: 'success'});
 });
 
 /* 

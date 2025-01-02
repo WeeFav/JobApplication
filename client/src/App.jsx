@@ -3,7 +3,6 @@ import HomePage from "./pages/HomePage";
 import MainLayout from "./layouts/MainLayout";
 import NotFoundPage from "./pages/NotFoundPage";
 import JobPage from "./pages/JobPage";
-import AddCustomJobPage from "./pages/AddCustomJobPage";
 import EditJobPage from "./pages/EditJobPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -40,6 +39,11 @@ function App() {
               <AddJobPage />
             </CompanysProvider>
           } />
+          <Route path="/jobs/edit/:id" element={
+            <CompanysProvider>
+              <EditJobPage />
+            </CompanysProvider>
+          } loader={jobLoader} />
           {/* User Only */}
           <Route element={<ProtectedRoute validUser={'user'} redirectPath={'/'} />}>
             <Route path="/jobs" element={<JobsPage />} />
@@ -54,11 +58,6 @@ function App() {
           {/* Company Only */}
           <Route element={<ProtectedRoute validUser={'company'} redirectPath={'/'} />}>
             <Route path="/company-jobs" element={<CompanyJobsPage />} />
-            <Route path="/jobs/edit/:id" element={
-              <CompanysProvider>
-                <EditJobPage />
-              </CompanysProvider>
-            } loader={jobLoader} />
           </Route>
           {/* Not Found Page */}
           <Route path="/*" element={<NotFoundPage />} />

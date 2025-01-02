@@ -133,7 +133,7 @@ const JobPage = () => {
                 :
                 <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                   <h3 className="text-xl font-bold mb-6">Manage Job</h3>
-                  {accountContext.isCompany || (!accountContext.isCompany && job.is_custom) ?
+                  {accountContext.isCompany || (!accountContext.isCompany && job.custom_job) ?
                     <>
                       <Link
                         to={`/jobs/edit/${job.job_id}`}
@@ -229,16 +229,6 @@ const deleteJobHandler = async (id) => {
   });
 };
 
-// function to update job
-const updateJobHandler = async (updatedJob) => {
-  const res = await fetch(`/api/jobs/${updatedJob.id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(updatedJob)
-  });
-};
 
 // function to apply job
 const applyJobHandler = async (application) => {
@@ -251,7 +241,7 @@ const applyJobHandler = async (application) => {
   });
 }
 
-// function to delete job
+// function to unapply job
 const unapplyJobHandler = async (application_id) => {
   const res = await fetch(`/api/application?application_id=${application_id}`, {
     method: 'DELETE'

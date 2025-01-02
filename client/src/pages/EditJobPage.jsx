@@ -1,38 +1,88 @@
 import { useParams, useLoaderData, useNavigate } from "react-router-dom"
-import { useState, useContext } from "react"
+import { useState, useContext, useEffect } from "react"
+import CustomCompany from "../components/AddJob/CustomCompany";
+import { AccountContext } from "../App";
 import { CompanysContext } from "../App";
 
-const EditJobPage = ({ updateJobHandler }) => {
+const EditJobPage = () => {
   const navigate = useNavigate();
-
   const job = useLoaderData();
-  const [title, setTitle] = useState(job.title);
-  const [type, setType] = useState(job.type);
-  const [location, setLocation] = useState(job.location);
-  const [description, setDescription] = useState(job.description);
-  const [salary, setSalary] = useState(job.salary);
-
-  const [companyID, setCompanyID] = useState(job.company.id);
+  const accountContext = useContext(AccountContext);
   const { companys, loading } = useContext(CompanysContext);
 
-  const { id } = useParams();
+  let { id } = useParams();
+  id = parseInt(id);
+
+  const [jobTitle, setJobTitle] = useState(job.job_title);
+  const [jobType, setJobType] = useState(job.job_type);
+  const [jobDescription, setJobDescription] = useState(job.job_description);
+  const [jobLocation, setJobLocation] = useState(job.job_location);
+  const [jobSalary, setJobSalary] = useState(job.job_salary);
+
+  const [companyID, setCompanyID] = useState(job.company_id);
+  const [selectedCompanyID, setSelectedCompanyID] = useState(job.custom_company ? '' : job.company_id);
+  const [companyName, setCompanyName] = useState(job.company_name);
+  const [companyDescription, setCompanyDescription] = useState(job.company_description);
+  const [companyEmail, setCompanyEmail] = useState(job.company_email);
+  const [companyPhone, setCompanyPhone] = useState(job.company_phone);
+  const prevcompanyInfoButton = job.custom_company ? 'new' : 'exist';
+  const [companyInfoButton, setCompanyInfoButton] = useState(job.custom_company ? 'new' : 'exist');
 
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
 
-    const updatedJob = {
-      id,
-      title,
-      type,
-      location,
-      description,
-      salary,
-      companyID
-    };
+    let finalCompanyID = companyInfoButton === 'exist' ? selectedCompanyID : companyID;
 
-    await updateJobHandler(updatedJob);
+    let updatedJob;
 
-    return navigate(`/jobs/${id}`);
+    if (accountContext.isCompany) {
+      // company updating job
+      updatedJob = {
+        job_id: id,
+        jobTitle,
+        jobType,
+        jobDescription,
+        jobLocation,
+        jobSalary,
+        companyID: finalCompanyID
+      };
+    }
+    else {
+      if (companyInfoButton === 'exist') {
+        // user updating custom job / change company
+        updatedJob = {
+          job_id: id,
+          jobTitle,
+          jobType,
+          jobDescription,
+          jobLocation,
+          jobSalary,
+          companyID: finalCompanyID
+        };
+      }
+      else {
+        // user updating custom job / custom company
+        updatedJob = {
+          job_id: id,
+          jobTitle,
+          jobType,
+          jobDescription,
+          jobLocation,
+          jobSalary,
+          companyID: finalCompanyID,
+          company: {
+            company_name: companyName,
+            company_description: companyDescription,
+            company_email: companyEmail,
+            company_phone: companyPhone
+          }
+        }
+      }
+    }
+
+
+    await updateJobHandler(updatedJob, prevcompanyInfoButton, companyID);
+    // return navigate(`/jobs/${id}`);
   };
 
   return (
@@ -52,8 +102,8 @@ const EditJobPage = ({ updateJobHandler }) => {
                   name="type"
                   className="border rounded w-full py-2 px-3"
                   required
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
+                  value={jobType}
+                  onChange={(e) => setJobType(e.target.value)}
                 >
                   <option value="Full-Time">Full-Time</option>
                   <option value="Part-Time">Part-Time</option>
@@ -73,8 +123,8 @@ const EditJobPage = ({ updateJobHandler }) => {
                   className="border rounded w-full py-2 px-3 mb-2"
                   placeholder="eg. Beautiful Apartment In Miami"
                   required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
                 />
               </div>
               <div className="mb-4">
@@ -89,8 +139,8 @@ const EditJobPage = ({ updateJobHandler }) => {
                   className="border rounded w-full py-2 px-3"
                   rows="4"
                   placeholder="Add any job duties, expectations, requirements, etc"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
                 ></textarea>
               </div>
 
@@ -103,8 +153,8 @@ const EditJobPage = ({ updateJobHandler }) => {
                   name="salary"
                   className="border rounded w-full py-2 px-3"
                   required
-                  value={salary}
-                  onChange={(e) => setSalary(e.target.value)}
+                  value={jobSalary}
+                  onChange={(e) => setJobSalary(e.target.value)}
                 >
                   <option value="Under $50K">Under $50K</option>
                   <option value="$50K - 60K">$50K - $60K</option>
@@ -131,29 +181,33 @@ const EditJobPage = ({ updateJobHandler }) => {
                   className='border rounded w-full py-2 px-3 mb-2'
                   placeholder='Company Location'
                   required
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  value={jobLocation}
+                  onChange={(e) => setJobLocation(e.target.value)}
                 />
               </div>
 
-              <h3 className="text-2xl mb-5">Company Info</h3>
-              <>
-                {loading ?
-                  <div>loading</div>
-                  :
-                  <select
-                    id="chooseCompany"
-                    name="chooseCompany"
-                    className="border rounded w-full py-2 px-3 mb-4"
-                    required
-                    value={companyID}
-                    onChange={(e) => setCompanyID(e.target.value)}
-                  >
-                    <option value="" disabled>Select a company</option>
-                    {companys.map((company) => <option key={company.company_id} value={company.company_id}>{company.company_name}</option>)}
-                  </select>
-                }
-              </>
+              {accountContext.isCompany ?
+                <></>
+                :
+                <CustomCompany param={
+                  {
+                    companyName,
+                    companyDescription,
+                    companyEmail,
+                    companyPhone,
+                    selectedCompanyID,
+                    companyInfoButton,
+                    setCompanyName,
+                    setCompanyDescription,
+                    setCompanyEmail,
+                    setCompanyPhone,
+                    setSelectedCompanyID,
+                    setCompanyInfoButton,
+                  }
+                } />
+              }
+
+              {/* Update Job Button */}
               <div>
                 <button
                   className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
@@ -171,3 +225,57 @@ const EditJobPage = ({ updateJobHandler }) => {
 }
 
 export default EditJobPage
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to update job
+const updateJobHandler = async (updatedJob, prevcompanyInfoButton, deleteCompanyID) => {
+  let res;
+
+  if (updatedJob.company && prevcompanyInfoButton == 'new') {
+    // if user update custom company, update company database
+    updatedJob.company['company_id'] = updatedJob.companyID; // add company_id to company object to identify which company to update
+    res = await fetch('/api/company', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updatedJob.company)
+    });
+  }
+  else if (updatedJob.company && prevcompanyInfoButton == 'exist') {
+    // if user add custom company, add to company database
+    updatedJob.company['is_custom'] = 1; // add is_custom to company object
+    res = await fetch('/api/company', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updatedJob.company)
+    }); 
+
+    const {company_id} = await res.json();
+    updatedJob['companyID'] = company_id; // replace original (exist) company id with new custom company id
+  }
+  
+  // update job
+  res = await fetch('/api/job', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(updatedJob)
+  });
+
+  if (!updatedJob.company && prevcompanyInfoButton == 'new') {
+    // if user update company to existing company, delete old custom company
+    // res = await fetch(`/api/company?company_id=${updatedJob.companyID}`, {
+    //   method: 'DELETE'
+    // });
+    console.log(deleteCompanyID)
+  }
+};

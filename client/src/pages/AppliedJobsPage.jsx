@@ -3,7 +3,7 @@ import JobSearchBar from "../components/Jobs/JobSearchBar"
 import { useState, useContext, useEffect } from "react"
 import { AccountContext } from "../App";
 
-const AppliedJobsPage = ({searchJobHandler}) => {
+const AppliedJobsPage = () => {
   const accountContext = useContext(AccountContext);
   
   let jobs;

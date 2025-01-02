@@ -1,7 +1,6 @@
 import { useState, useEffect, useContext } from "react"
 import { useNavigate } from "react-router-dom";
 import { AccountContext } from "../App";
-import { CompanysContext } from "../App";
 import CustomCompany from "../components/AddJob/CustomCompany";
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
@@ -209,7 +208,8 @@ const AddJobPage = () => {
                   setCompanyPhone,
                   setCompanyID,
                   setCompanyInfoButton}
-                } />}
+                } />
+              }
 
               {/* Add Job Button */}
               <div>
