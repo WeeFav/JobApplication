@@ -53,12 +53,33 @@ export async function check_account(account) {
 }
 
 export async function update_account(updatedAccount) {
+  let updates = [];
+  let params = [];
+
+  if (updatedAccount.account_email) {
+    updates.push("account_email = ?");
+    params.push(updatedAccount.account_email)
+  }
+  if (updatedAccount.account_password) {
+    updates.push("account_password = ?");
+    params.push(updatedAccount.account_password)
+  }
+
   const query = `
     UPDATE accounts
-    SET account_email = ?
+    SET ${updates.join(", ")}
     WHERE account_id = ?;
   `;
-  await db.query(query, [updatedAccount.account_email, updatedAccount.account_id]);
+  params.push(updatedAccount.account_id)
+  await db.query(query, params);
+}
+
+export async function delete_account(search) {
+  let query = `
+    DELETE FROM accounts
+    WHERE account_id = ?
+  `;
+  await db.query(query, [search.account_id]);
 }
 
 /* 
@@ -101,36 +122,27 @@ company
 ===============================================================================
 */
 
-export async function get_company(company_id) {
-  let query = `
-    SELECT * FROM companys
-    WHERE company_id = ?;
-  `;
-
-  const [res] = await db.query(query, [company_id]);
-  return res;
-}
-
 export async function get_companys(search) {
   let query = `
     SELECT *
     FROM companys
-    WHERE is_custom = ?
+    WHERE is_custom LIKE ? AND company_id LIKE ?
   `;
 
   const params = [];
+
+  // params.push(search.job_id ? search.job_id : "%");
+  params.push(search.is_custom ? search.is_custom : "%");
+  params.push(search.company_id ? search.company_id : "%");
+  // params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
+  // params.push(search.jobType ? `%${search.jobType}%` : "%");
+  // params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
 
   if (search.limit && search.limit > 0) {
     query += ` LIMIT ?`;
     params.push(search.limit);
   }
 
-  // params.push(search.job_id ? search.job_id : "%");
-  params.push(search.is_custom ? search.is_custom : "%");
-  // params.push(search.company_id ? search.company_id : "%");
-  // params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
-  // params.push(search.jobType ? `%${search.jobType}%` : "%");
-  // params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
   const [res] = await db.query(query, params);
   return res;
 }
@@ -163,7 +175,7 @@ export async function delete_company(search) {
   DELETE FROM companys
   WHERE company_id = ?
 `;
-  await db.query(query, [search.company_id]);  
+  await db.query(query, [search.company_id]);
 }
 
 /* 
@@ -180,7 +192,7 @@ export async function get_jobs(search) {
 
   const params = [];
 
-  
+
   params.push(search.job_id ? search.job_id : "%");
   params.push(search.is_custom ? search.is_custom : "%");
   params.push(search.company_id ? search.company_id : "%");
@@ -234,12 +246,12 @@ export async function update_job(updatedJob) {
   await db.query(query, [updatedJob.jobTitle, updatedJob.jobType, updatedJob.jobDescription, updatedJob.jobLocation, updatedJob.jobSalary, updatedJob.companyID, updatedJob.job_id]);
 }
 
-export async function delete_job(job_id) {
+export async function delete_job(search) {
   let query = `
     DELETE FROM jobs
     WHERE job_id = ?
   `;
-  await db.query(query, [job_id]);
+  await db.query(query, [search.job_id]);
 }
 
 /* 
@@ -257,7 +269,7 @@ export async function get_applications(search) {
   `;
 
   const params = [];
-  
+
   params.push(search.user_id ? search.user_id : "%");
   params.push(search.job_id ? search.job_id : "%");
   params.push(search.application_date ? search.application_date : "%");
@@ -266,12 +278,12 @@ export async function get_applications(search) {
   params.push(search.jobType ? `%${search.jobType}%` : "%");
   params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
   params.push(search.company_id ? search.company_id : "%");
-  
+
   if (search.limit && search.limit > 0) {
     query += `LIMIT ?`;
     params.push(parseInt(search.limit));
   }
-  
+
   const [res] = await db.query(query, params);
   return res;
 }
@@ -289,5 +301,5 @@ export async function delete_application(search) {
   DELETE FROM applications
   WHERE application_id = ?
 `;
-  await db.query(query, [search.application_id]);  
+  await db.query(query, [search.application_id]);
 }

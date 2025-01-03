@@ -82,7 +82,7 @@ const EditJobPage = () => {
 
 
     await updateJobHandler(updatedJob, prevcompanyInfoButton, companyID);
-    // return navigate(`/jobs/${id}`);
+    return navigate(`/jobs/${id}`);
   };
 
   return (
@@ -273,9 +273,8 @@ const updateJobHandler = async (updatedJob, prevcompanyInfoButton, deleteCompany
 
   if (!updatedJob.company && prevcompanyInfoButton == 'new') {
     // if user update company to existing company, delete old custom company
-    // res = await fetch(`/api/company?company_id=${updatedJob.companyID}`, {
-    //   method: 'DELETE'
-    // });
-    console.log(deleteCompanyID)
+    res = await fetch(`/api/company?company_id=${deleteCompanyID}`, {
+      method: 'DELETE'
+    });
   }
 };

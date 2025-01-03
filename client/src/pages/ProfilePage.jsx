@@ -3,6 +3,8 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MyProfileTab from "../components/Profile/MyProfileTab";
 import CompanyInfoTab from "../components/Profile/CompanyInfoTab";
+import ChangePasswordTab from "../components/Profile/ChangePasswordTab";
+import DeleteAccountTab from "../components/Profile/DeleteAccountTab";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -11,7 +13,7 @@ const ProfilePage = () => {
   const [profileInfo, setProfileInfo] = useState();
   const [loading, setLoading] = useState(true);
 
-  const [tab, setTab] = useState('my profile')
+  const [tab, setTab] = useState('My Profile')
   const selectedTab = "bg-website-blue text-white rounded py-1 font-medium"
 
   useEffect(() => {
@@ -25,10 +27,14 @@ const ProfilePage = () => {
 
   const renderContent = () => {
     switch (tab) {
-      case 'my profile':
+      case 'My Profile':
         return <MyProfileTab profileInfo={profileInfo} />;
-      case 'company info':
+      case 'Company Info':
         return <CompanyInfoTab profileInfo={profileInfo} />;
+      case 'Change Password':
+        return <ChangePasswordTab profileInfo={profileInfo} />;
+      case 'Delete Account':
+        return <DeleteAccountTab profileInfo={profileInfo} />;
       default:
         return <div>Select a tab to view content</div>;
     }
@@ -45,22 +51,22 @@ const ProfilePage = () => {
               {/* Sidebar */}
               <div className="w-40 mt-[53px]">
                 <nav className="space-y-4">
-                  <button className={`pl-4 w-full text-left ${tab === 'my profile' ? selectedTab : "text-gray-500"}`}
-                    onClick={() => { setTab('my profile') }}
+                  <button className={`pl-4 w-full text-left ${tab === 'My Profile' ? selectedTab : "text-gray-500"}`}
+                    onClick={() => { setTab('My Profile') }}
                   >
                     My Profile
                   </button>
                   {!accountContext.isCompany ?
                     <></>
                     :
-                    <button className={`pl-4 w-full text-left ${tab === 'company info' ? selectedTab : "text-gray-500"}`}
-                      onClick={() => { setTab('company info') }}
+                    <button className={`pl-4 w-full text-left ${tab === 'Company Info' ? selectedTab : "text-gray-500"}`}
+                      onClick={() => { setTab('Company Info') }}
                     >
                       Company Info
                     </button>
                   }
-                  <button className={`pl-4 w-full text-left ${tab === 'change password' ? selectedTab : "text-gray-500"}`}
-                    onClick={() => { setTab('change password') }}
+                  <button className={`pl-4 w-full text-left ${tab === 'Change Password' ? selectedTab : "text-gray-500"}`}
+                    onClick={() => { setTab('Change Password') }}
                   >
                     Change Password
                   </button>
@@ -75,8 +81,8 @@ const ProfilePage = () => {
                   >
                     Log Out
                   </button>
-                  <button className={`pl-4 w-full text-left ${tab === 'delete account' ? selectedTab : "text-gray-500"}`}
-                    onClick={() => { setTab('delete account') }}
+                  <button className={`pl-4 w-full text-left ${tab === 'Delete Account' ? selectedTab : "text-gray-500"}`}
+                    onClick={() => { setTab('Delete Account') }}
                   >
                     Delete Account
                   </button>
@@ -119,9 +125,11 @@ const loadUserProfile = async (user_id, setProfileInfo, setLoading) => {
 
 // function to load company profile
 const loadCompanyProfile = async (company_id, setProfileInfo, setLoading) => {
+  console.log(1)
   try {
-    const res = await fetch(`/api/company/${company_id}`);
-    const data = await res.json();
+    const res = await fetch(`/api/company?company_id=${company_id}`);
+    const [data] = await res.json();
+    console.log(data) 
     setProfileInfo(data);
   } catch (error) {
     console.log("Error fetching data from backend", error);

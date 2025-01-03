@@ -55,6 +55,11 @@ app.put('/account', async (req, res) => {
   res.json({message: 'success'});
 });
 
+app.delete('/account', async (req, res) => {
+  await db.delete_account(req.query);
+  res.json({ message: 'Account deleted successfully' }) // backend must respond or else frontend fetch will not resolve
+});
+
 /* 
 ===============================================================================
 user
@@ -141,6 +146,11 @@ app.put('/job', async (req, res) => {
   const updatedJob = req.body;
   await db.update_job(updatedJob);
   res.json({message: 'success'});
+});
+
+app.delete('/job', async (req, res) => {
+  await db.delete_job(req.query);
+  res.json({ message: 'Job deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
 
 /* 
