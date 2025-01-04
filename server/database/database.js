@@ -88,12 +88,12 @@ user
 ===============================================================================
 */
 
-export async function get_user(user_id) {
+export async function get_user(search) {
   let query = `
     SELECT * FROM users
     WHERE user_id = ?;
   `;
-  const [res] = await db.query(query, [user_id]);
+  const [res] = await db.query(query, [search.user_id]);
   return res;
 }
 
@@ -123,20 +123,26 @@ company
 */
 
 export async function get_companys(search) {
+  let conditions = [];
+  let params = [];
+
+  if (search.is_custom) {
+    conditions.push("is_custom = ?")
+    params.push(search.is_custom)
+  }
+  if (search.company_id) {
+    conditions.push("company_id = ?")
+    params.push(search.company_id)
+  }
+
   let query = `
-    SELECT *
-    FROM companys
-    WHERE is_custom LIKE ? AND company_id LIKE ?
+  SELECT *
+  FROM companys
   `;
 
-  const params = [];
-
-  // params.push(search.job_id ? search.job_id : "%");
-  params.push(search.is_custom ? search.is_custom : "%");
-  params.push(search.company_id ? search.company_id : "%");
-  // params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
-  // params.push(search.jobType ? `%${search.jobType}%` : "%");
-  // params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
+  if (conditions.length > 0) {
+    query += `WHERE ${conditions.join(" AND ")}`
+  }
 
   if (search.limit && search.limit > 0) {
     query += ` LIMIT ?`;
@@ -149,25 +155,46 @@ export async function get_companys(search) {
 
 export async function add_company(company) {
   const query = `
-    INSERT INTO companys (company_name, company_description, company_email, company_phone, is_custom, account_id, company_image)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO companys (company_name, company_description, company_email, company_phone, is_custom, account_id, company_image, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  const [res] = await db.query(query, [company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom, company.account_id, company.company_image]);
+  const [res] = await db.query(query, [company.company_name, company.company_description, company.company_email, company.company_phone, company.is_custom, company.account_id, company.company_image, company.user_id]);
   const company_id = res.insertId;
   return company_id;
 }
 
 export async function update_company(updatedCompany) {
+  let updates = [];
+  let params = [];
+
+  if (updatedCompany.company_name) {
+    updates.push("company_name = ?");
+    params.push(updatedCompany.company_name)
+  }
+  if (updatedCompany.company_description) {
+    updates.push("company_description = ?");
+    params.push(updatedCompany.company_description)
+  }
+  if (updatedCompany.company_email) {
+    updates.push("company_email = ?");
+    params.push(updatedCompany.company_email)
+  }
+  if (updatedCompany.company_phone) {
+    updates.push("company_phone = ?");
+    params.push(updatedCompany.company_phone)
+  }
+  if (updatedCompany.company_image) {
+    updates.push("company_image = ?");
+    params.push(updatedCompany.company_image)
+  }
+
   const query = `
     UPDATE companys
-    SET company_name = ?,
-        company_description = ?,
-        company_email = ?,
-        company_phone = ?,
-        company_image = ?
+    SET ${updates.join(", ")}
     WHERE company_id = ?;
   `;
-  await db.query(query, [updatedCompany.company_name, updatedCompany.company_description, updatedCompany.company_email, updatedCompany.company_phone, updatedCompany.company_image, updatedCompany.company_id]);
+  params.push(updatedCompany.company_id)
+  await db.query(query, params);
 }
 
 export async function delete_company(search) {
@@ -185,20 +212,42 @@ job
 */
 
 export async function get_jobs(search) {
+  let conditions = [];
+  let params = [];
+
+  if (search.job_id) {
+    conditions.push("job_id = ?")
+    params.push(search.job_id)
+  }
+  if (search.is_custom) {
+    conditions.push("is_custom = ?")
+    params.push(search.is_custom)
+  }
+  if (search.company_id) {
+    conditions.push("company_id = ?")
+    params.push(search.company_id)
+  }
+  if (search.jobTitle) {
+    conditions.push("job_title LIKE ?")
+    params.push(`%${search.jobTitle}%`)
+  }
+  if (search.jobType) {
+    conditions.push("job_type LIKE ?")
+    params.push(`%${search.jobType}%`)
+  }
+  if (search.jobLocation) {
+    conditions.push("job_location LIKE ?")
+    params.push(`%${search.jobLocation}%`)
+  }
+
   let query = `
-    SELECT job_id, job_title, job_type, job_description, job_location, job_salary, company_id FROM jobs 
-    WHERE job_id LIKE ? AND is_custom LIKE ? AND company_id LIKE ? AND job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ?
+  SELECT job_id, job_title, job_type, job_description, job_location, job_salary, company_id
+  FROM jobs
   `;
 
-  const params = [];
-
-
-  params.push(search.job_id ? search.job_id : "%");
-  params.push(search.is_custom ? search.is_custom : "%");
-  params.push(search.company_id ? search.company_id : "%");
-  params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
-  params.push(search.jobType ? `%${search.jobType}%` : "%");
-  params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
+  if (conditions.length > 0) {
+    query += `WHERE ${conditions.join(" AND ")}`
+  }
 
   if (search.limit && search.limit > 0) {
     query += ` LIMIT ?`;
@@ -211,7 +260,7 @@ export async function get_jobs(search) {
 
 export async function get_job(job_id) {
   let query = `
-    SELECT job_id, job_title, job_type, job_description, job_location, job_salary, jobs.is_custom AS custom_job, company_name, company_description, company_email, company_phone, companys.is_custom AS custom_company, jobs.company_id
+    SELECT job_id, job_title, job_type, job_description, job_location, job_salary, jobs.is_custom AS custom_job, company_name, company_description, company_email, company_phone, companys.is_custom AS custom_company, jobs.company_id, jobs.user_id as user_id
     FROM jobs
     INNER JOIN companys
     ON jobs.company_id = companys.company_id
@@ -224,10 +273,10 @@ export async function get_job(job_id) {
 
 export async function add_job(newJob) {
   const query = `
-    INSERT INTO jobs (job_title, job_type, job_description, job_location, job_salary, company_id, is_custom)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO jobs (job_title, job_type, job_description, job_location, job_salary, company_id, is_custom, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  const [res] = await db.query(query, [newJob.jobTitle, newJob.jobType, newJob.jobDescription, newJob.jobLocation, newJob.jobSalary, newJob.companyID, newJob.is_custom]);
+  const [res] = await db.query(query, [newJob.jobTitle, newJob.jobType, newJob.jobDescription, newJob.jobLocation, newJob.jobSalary, newJob.companyID, newJob.is_custom, newJob.user_id]);
   const job_id = res.insertId;
   return job_id;
 }
@@ -261,23 +310,44 @@ application
 */
 
 export async function get_applications(search) {
+  let conditions = [];
+  let params = [];
+
+  if (search.user_id) {
+    conditions.push("applications.user_id = ?")
+    params.push(search.user_id)
+  }
+  if (search.job_id) {
+    conditions.push("jobs.job_id = ?")
+    params.push(search.job_id)
+  }
+  if (search.company_id) {
+    conditions.push("company_id = ?")
+    params.push(search.company_id)
+  }
+  if (search.jobTitle) {
+    conditions.push("job_title LIKE ?")
+    params.push(`%${search.jobTitle}%`)
+  }
+  if (search.jobType) {
+    conditions.push("job_type LIKE ?")
+    params.push(`%${search.jobType}%`)
+  }
+  if (search.jobLocation) {
+    conditions.push("job_location LIKE ?")
+    params.push(`%${search.jobLocation}%`)
+  }
+
   let query = `
-    SELECT jobs.job_id, job_title, job_type, job_description, job_location, job_salary, application_id, application_date, application_status FROM applications
+    SELECT jobs.job_id, job_title, job_type, job_description, job_location, job_salary, application_id 
+    FROM applications
     INNER JOIN jobs
     ON applications.job_id = jobs.job_id
-    WHERE user_id LIKE ? AND jobs.job_id LIKE ? AND application_date LIKE ? AND application_status LIKE ? AND job_title LIKE ? AND job_type LIKE ? AND job_location LIKE ? AND company_id LIKE ?
   `;
 
-  const params = [];
-
-  params.push(search.user_id ? search.user_id : "%");
-  params.push(search.job_id ? search.job_id : "%");
-  params.push(search.application_date ? search.application_date : "%");
-  params.push(search.application_status ? search.application_status : "%");
-  params.push(search.jobTitle ? `%${search.jobTitle}%` : "%");
-  params.push(search.jobType ? `%${search.jobType}%` : "%");
-  params.push(search.jobLocation ? `%${search.jobLocation}%` : "%");
-  params.push(search.company_id ? search.company_id : "%");
+  if (conditions.length > 0) {
+    query += `WHERE ${conditions.join(" AND ")}`
+  }
 
   if (search.limit && search.limit > 0) {
     query += `LIMIT ?`;

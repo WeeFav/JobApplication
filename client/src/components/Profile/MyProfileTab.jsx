@@ -55,10 +55,7 @@ const MyProfileTab = ({ profileInfo }) => {
       const updatedCompany = {
         company_id: profileInfo.company_id,
         company_name: name,
-        company_description: profileInfo.company_description,
         company_email: email,
-        company_phone: profileInfo.company_phone,
-        is_custom: profileInfo.is_custom,
         company_image: image ? `http://localhost:8000/images/${filename}` : profileInfo.company_image
       }
 

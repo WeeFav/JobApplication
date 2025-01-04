@@ -113,7 +113,7 @@ API
 // function to load user profile
 const loadUserProfile = async (user_id, setProfileInfo, setLoading) => {
   try {
-    const res = await fetch(`/api/user/${user_id}`);
+    const res = await fetch(`/api/user?user_id=${user_id}`);
     const data = await res.json();
     setProfileInfo(data);
   } catch (error) {

@@ -88,7 +88,6 @@ const CompanysProvider = ({ children }) => {
       try {
         const res = await fetch('/api/company?is_custom=0');
         const data = await res.json();
-        console.log(data)
         setCompanys(data);
       } catch (error) {
         console.log("Error fetching data from backend", error);

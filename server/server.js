@@ -17,11 +17,6 @@ app.use(cors(corsOptions));
 // Middleware to parse JSON
 app.use(express.json());
 
-// Serve static files from the "images" directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-app.use("/images", express.static(path.join(__dirname, "images")));
-
 /* 
 ===============================================================================
 account
@@ -66,15 +61,13 @@ user
 ===============================================================================
 */
 
-app.get('/user/:id', async (req, res) => {
-  const user_id = req.params.id;
-  const [user] = await db.get_user(user_id);
+app.get('/user', async (req, res) => {
+  const [user] = await db.get_user(req.query);
   res.json(user);
 });
 
 app.post('/user', async (req, res) => {
   const user = req.body;
-
   await db.add_user(user);
   res.json({message: 'success'});
 });
@@ -181,13 +174,18 @@ others
 ===============================================================================
 */
 
+// Serve static files from the "images" directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+app.use("/images", express.static(path.join(__dirname, "images")));
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "images")); // Save images to "/images"
   },
   filename: (req, file, cb) => {
     cb(null, req.body.customFilename); // Unique file name
-  },
+  },  
 });
 
 const upload = multer({ storage });

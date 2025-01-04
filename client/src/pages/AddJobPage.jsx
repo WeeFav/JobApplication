@@ -19,7 +19,7 @@ const AddJobPage = () => {
   const [companyDescription, setCompanyDescription] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
-  const [companyID, setCompanyID] = useState('');
+  const [selectedCompanyID, setSelectedCompanyID] = useState('');
 
   const [companyInfoButton, setCompanyInfoButton] = useState('exist');
 
@@ -52,8 +52,9 @@ const AddJobPage = () => {
           jobLocation,
           jobDescription,
           jobSalary,
-          companyID,
-          is_custom: 1
+          companyID: selectedCompanyID,
+          is_custom: 1,
+          user_id: accountContext.ID
         }
       }
       else {
@@ -64,12 +65,14 @@ const AddJobPage = () => {
           jobDescription,
           jobSalary,
           is_custom: 1,
+          user_id: accountContext.ID,
           company: {
             company_name: companyName,
             company_description: companyDescription,
             company_email: companyEmail,
             company_phone: companyPhone,
-            is_custom: 1
+            is_custom: 1,
+            user_id: accountContext.ID
           }
         }
       }
@@ -200,13 +203,13 @@ const AddJobPage = () => {
                   companyDescription,
                   companyEmail,
                   companyPhone,
-                  companyID,
+                  selectedCompanyID,
                   companyInfoButton,
                   setCompanyName,
                   setCompanyDescription,
                   setCompanyEmail,
                   setCompanyPhone,
-                  setCompanyID,
+                  setSelectedCompanyID,
                   setCompanyInfoButton}
                 } />
               }

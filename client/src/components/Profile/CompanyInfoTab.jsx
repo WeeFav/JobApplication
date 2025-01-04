@@ -8,12 +8,8 @@ const CompanyInfoTab = ({ profileInfo }) => {
   const onSubmitFormClick = () => {
     const updatedCompany = {
       company_id: profileInfo.company_id,
-      company_name: profileInfo.company_name,
       company_description: companyDescription,
-      company_email: profileInfo.company_email,
       company_phone: companyPhone,
-      is_custom: profileInfo.is_custom,
-      company_image: profileInfo.company_image
     }
     updateCompanyHandler(updatedCompany)
   }

@@ -13,6 +13,21 @@ const EditJobPage = () => {
   let { id } = useParams();
   id = parseInt(id);
 
+  // first check if user/company owns this job
+  // if not owned, redirect to home page
+  useEffect(() => {
+    if (!job.custom_job) { // job is owned by company
+      if (!(accountContext.isCompany && accountContext.ID === job.company_id)) { // only if the account is company and the company owns the job. if not, navigate
+        navigate('/');
+      }
+    }
+    else { // job is owned by user
+      if (!(!accountContext.isCompany && accountContext.ID === job.user_id)) { // only if the account is user and the user owns the job. if not, navigate
+        navigate('/')
+      }
+    }
+  }, []);
+
   const [jobTitle, setJobTitle] = useState(job.job_title);
   const [jobType, setJobType] = useState(job.job_type);
   const [jobDescription, setJobDescription] = useState(job.job_description);
@@ -256,12 +271,12 @@ const updateJobHandler = async (updatedJob, prevcompanyInfoButton, deleteCompany
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(updatedJob.company)
-    }); 
+    });
 
-    const {company_id} = await res.json();
+    const { company_id } = await res.json();
     updatedJob['companyID'] = company_id; // replace original (exist) company id with new custom company id
   }
-  
+
   // update job
   res = await fetch('/api/job', {
     method: 'PUT',

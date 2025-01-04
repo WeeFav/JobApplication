@@ -9,8 +9,24 @@ import Snackbar from '@mui/material/Snackbar';
 const JobPage = () => {
   const accountContext = useContext(AccountContext);
   const navigate = useNavigate();
-
   const job = useLoaderData();
+
+  // first check if user/company allow to see other jobs
+  // if not, redirect to home page
+  useEffect(() => {
+    if (!job.custom_job) { // job is owned by company
+      if (!((!accountContext.isCompany) || (accountContext.isCompany && accountContext.ID === job.company_id))) { // only user or company who owns the job can see. if not, navigate
+        navigate('/');
+      }
+    }
+    else { // job is owned by user
+      if (!(!accountContext.isCompany && accountContext.ID === job.user_id)) { // only user who owns the job can see. if not, navigate
+        navigate('/');
+      }
+    }
+  }, []);
+
+
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
