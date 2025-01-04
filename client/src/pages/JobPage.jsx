@@ -53,7 +53,7 @@ const JobPage = () => {
     const confirm = window.confirm('Are you sure you want to delete this job?');
 
     if (confirm) {
-      await deleteJobHandler(job.job_id);
+      await deleteJobHandler(job);
       navigate(accountContext.isCompany ? "/company-jobs" : "/jobs");
     }
 
@@ -239,10 +239,17 @@ const loadApplications = async (user_id, job_id, setApplications, setLoading) =>
 }
 
 // function to delete job
-const deleteJobHandler = async (job_id) => {
-  await fetch(`/api/job?job_id=${job_id}`, {
+const deleteJobHandler = async (job) => {
+  await fetch(`/api/job?job_id=${job.job_id}`, {
     method: 'DELETE'
   });
+
+  // delete custom company
+  if (job.custom_company) {
+    await fetch(`/api/company?company_id=${job.company_id}`, {
+      method: 'DELETE'
+    });  
+  }
 };
 
 

@@ -5,6 +5,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import multer from "multer";
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const corsOptions = {
@@ -52,6 +56,18 @@ app.put('/account', async (req, res) => {
 
 app.delete('/account', async (req, res) => {
   await db.delete_account(req.query);
+  
+  // Ensure the file path is resolved correctly
+  const filename = req.body.is_company ? `company${req.body.id}.png` : `user${req.body.id}.png`
+  const imagePath = path.join(__dirname, 'images', filename);
+  
+  fs.unlink(imagePath, (err) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Failed to delete the image' });
+    }
+  });
+  
   res.json({ message: 'Account deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
 
@@ -175,8 +191,6 @@ others
 */
 
 // Serve static files from the "images" directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 app.use("/images", express.static(path.join(__dirname, "images")));
 
 const storage = multer.diskStorage({

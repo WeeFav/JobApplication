@@ -129,7 +129,6 @@ const loadCompanyProfile = async (company_id, setProfileInfo, setLoading) => {
   try {
     const res = await fetch(`/api/company?company_id=${company_id}`);
     const [data] = await res.json();
-    console.log(data) 
     setProfileInfo(data);
   } catch (error) {
     console.log("Error fetching data from backend", error);

@@ -5,16 +5,16 @@ import { useNavigate } from "react-router-dom";
 const DeleteAccountTab = ({ profileInfo }) => {
   const accountContext = useContext(AccountContext);
   const navigate = useNavigate();
-  
+
   const onDeleteClick = async () => {
     const confirm = window.confirm('Are you sure you want to delete this account?');
 
     if (confirm) {
       if (!accountContext.isCompany) {
-        await deleteAccountHandler(profileInfo.user_id);
+        await deleteAccountHandler(profileInfo.user_id, accountContext.isCompany, profileInfo.user_id);
       }
       else {
-        await deleteAccountHandler(profileInfo.account_id);
+        await deleteAccountHandler(profileInfo.account_id, accountContext.isCompany, profileInfo.company_id);
       }
 
       sessionStorage.clear();
@@ -40,8 +40,12 @@ const DeleteAccountTab = ({ profileInfo }) => {
 
 export default DeleteAccountTab
 
-const deleteAccountHandler = async (account_id) => {
+const deleteAccountHandler = async (account_id, is_company, id) => {
   await fetch(`/api/account?account_id=${account_id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ is_company, id })
   });
 }
