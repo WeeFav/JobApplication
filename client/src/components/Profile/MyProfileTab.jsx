@@ -40,7 +40,7 @@ const MyProfileTab = ({ profileInfo }) => {
         user_id: profileInfo.user_id,
         user_name: name,
         user_email: email,
-        user_image: image ? `http://localhost:8000/images/${filename}` : profileInfo.user_image
+        user_image: image ? `/api/images/${filename}` : profileInfo.user_image
       }
 
       const updatedAccount = {
@@ -56,7 +56,7 @@ const MyProfileTab = ({ profileInfo }) => {
         company_id: profileInfo.company_id,
         company_name: name,
         company_email: email,
-        company_image: image ? `http://localhost:8000/images/${filename}` : profileInfo.company_image
+        company_image: image ? `/api/images/${filename}` : profileInfo.company_image
       }
 
       const updatedAccount = {

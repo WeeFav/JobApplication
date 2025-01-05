@@ -61,11 +61,23 @@ app.delete('/account', async (req, res) => {
   const filename = req.body.is_company ? `company${req.body.id}.png` : `user${req.body.id}.png`
   const imagePath = path.join(__dirname, 'images', filename);
   
-  fs.unlink(imagePath, (err) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ message: 'Failed to delete the image' });
+  fs.access(imagePath, fs.constants.F_OK, (accessErr) => {
+    if (accessErr) {
+      // File does not exist
+      console.log(`File not found: ${imagePath}`);
+      return res.status(200).json({ message: 'Image not found' });
     }
+  
+    // File exists, proceed to delete it
+    fs.unlink(imagePath, (unlinkErr) => {
+      if (unlinkErr) {
+        console.error(`Failed to delete file: ${unlinkErr}`);
+        return res.status(500).json({ message: 'Failed to delete the image' });
+      }
+  
+      console.log(`File deleted: ${imagePath}`);
+      res.status(200).json({ message: 'Image deleted successfully' });
+    });
   });
   
   res.json({ message: 'Account deleted successfully' }) // backend must respond or else frontend fetch will not resolve
