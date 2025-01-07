@@ -160,6 +160,18 @@ app.post('/job', async (req, res) => {
   res.json({ job_id: job_id });
 });
 
+const uploadJobs = multer();
+app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded');
+  }
+
+  const fileBuffer = req.file.buffer.toString('utf-8');
+  console.log('File content:', fileBuffer);
+  
+  res.json({ message: 'success' });
+});
+
 app.put('/job', async (req, res) => {
   const updatedJob = req.body;
   await db.update_job(updatedJob);
