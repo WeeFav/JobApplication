@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import multer from "multer";
 import fs from "fs";
+import csv from "csv-parser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,9 +32,9 @@ app.post('/account', async (req, res) => {
   const account = req.body;
   try {
     const account_id = await db.add_account(account);
-    res.json({account_id: account_id});
+    res.json({ account_id: account_id });
   } catch (e) {
-    res.json({account_id: e.code});
+    res.json({ account_id: e.code });
   }
 });
 
@@ -51,16 +52,16 @@ app.post('/account/check', async (req, res) => {
 app.put('/account', async (req, res) => {
   const updatedAccount = req.body;
   await db.update_account(updatedAccount);
-  res.json({message: 'success'});
+  res.json({ message: 'success' });
 });
 
 app.delete('/account', async (req, res) => {
   await db.delete_account(req.query);
-  
+
   // Ensure the file path is resolved correctly
   const filename = req.body.is_company ? `company${req.body.id}.png` : `user${req.body.id}.png`
   const imagePath = path.join(__dirname, 'images', filename);
-  
+
   fs.access(imagePath, fs.constants.F_OK, (accessErr) => {
     if (accessErr) {
       // File does not exist
@@ -77,7 +78,7 @@ app.delete('/account', async (req, res) => {
     });
     res.json({ message: 'Account deleted successfully' }) // backend must respond or else frontend fetch will not resolve
   });
-  
+
 });
 
 /* 
@@ -94,13 +95,13 @@ app.get('/user', async (req, res) => {
 app.post('/user', async (req, res) => {
   const user = req.body;
   await db.add_user(user);
-  res.json({message: 'success'});
+  res.json({ message: 'success' });
 });
 
 app.put('/user', async (req, res) => {
   const updatedUser = req.body;
   await db.update_user(updatedUser);
-  res.json({message: 'success'});
+  res.json({ message: 'success' });
 });
 
 /* 
@@ -117,13 +118,13 @@ app.get('/company', async (req, res) => {
 app.post('/company', async (req, res) => {
   const company = req.body;
   const company_id = await db.add_company(company);
-  res.json({company_id: company_id});
+  res.json({ company_id: company_id });
 });
 
 app.put('/company', async (req, res) => {
   const updatedCompany = req.body;
   await db.update_company(updatedCompany);
-  res.json({message: 'success'});
+  res.json({ message: 'success' });
 });
 
 app.delete('/company', async (req, res) => {
@@ -160,22 +161,48 @@ app.post('/job', async (req, res) => {
   res.json({ job_id: job_id });
 });
 
-const uploadJobs = multer();
+const uploadJobs = multer({ dest: 'uploads/' });
 app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).send('No file uploaded');
   }
 
-  const fileBuffer = req.file.buffer.toString('utf-8');
-  console.log('File content:', fileBuffer);
-  
-  res.json({ message: 'success' });
+  const company_id = req.body.company_id;
+  const newRows = [];
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (row) => {
+      // Add a new column/value for each row
+      row.company_id = company_id;
+      row.is_custom = 0;
+      const d = new Date(row.job_date)
+      row.job_date = d.toISOString().slice(0, 10);
+      // Store the modified row in the array
+      newRows.push(row);
+    })
+    .on('end', () => {
+      Promise.all(newRows.map(async (newJob) => {
+        const job_id = await db.add_job(newJob);
+        return job_id;
+      }))
+        .then(() => {
+          res.status(200).json({ message: 'CSV processed and data inserted into MySQL.' });
+          fs.unlinkSync(req.file.path); // Clean up temporary file
+        })
+        .catch((error) => {
+          console.error('Error inserting rows into MySQL:', error);
+          res.status(500).json({ error: 'Failed to insert data into MySQL.' });
+        });
+    })
+
+  // res.json({ message: 'success' });
 });
 
 app.put('/job', async (req, res) => {
   const updatedJob = req.body;
   await db.update_job(updatedJob);
-  res.json({message: 'success'});
+  res.json({ message: 'success' });
 });
 
 app.delete('/job', async (req, res) => {
@@ -220,7 +247,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, req.body.customFilename); // Unique file name
-  },  
+  },
 });
 
 const upload = multer({ storage });

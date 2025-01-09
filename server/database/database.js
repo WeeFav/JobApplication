@@ -272,11 +272,14 @@ export async function get_job(job_id) {
 }
 
 export async function add_job(newJob) {
+  const columns = Object.keys(newJob);
+  const placeholders = columns.map(() => '?').join(', ');
   const query = `
-    INSERT INTO jobs (job_title, job_type, job_description, job_location, job_salary, company_id, is_custom, user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO jobs (${columns.join(', ')})
+    VALUES (${placeholders})
   `;
-  const [res] = await db.query(query, [newJob.jobTitle, newJob.jobType, newJob.jobDescription, newJob.jobLocation, newJob.jobSalary, newJob.companyID, newJob.is_custom, newJob.user_id]);
+   
+  const [res] = await db.query(query, Object.values(newJob));
   const job_id = res.insertId;
   return job_id;
 }
