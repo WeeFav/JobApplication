@@ -7,6 +7,7 @@ import { dirname } from 'path';
 import multer from "multer";
 import fs from "fs";
 import csv from "csv-parser";
+import { spawn } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -90,6 +91,28 @@ user
 app.get('/user', async (req, res) => {
   const [user] = await db.get_user(req.query);
   res.json(user);
+});
+
+app.get('/user/generate', async (req, res) => {
+  const pythonProcess = spawn('python', ["D:/JobApplication/server/generate_user.py"]);
+  let output;
+
+  pythonProcess.stdout.on('data', (data) => {
+    console.log(data.toString());
+  });
+
+  pythonProcess.stderr.on('data', (data) => {
+    console.error(`Error: ${data}`);
+    res.status(500).send(`Python script error: ${data}`);
+  });
+
+  pythonProcess.on('close', (code) => {
+    if (code === 0) {
+      res.json({ message: 'success' });
+    } else {
+      res.status(500).send(`Python script exited with code ${code}`);
+    }
+  });
 });
 
 app.post('/user', async (req, res) => {

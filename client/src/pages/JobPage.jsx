@@ -111,7 +111,7 @@ const JobPage = () => {
                   Job Description
                 </h3>
 
-                <p className="mb-4">
+                <p className="mb-4 whitespace-pre-wrap">
                   {job.job_description}
                 </p>
 

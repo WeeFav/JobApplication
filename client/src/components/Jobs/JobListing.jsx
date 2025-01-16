@@ -13,14 +13,14 @@ const JobListing = ({ job }) => {
 
   return (
     <>
-      <div className="rounded-xl shadow-md relative border-t-4 border-l-4 border-r-4  border-website-lightGray">
+      <div className="rounded-xl shadow-md relative border-t-4 border-l-4 border-r-4 border-website-lightGray mb-auto">
         <div className="p-4">
           <div className="mb-6">
             <div className="text-gray-600 my-2">{job.job_type}</div>
             <h3 className="text-xl font-bold">{job.job_title}</h3>
           </div>
 
-          <div className="mb-5">
+          <div className="mb-5 whitespace-pre-wrap">
             {description}
             <button
               onClick={() => setShowFullDescription((prevState) => !prevState)}
@@ -34,7 +34,6 @@ const JobListing = ({ job }) => {
 
 
         </div>
-        {/* <div className="border border-gray-100 mb-5"></div> */}
         <div className="bg-website-lightGray flex flex-col lg:flex-row justify-between py-2 px-4 rounded-br rounded-bl">
           <div className="flex text-orange-700 items-center">
             <FaMapMarker className="inline text-lg mr-1" />
@@ -48,7 +47,6 @@ const JobListing = ({ job }) => {
           </Link>
         </div>
       </div>
-
     </>
   );
 };

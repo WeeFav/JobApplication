@@ -106,14 +106,25 @@ export async function add_user(user) {
 }
 
 export async function update_user(updatedUser) {
+  const updates = []
+  const params = []
+
+  for (const key in updatedUser) {
+    if (key != 'user_id') {
+      updates.push(`${key} = ?`)
+      params.push(updatedUser[key])
+    }
+  };
+  
+  params.push(updatedUser['user_id'])
+
   const query = `
     UPDATE users
-    SET user_name = ?,
-        user_email = ?,
-        user_image = ?
+    SET ${updates.join(', ')}
     WHERE user_id = ?;
   `;
-  await db.query(query, [updatedUser.user_name, updatedUser.user_email, updatedUser.user_image, updatedUser.user_id]);
+
+  await db.query(query, params);
 }
 
 /* 

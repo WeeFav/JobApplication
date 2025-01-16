@@ -2,6 +2,7 @@ import { AccountContext } from "../App";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MyProfileTab from "../components/Profile/MyProfileTab";
+import UserInfoTab from "../components/Profile/UserInfoTab";
 import CompanyInfoTab from "../components/Profile/CompanyInfoTab";
 import ChangePasswordTab from "../components/Profile/ChangePasswordTab";
 import DeleteAccountTab from "../components/Profile/DeleteAccountTab";
@@ -29,6 +30,8 @@ const ProfilePage = () => {
     switch (tab) {
       case 'My Profile':
         return <MyProfileTab profileInfo={profileInfo} />;
+      case 'User Info':
+        return <UserInfoTab profileInfo={profileInfo} />;
       case 'Company Info':
         return <CompanyInfoTab profileInfo={profileInfo} />;
       case 'Change Password':
@@ -57,7 +60,11 @@ const ProfilePage = () => {
                     My Profile
                   </button>
                   {!accountContext.isCompany ?
-                    <></>
+                    <button className={`pl-4 w-full text-left ${tab === 'User Info' ? selectedTab : "text-gray-500"}`}
+                      onClick={() => { setTab('User Info') }}
+                    >
+                      User Info
+                    </button>
                     :
                     <button className={`pl-4 w-full text-left ${tab === 'Company Info' ? selectedTab : "text-gray-500"}`}
                       onClick={() => { setTab('Company Info') }}
