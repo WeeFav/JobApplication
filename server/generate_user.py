@@ -1,22 +1,22 @@
 import os
 import mysql.connector
+import json
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 load_dotenv()
   
-# class User(BaseModel):
-#   name: str = Field(description="User's name")
-#   email: str = Field(description="User's email")
-#   location: str = Field(description="User's locaion")
-#   education: str = Field(description="User's education. For example: Master of Science in Computer Engineering from the University of Toronto")
-#   skills: list[str] = Field(description="User's skills")
-#   work_experience_years: int = Field(description="User's experience years")
-#   work_experience_companies: list[str] = Field(description="User's experience companies")
+class User(BaseModel):
+  name: str = Field(description="User's name")
+  location: str = Field(description="User's locaion")
+  education: str = Field(description="User's education. For example: Master of Science in Computer Engineering from the University of Toronto")
+  skills: list[str] = Field(description="User's skills")
+  work_experience_years: int = Field(description="User's experience years")
+  work_experience_roles: list[str] = Field(description="User's experience companies")
    
-# class ResponseFormatter(BaseModel):
-#   users: list[User]
+class ResponseFormatter(BaseModel):
+  users: list[User]
 
 if __name__ == '__main__':
   # Database connection
@@ -28,24 +28,21 @@ if __name__ == '__main__':
   )
 
   # Cursor object to execute queries
-  cursor = db.cursor()
+  cursor = db.cursor(dictionary=True)
 
   cursor.execute("""
-                 SELECT * FROM users 
+                 SELECT user_name, user_location, user_education, user_skills, user_experience_years, user_experience_roles FROM users 
                  ORDER BY RAND() 
                  LIMIT 10;
-                """, 
-                ("value1",))
+                """)
   result = cursor.fetchall()
-  for row in result:
-      print(row)
-
-
+      
   messages = [
-      HumanMessage("""
-        Generate 1 job applicant profile with the following requirements:
+      HumanMessage(f"""
+        Here are the previous 10 user profiles {result}
+                   
+        Generate 1 unqiue job applicant profile with the following requirements:
         - name
-        - email
         - location: based in the United States
         - education:
           * Fields: Engineering, Sciences, Business, Arts, Humanities, Social Sciences 
@@ -53,11 +50,33 @@ if __name__ == '__main__':
           * Universities: Mix of state schools, private universities, liberal arts colleges                                                 
         - skills: Include both technical and soft skills relevant to their field (minimum 4 skills)
         - work experience years
-        - work experience companies: Include specific roles (including intern) at real companies.                              
-    """),
+        - work experience roles: Specific roles (including intern) at real companies.
+        
+        The generated user should not have repeated value in any of the fields. 
+      """)
   ]
-
-  # model = ChatOpenAI(model="gpt-4o-mini", temperature=1.2)
-  # model_with_structure = model.with_structured_output(ResponseFormatter)
-  # structured_output = model_with_structure.invoke(messages)
-  # print(structured_output)
+  
+  model = ChatOpenAI(model="gpt-4o-mini")
+  model_with_structure = model.with_structured_output(ResponseFormatter)
+  structured_output = model_with_structure.invoke(messages)
+  user = structured_output.users[0]
+  
+  generated_user = {
+    "user_name": user.name,
+    "user_location": user.location,
+    "user_education": user.education,
+    "user_skills": json.dumps(user.skills),
+    "user_experience_years": user.work_experience_years,
+    "user_experience_roles": json.dumps(user.work_experience_roles),
+  }
+  
+  # generated_user = {
+  #   "user_name": 'Marvin Lim',
+  #   "user_location": 'b',
+  #   "user_education": 'c',
+  #   "user_skills": json.dumps(['1', '2']),
+  #   "user_experience_years": 10,
+  #   "user_experience_roles": json.dumps(['3', '4'])
+  # }
+  
+  print(json.dumps(generated_user))

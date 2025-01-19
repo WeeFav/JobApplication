@@ -95,10 +95,10 @@ app.get('/user', async (req, res) => {
 
 app.get('/user/generate', async (req, res) => {
   const pythonProcess = spawn('python', ["D:/JobApplication/server/generate_user.py"]);
-  let output;
+  let generated_user;
 
   pythonProcess.stdout.on('data', (data) => {
-    console.log(data.toString());
+    generated_user = JSON.parse(data);
   });
 
   pythonProcess.stderr.on('data', (data) => {
@@ -106,13 +106,47 @@ app.get('/user/generate', async (req, res) => {
     res.status(500).send(`Python script error: ${data}`);
   });
 
-  pythonProcess.on('close', (code) => {
+  pythonProcess.on('close', async (code) => {
     if (code === 0) {
-      res.json({ message: 'success' });
-    } else {
+      // add account
+      const account_email = generated_user.user_name.toLowerCase().replace(' ', '.') + Math.floor(Math.random() * 10000).toString().padStart(4, '0') + '@gmail.com';
+      const account = {
+        account_email,
+        account_password: account_email.replace('@gmail.com', ''),
+        is_company: 0
+      }
+      
+      let account_id;
+      try {
+        console.log(account)
+        account_id = await db.add_account(account);
+        console.log("account added")
+      } catch (e) {
+        res.json({ 'message': e });
+      }
+
+      // add user
+      const user = {
+        user_id: account_id,
+        user_name: generated_user.user_name,
+        user_email: account_email,
+        user_image: "/api/images/user.png",
+        user_location: generated_user.user_location,
+        user_education: generated_user.user_education,
+        user_skills: generated_user.user_skills,
+        user_experience_years: generated_user.user_experience_years,
+        user_experience_roles: generated_user.user_experience_roles,
+      };
+      await db.add_user(user);
+
+      res.json({ 'message': 'success' })
+    }
+    else {
       res.status(500).send(`Python script exited with code ${code}`);
     }
   });
+
+
 });
 
 app.post('/user', async (req, res) => {

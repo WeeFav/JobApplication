@@ -39,9 +39,9 @@ function LoginPage() {
 
     const account = {
       name,
-      email,
-      password,
-      accountType
+      account_email: email,
+      account_password: password,
+      is_company: account.accountType === 'company' ? true : false
     };
 
     if (accountStatus === 'new') {
@@ -209,11 +209,11 @@ export const addAccountHandler = async (account) => {
   }
 
   // add new user or company
-  if (account.accountType === 'applicant') {
+  if (account.is_company === 'applicant') {
     const user = {
       user_id: account_id,
       user_name: account.name,
-      user_email: account.email,
+      user_email: account.account_email,
       user_image: "/api/images/user.png"
     }
 
@@ -229,7 +229,7 @@ export const addAccountHandler = async (account) => {
     const company = {
       company_name: account.name,
       company_description: '',
-      company_email: account.email,
+      company_email: account.account_email,
       company_phone: '',
       is_custom: false,
       account_id: account_id,

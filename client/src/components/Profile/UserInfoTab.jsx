@@ -41,9 +41,12 @@ const UserInfoTab = ({ profileInfo }) => {
 
   const onSubmitFormClick = () => {
     const updatedUser = {
-      company_id: profileInfo.company_id,
-      company_description: companyDescription,
-      company_phone: companyPhone,
+      user_id: profileInfo.user_id,
+      user_location: userLocation,
+      user_education: userEducation,
+      user_skills: JSON.stringify(userSkills),
+      user_experience_years: userExYears,
+      user_experience_roles: JSON.stringify(userExRoles),
     }
     updateUserHandler(updatedUser)
   }
@@ -75,7 +78,13 @@ const UserInfoTab = ({ profileInfo }) => {
           </div>
           <div>
             <label className="block text-sm text-gray-500">User Skills</label>
-            <div className="mt-1 text-gray-700">{userSkills}</div>
+            <div className="flex flex-wrap items-center rounded-lg p-2 space-x-1">
+              {userSkills.map((skill, index) => (
+                <div key={index} className="flex items-center bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm mb-2">
+                  {skill}
+                </div>
+              ))}
+            </div>
           </div>
           <div>
             <label className="block text-sm text-gray-500">User Work Experience Years</label>
@@ -83,7 +92,13 @@ const UserInfoTab = ({ profileInfo }) => {
           </div>
           <div>
             <label className="block text-sm text-gray-500">User Work Experience Roles</label>
-            <div className="mt-1 text-gray-700">{userExRoles}</div>
+            <div className="flex flex-wrap items-center rounded-lg p-2 space-x-1">
+              {userExRoles.map((role, index) => (
+                <div key={index} className="flex items-center bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm mb-2">
+                  {role}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         :
@@ -94,7 +109,6 @@ const UserInfoTab = ({ profileInfo }) => {
             <input
               type="text"
               className="border rounded w-full py-2 px-3 mb-2"
-              required
               value={userLocation}
               onChange={(e) => setUserLocation(e.target.value)}
             />
@@ -106,7 +120,6 @@ const UserInfoTab = ({ profileInfo }) => {
             <input
               type="text"
               className="border rounded w-full py-2 px-3 mb-2"
-              required
               value={userEducation}
               onChange={(e) => setUserEducation(e.target.value)}
             />
@@ -145,7 +158,6 @@ const UserInfoTab = ({ profileInfo }) => {
             <input
               type="text"
               className="border rounded w-full py-2 px-3 mb-2"
-              required
               value={userExYears}
               onChange={(e) => {
                 const filteredValue = e.target.value.replace(/\D/, '')

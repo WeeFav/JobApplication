@@ -16,12 +16,11 @@ account
 */
 
 export async function add_account(account) {
-  const is_company = account.accountType === 'company' ? true : false;
   const query = `
     INSERT INTO accounts (account_email, account_password, is_company)
     VALUES (?, ?, ?)
   `;
-  const [res] = await db.query(query, [account.email, account.password, is_company]);
+  const [res] = await db.query(query, [account.account_email, account.account_password, account.is_company]);
   const account_id = res.insertId;
   return account_id;
 }
@@ -98,11 +97,15 @@ export async function get_user(search) {
 }
 
 export async function add_user(user) {
+  console.log(user)
+  const columns = Object.keys(user);
+  const placeholders = columns.map(() => '?').join(', ');
   const query = `
-    INSERT INTO users (user_id, user_name, user_email, user_image)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO users (${columns.join(', ')})
+    VALUES (${placeholders})
   `;
-  await db.query(query, [user.user_id, user.user_name, user.user_email, user.user_image]);
+
+  await db.query(query, Object.values(user));
 }
 
 export async function update_user(updatedUser) {
