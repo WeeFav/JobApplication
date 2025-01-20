@@ -25,6 +25,11 @@ const ProtectedRoute = ({ validUser, redirectPath, children }) => {
         return navigate(redirectPath, { replace: true });
       }
     }
+    else if (validUser === 'admin') {
+      if (!(!accountContext.isCompany && accountContext.ID === 0)) {
+        return navigate(redirectPath, { replace: true });
+      }
+    }
     console.log("ProtectedRoute useEffect");
   }, []);
 

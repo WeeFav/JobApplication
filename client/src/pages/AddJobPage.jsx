@@ -3,9 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { AccountContext } from "../App";
 import JobForm from "../components/AddJob/JobForm";
 import UploadCSV from "../components/AddJob/UploadCSV";
-import Alert from '@mui/material/Alert';
-import Snackbar from '@mui/material/Snackbar';
-import Tooltip from '@mui/material/Tooltip';
 
 const AddJobPage = () => {
   const accountContext = useContext(AccountContext);

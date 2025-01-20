@@ -15,6 +15,7 @@ import CompanyJobsPage from "./pages/CompanyJobsPage";
 import AppliedJobsPage from "./pages/AppliedJobsPage";
 import { useState, useEffect, createContext } from "react";
 import CompanyPage from "./pages/CompanyPage";
+import GenerateUser from "./pages/GenerateUser";
 
 export const CompanysContext = createContext();
 export const AccountContext = createContext();
@@ -44,6 +45,10 @@ function App() {
               <EditJobPage />
             </CompanysProvider>
           } loader={jobLoader} />
+          {/* Admin Only */}
+          <Route element={<ProtectedRoute validUser={'admin'} redirectPath={'/'} />}>
+            <Route path="/generate-user" element={<GenerateUser />} />
+          </Route>
           {/* User Only */}
           <Route element={<ProtectedRoute validUser={'user'} redirectPath={'/'} />}>
             <Route path="/jobs" element={<JobsPage />} />

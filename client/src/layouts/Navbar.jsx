@@ -36,29 +36,42 @@ const Navbar = () => {
                   </NavLink>
                 </div>
                 :
-                <div className="flex space-x-2">
-                  <NavLink to="/" className={linkClass}>
-                    Home
-                  </NavLink>
-                  <NavLink to="/jobs" className={linkClass}>
-                    Jobs
-                  </NavLink>
-                  <NavLink to="/companies" className={linkClass}>
-                    Companies
-                  </NavLink>
-                  <NavLink to="/applied-jobs" className={linkClass}>
-                    Applied Jobs
-                  </NavLink>
-                  <NavLink to="/add-job" className={linkClass}>
-                    Add Custom Job
-                  </NavLink>
-                  <NavLink to="/dashboard" className={linkClass}>
-                    Dashboard
-                  </NavLink>
-                  <NavLink to="/profile" className={linkClass}>
-                    Profile
-                  </NavLink>
-                </div>
+                <>
+                  {accountContext.ID === 0 ?
+                    <div className="flex space-x-2">
+                      <NavLink to="/generate-user" className={linkClass}>
+                        Generate User
+                      </NavLink>
+                      <NavLink to="/profile" className={linkClass}>
+                        Profile
+                      </NavLink>
+                    </div>
+                    :
+                    <div className="flex space-x-2">
+                      <NavLink to="/" className={linkClass}>
+                        Home
+                      </NavLink>
+                      <NavLink to="/jobs" className={linkClass}>
+                        Jobs
+                      </NavLink>
+                      <NavLink to="/companies" className={linkClass}>
+                        Companies
+                      </NavLink>
+                      <NavLink to="/applied-jobs" className={linkClass}>
+                        Applied Jobs
+                      </NavLink>
+                      <NavLink to="/add-job" className={linkClass}>
+                        Add Custom Job
+                      </NavLink>
+                      <NavLink to="/dashboard" className={linkClass}>
+                        Dashboard
+                      </NavLink>
+                      <NavLink to="/profile" className={linkClass}>
+                        Profile
+                      </NavLink>
+                    </div>
+                  }
+                </>
               }
             </div>
           </div>

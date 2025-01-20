@@ -41,7 +41,7 @@ function LoginPage() {
       name,
       account_email: email,
       account_password: password,
-      is_company: account.accountType === 'company' ? true : false
+      is_company: accountType === 'company' ? true : false
     };
 
     if (accountStatus === 'new') {
@@ -67,7 +67,7 @@ function LoginPage() {
         sessionStorage.setItem("is_company", is_company);
         accountContext.setID(id);
         accountContext.setIsCompany(is_company);
-        return navigate('/');
+        return navigate(id === 0 ? '/generate-user' : '/');
       }
     }
   };
@@ -192,7 +192,7 @@ API
 */
 
 // function to add account
-export const addAccountHandler = async (account) => {
+const addAccountHandler = async (account) => {
   // add new account
   let res = await fetch('/api/account', {
     method: 'POST',
@@ -208,8 +208,10 @@ export const addAccountHandler = async (account) => {
     return false;
   }
 
+  console.log("hi")
   // add new user or company
-  if (account.is_company === 'applicant') {
+  if (!account.is_company) {
+    console.log("hi")
     const user = {
       user_id: account_id,
       user_name: account.name,

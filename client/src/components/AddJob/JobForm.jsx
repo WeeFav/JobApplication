@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { AccountContext } from "../../App";
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
-import Tooltip from '@mui/material/Tooltip';
 import CustomCompany from "./CustomCompany";
 
 const JobForm = () => {

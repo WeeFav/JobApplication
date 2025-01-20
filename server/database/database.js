@@ -26,11 +26,9 @@ export async function add_account(account) {
 }
 
 export async function check_account(account) {
-  const is_company = account.accountType === 'company' ? true : false;
-
   let query;
 
-  if (is_company) {
+  if (account.is_company) {
     query = `
     SELECT company_id AS id, is_company FROM accounts
     INNER JOIN companys
@@ -47,7 +45,7 @@ export async function check_account(account) {
     `;
   }
 
-  const [res] = await db.query(query, [account.email, account.password, is_company]);
+  const [res] = await db.query(query, [account.account_email, account.account_password, account.is_company]);
   return res;
 }
 
@@ -97,7 +95,6 @@ export async function get_user(search) {
 }
 
 export async function add_user(user) {
-  console.log(user)
   const columns = Object.keys(user);
   const placeholders = columns.map(() => '?').join(', ');
   const query = `

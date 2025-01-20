@@ -93,7 +93,7 @@ app.get('/user', async (req, res) => {
   res.json(user);
 });
 
-app.get('/user/generate', async (req, res) => {
+app.post('/user/generate', async (req, res) => {
   const pythonProcess = spawn('python', ["D:/JobApplication/server/generate_user.py"]);
   let generated_user;
 
