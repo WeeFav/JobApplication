@@ -3,9 +3,9 @@ import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 
 const GenerateUser = () => {
-  const [location, setLocation] = useState();
-  const [education, setEducation] = useState();
-  const [years, setYears] = useState();
+  const [location, setLocation] = useState('us');
+  const [education, setEducation] = useState('engr');
+  const [years, setYears] = useState('entry');
 
   // alert popup
   const [open, setOpen] = useState(false);
@@ -17,9 +17,9 @@ const GenerateUser = () => {
     e.preventDefault();
 
     const option = {
-      location,
-      education,
-      years
+      location: location,
+      education: education,
+      years: years
     }
 
     await generateUserHandler(option);
@@ -43,8 +43,8 @@ const GenerateUser = () => {
                   required
                   onChange={(e) => setLocation(e.target.value)}
                 >
-                  <option value="US">US</option>
-                  <option value="Global">Global</option>
+                  <option value="us">US</option>
+                  <option value="global">Global</option>
                 </select>
               </div>
               {/* Education */}
@@ -124,6 +124,5 @@ const generateUserHandler = async (option) => {
     },
     body: JSON.stringify(option)
   });
-
   await res.json();
 };

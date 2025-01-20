@@ -1,6 +1,8 @@
 import os
 import mysql.connector
 import json
+import sys
+import random
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
@@ -36,6 +38,36 @@ if __name__ == '__main__':
                  LIMIT 10;
                 """)
   result = cursor.fetchall()
+  
+  if sys.argv[1] == 'us':
+    location = 'Based in the United States'
+  elif sys.argv[1] == 'global':
+    location = 'Anywhere in the world'
+  
+  fields = ['Engineering or Sciences', 'Business', 'Arts, Humanities, Social Sciences']
+  if sys.argv[2] == 'engr':
+    education = fields[0]
+  elif sys.argv[2] == 'bus':
+    education = fields[1]
+  elif sys.argv[2] == 'ahss':
+    education = fields[2]
+  elif sys.argv[2] == 'any':
+    education = random.choice(fields)
+  
+  y = ['Set to 0', '1 to 5', '5 to 20']
+  if sys.argv[3] == 'entry':
+    years = y[0]
+  elif sys.argv[3] == 'mid':
+    years = y[1]
+  elif sys.argv[3] == 'high':
+    years = y[2]
+  elif sys.argv[3] == 'any':
+    years = random.choice(y)
+    
+  if years == 'Set to 0':
+    roles = 'Internship'
+  else:
+    roles = 'Specific roles'
       
   messages = [
       HumanMessage(f"""
@@ -43,16 +75,16 @@ if __name__ == '__main__':
                    
         Generate 1 unqiue job applicant profile with the following requirements:
         - name
-        - location: based in the United States
+        - location: {location}
         - education:
-          * Fields: Engineering, Sciences, Business, Arts, Humanities, Social Sciences 
+          * Fields: {education} 
           * Degree levels: Bachelors, Masters, PhD
           * Universities: Mix of state schools, private universities, liberal arts colleges                                                 
-        - skills: Include both technical and soft skills relevant to their field (minimum 4 skills)
-        - work experience years
-        - work experience roles: Specific roles (including intern) at real companies.
+        - skills: Include specific technical and soft skills relevant to their field (minimum 4 skills)
+        - work experience years: {years}
+        - work experience roles: {roles} at real companies.
         
-        The generated user should not have repeated value in any of the fields. 
+        Ensure the generated user is different than previous users in all profile fields. 
       """)
   ]
   
@@ -79,4 +111,4 @@ if __name__ == '__main__':
   #   "user_experience_roles": json.dumps(['3', '4'])
   # }
   
-  print(json.dumps(generated_user))
+  print(f"DATA: {json.dumps(generated_user)}")

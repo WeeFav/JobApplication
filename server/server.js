@@ -94,11 +94,21 @@ app.get('/user', async (req, res) => {
 });
 
 app.post('/user/generate', async (req, res) => {
-  const pythonProcess = spawn('python', ["D:/JobApplication/server/generate_user.py"]);
+  const option = req.body;
+
+  const pythonProcess = spawn('python', ["D:/JobApplication/server/generate_user.py", option.location, option.education, option.years]);
   let generated_user;
 
   pythonProcess.stdout.on('data', (data) => {
-    generated_user = JSON.parse(data);
+    const lines = data.toString().split('\n');
+    lines.forEach((line) => {
+      if (line.startsWith('DATA:')) {
+        generated_user = JSON.parse(line.replace('DATA: ', ''));
+      }
+      else {
+        console.log(line);
+      }
+    });
   });
 
   pythonProcess.stderr.on('data', (data) => {
