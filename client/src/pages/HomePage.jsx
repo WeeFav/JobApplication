@@ -25,7 +25,7 @@ const HomePage = () => {
               {!accountContext.isCompany ? 'Recently Applied Jobs' : 'Recently Posted Jobs'}
             </h2>
             <div className="mt-10">
-              <JobListings jobs={jobs} loading={loading} />
+              <JobListings jobs={jobs} loading={loading} isHome={true} />
             </div>
           </div>
         </div>

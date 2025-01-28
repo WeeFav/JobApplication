@@ -3,7 +3,7 @@ import JobListings from '../Jobs/JobListings'
 import { useState, useContext, useEffect } from "react"
 import { useParams } from "react-router-dom";
 
-const AllJobsTab = () => {
+const AllJobsTab = ({ companyName }) => {
   let jobs;
   let loading;
 
@@ -37,7 +37,7 @@ const AllJobsTab = () => {
       <section className="mx-40 mb-12 flex-grow">
         <div className="my-12">
           <h2 className="text-3xl font-bold text-website-darkGray text-center">
-            All Jobs From {}
+            All Jobs From {companyName}
           </h2>
         </div>
         <div className="px-7">

@@ -16,12 +16,13 @@ const UploadCSV = () => {
     setOpen(false);
   };
 
-  const onUploadClick = () => {
+  const onUploadClick = async () => {
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('company_id', accountContext.ID);
-      uploadJobsHandler(formData);
+      await uploadJobsHandler(formData);
+      setOpen(true);
     }
   };
 
@@ -52,7 +53,7 @@ const UploadCSV = () => {
             variant="filled"
             sx={{ width: '100%' }}
           >
-            Succesfully created job
+            Succesfully upload jobs csv
           </Alert>
         </Snackbar>
       </div>

@@ -2,7 +2,7 @@ import JobListings from "../components/Jobs/JobListings"
 import JobSearchBar from "../components/Jobs/JobSearchBar"
 import { useState, useContext, useEffect } from "react"
 
-const JobsPage = () => {  
+const JobsPage = () => {
   let jobs;
   let loading;
 
@@ -28,7 +28,7 @@ const JobsPage = () => {
     jobs = unfilteredJobs;
     loading = unfilteredJobsLoading;
   }
-
+  
   return (
     <>
       <section className="mx-40 mb-12 flex-grow">
@@ -45,7 +45,8 @@ const JobsPage = () => {
         </div>
       </section>
     </>
-  )}
+  )
+}
 
 export default JobsPage
 
