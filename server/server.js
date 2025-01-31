@@ -224,8 +224,11 @@ app.get('/job/:id', async (req, res) => {
 
 app.post('/job', async (req, res) => {
   const newJob = req.body;
-  const job_id = await db.add_job(newJob);
-  res.json({ job_id: job_id });
+  // const job_id = await db.add_job(newJob);
+  // res.json({ job_id: job_id });
+
+  db.add_to_queue(newJob.job_description)
+  res.json({'message': 'success'});
 });
 
 const uploadJobs = multer({ dest: 'uploads/' });

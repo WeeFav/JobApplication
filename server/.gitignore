@@ -27,3 +27,4 @@ dist-ssr
 
 uploads/
 images/
+__pycache__/

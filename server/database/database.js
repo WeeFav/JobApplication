@@ -1,5 +1,7 @@
 import mysql from 'mysql2';
 import dotenv from "dotenv";
+import { createClient } from 'redis';
+
 dotenv.config();
 
 const db = mysql.createPool({
@@ -8,6 +10,17 @@ const db = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME
 }).promise()
+
+const redis_q = createClient({
+  username: process.env.REDIS_USER,
+  password: process.env.REDIS_PASSWORD,
+  socket: {
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT)
+  }
+});
+redis_q.on('error', err => console.log('Redis Client Error', err));
+await redis_q.connect();
 
 /* 
 ===============================================================================
@@ -386,4 +399,13 @@ export async function delete_application(search) {
   WHERE application_id = ?
 `;
   await db.query(query, [search.application_id]);
+}
+
+/* 
+===============================================================================
+Redis Queue
+===============================================================================
+*/
+export async function add_to_queue(job_description) {
+  await redis_q.lPush('queue', job_description);
 }
