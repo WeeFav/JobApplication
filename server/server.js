@@ -227,7 +227,7 @@ app.post('/job', async (req, res) => {
   // const job_id = await db.add_job(newJob);
   // res.json({ job_id: job_id });
 
-  db.add_to_queue(newJob.job_description)
+  db.extract_jd(JSON.stringify([newJob.job_description]));
   res.json({'message': 'success'});
 });
 
@@ -239,6 +239,7 @@ app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
 
   const company_id = req.body.company_id;
   const newRows = [];
+  const jobDescriptionList = [];
 
   fs.createReadStream(req.file.path)
     .pipe(csv())
@@ -250,15 +251,17 @@ app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
       row.job_date = d.toISOString().slice(0, 10);
       // Store the modified row in the array
       newRows.push(row);
+      jobDescriptionList.push(row.job_description);
     })
     .on('end', () => {
       Promise.all(newRows.map(async (newJob) => {
-        const job_id = await db.add_job(newJob);
-        return job_id;
+        // const job_id = await db.add_job(newJob);
+        // return job_id;
       }))
         .then(() => {
-          res.status(200).json({ message: 'CSV processed and data inserted into MySQL.' });
+          db.extract_jd(JSON.stringify(jobDescriptionList));
           fs.unlinkSync(req.file.path); // Clean up temporary file
+          res.status(200).json({ message: 'CSV processed and data inserted into MySQL.' });
         })
         .catch((error) => {
           console.error('Error inserting rows into MySQL:', error);

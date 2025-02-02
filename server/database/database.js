@@ -406,6 +406,6 @@ export async function delete_application(search) {
 Redis Queue
 ===============================================================================
 */
-export async function add_to_queue(job_description) {
-  await redis_q.lPush('queue', job_description);
+export async function extract_jd(jobDescriptionList) {
+  await redis_q.lPush('queue', jobDescriptionList);
 }
