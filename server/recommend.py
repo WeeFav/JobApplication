@@ -13,6 +13,7 @@ import redis
 import json
 import os
 import time
+import mysql.connector
 load_dotenv()
 
 def extract_skill(jd):
@@ -24,6 +25,7 @@ def extract_skill(jd):
   res = model.invoke(messages)
   return res
 
+# connect to redis
 r = redis.Redis(
     host=os.environ['REDIS_HOST'],
     port=os.environ['REDIS_PORT'],
@@ -32,25 +34,42 @@ r = redis.Redis(
     password=os.environ['REDIS_PASSWORD'],
 )
 
+# connect to mysql
+db = mysql.connector.connect(
+    host=os.environ['DB_HOST'],       
+    user=os.environ['DB_USER'],            
+    password=os.environ['DB_PASSWORD'],    
+    database=os.environ['DB_NAME']      
+)
+cursor = db.cursor(dictionary=True)
+
+# setup LLM
 model = OllamaLLM(model="llama3.2")
+# define stop words
 stop_words = stopwords.words('english')
 additional_stop_words = ['experience', 'qualification', 'working', 'skill']
 stop_words.extend(additional_stop_words)
+# setup tfidf
+vectorizer = TfidfVectorizer()
 
 print("Python Server Runinng...")
 
+wait_next_data = True
+
 while True:
+  if wait_next_data:
+    print("waiting on data...")
   result = r.brpop('queue', timeout=5)
   if result:
-    print("recieved data...")
+    print("recieved data")
     _, data = result
     jd_list = json.loads(data)
-    curr_corpus = []
+    extracted_skill_list = []
     
     # extract all job description
-    for idx, jd in enumerate(jd_list):
-      print(f"extracting skill {idx}")
-      skill = extract_skill(jd)
+    for idx, job in enumerate(jd_list):
+      print(f"extracting job {job['job_id']} | {idx+1}/{len(jd_list)}")
+      skill = extract_skill(job['job_description'])
       # lowercase
       skill = skill.lower()
       # remove punctuation
@@ -64,61 +83,30 @@ while True:
       # reconsturct
       skill = " ".join(tokens)
 
-      curr_corpus.append(skill)
-      for i in range(10, 0, -1):
+      extracted_skill_list.append({'job_id': job['job_id'],
+                          'skill': skill})
+      # let machine cool down
+      for i in range(4, -1, -1):
         print(f"cooling down... {i}", end=' \r')
         time.sleep(1)
       print('')
     
-    curr_corpus = np.array(curr_corpus)  
+    updates = "\n".join([f"WHEN job_id = {x['job_id']} THEN '{x['skill']}'" for x in extracted_skill_list])
+    job_id_list = "(" + ", ".join([str(x['job_id'] )for x in extracted_skill_list]) + ")"
+    print("updating database...")
+    cursor.execute(f"""
+                   UPDATE jobs
+                   SET job_extracted_skill = CASE 
+                   {updates}
+                   END
+                   WHERE job_id IN {job_id_list};
+                   """)
+    db.commit()
     
-    if os.path.exists("./corpus.npy"):
-      corpus = np.load("./corpus.npy", allow_pickle=True)
-      corpus = np.concatenate((corpus, curr_corpus))
-    else:
-      corpus = curr_corpus
-    
-    print(corpus)
-    corpus.dump("./corpus.npy")
-    
-    
-    
-
-
-  
-df = pd.read_csv("D:\JobApplication\job_dataset\selected_jobs\Amazon.csv")
-corpus = []
-stop_words = stopwords.words('english')
-additional_stop_words = ['experience', 'qualification', 'working']
-stop_words.extend(additional_stop_words)
-
-for jd in df['job_description']:
-  # call llm
-  skill = extract_skill(jd)
-  print(skill)
-  # lowercase
-  skill = skill.lower()
-  
-  # remove punctuation
-  skill = re.sub(r'[^\w\s]', '', skill)
-  
-  # remove stop words
-  skill = skill.split()
-  tokens = [word for word in skill if word not in stop_words]
-  
-  # lemmatize
-  lemmatizer = WordNetLemmatizer()
-  tokens = [lemmatizer.lemmatize(word) for word in tokens]
-  
-  # reconsturct
-  skill = " ".join(tokens)
-  corpus.append(skill)
-  print(skill)
-  print("-----------------------------")
-
-print("saving corpus")
-np.array(corpus).dump("./server/corpus.npy")
-
+    wait_next_data = True
+  else:
+    wait_next_data = False
+        
 corpus = np.load("./server/corpus.npy", allow_pickle=True)
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(corpus)

@@ -224,11 +224,15 @@ app.get('/job/:id', async (req, res) => {
 
 app.post('/job', async (req, res) => {
   const newJob = req.body;
-  // const job_id = await db.add_job(newJob);
-  // res.json({ job_id: job_id });
+  
+  // insert into database
+  const job_id = await db.add_job(newJob);
+  
+  // extract job
+  db.extract_jd(JSON.stringify([{job_id: job_id,
+    job_description: newJob.job_description}]));
 
-  db.extract_jd(JSON.stringify([newJob.job_description]));
-  res.json({'message': 'success'});
+  res.json({ job_id: job_id });
 });
 
 const uploadJobs = multer({ dest: 'uploads/' });
@@ -251,12 +255,15 @@ app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
       row.job_date = d.toISOString().slice(0, 10);
       // Store the modified row in the array
       newRows.push(row);
-      jobDescriptionList.push(row.job_description);
     })
     .on('end', () => {
       Promise.all(newRows.map(async (newJob) => {
-        // const job_id = await db.add_job(newJob);
-        // return job_id;
+        // inserting into database
+        const job_id = await db.add_job(newJob);
+        // append job_descripion, job_id to list for extraction
+        jobDescriptionList.push({job_id: job_id,
+          job_description: newJob.job_description});        
+        return;
       }))
         .then(() => {
           db.extract_jd(JSON.stringify(jobDescriptionList));
