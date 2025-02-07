@@ -32,6 +32,35 @@ def dump_vector_store(vector_store):
   df = pd.DataFrame({'job_id': ids, 'job_description': texts})
   df.to_csv(f"./chroma_db/{vector_store._collection_name}.csv", index=False)
 
+def recommend():
+  cursor.execute("""
+                 SELECT user_id, user_education, user_skills, user_experience_years, user_experience_roles FROM users
+                 WHERE user_education IS NOT NULL OR user_skills IS NOT NULL OR user_experience_roles IS NOT NULL
+                 """)
+  user_profile_list = cursor.fetchall()
+    
+  for user in user_profile_list:
+    text = ""
+    if user['user_education'] is not None:
+      text += f"{user['user_education']}\n"
+    if user['user_skills'] is not None:
+      skills = json.loads(user['user_skills'])
+      skills = ", ".join(skills)
+      text += f"{skills}\n"
+    if user['user_experience_years'] is not None:
+      text += f"{user['user_experience_years']} years of experience\n"
+    if user['user_experience_roles'] is not None:
+      roles = json.loads(user['user_experience_roles'])
+      roles = ", ".join(roles)
+      text += f"{roles}"
+      
+    results = vector_store.similarity_search(text, k=3)
+    # print(user['user_id'], [x.id for x in results])
+
+    # update recommend table
+    
+
+  
 # connect to redis
 r = redis.Redis(
     host=os.environ['REDIS_HOST'],
@@ -127,9 +156,10 @@ if __name__ == '__main__':
     vector_store.reset_collection()
     print("Reset vector store")
   elif args.recommend:
-    # compute similarity
-    print("recommending...")
-    results = vector_store.similarity_search("artificial intelligence, software engineer", k=10)
-    print([x.id for x in results])
+    # # compute similarity
+    # print("recommending...")
+    # results = vector_store.similarity_search("artificial intelligence, software engineer", k=10)
+    # print([x.id for x in results])
+    recommend()
   else:
     main()

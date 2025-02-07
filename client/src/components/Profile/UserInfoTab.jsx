@@ -42,11 +42,11 @@ const UserInfoTab = ({ profileInfo }) => {
   const onSubmitFormClick = () => {
     const updatedUser = {
       user_id: profileInfo.user_id,
-      user_location: userLocation,
-      user_education: userEducation,
-      user_skills: JSON.stringify(userSkills),
-      user_experience_years: userExYears,
-      user_experience_roles: JSON.stringify(userExRoles),
+      user_location: userLocation == '' ? null : userLocation,
+      user_education: userEducation == '' ? null : userEducation,
+      user_skills: userSkills.length == 0 ? null : JSON.stringify(userSkills),
+      user_experience_years: userExYears == '' ? null : userExYears,
+      user_experience_roles: userExRoles.length == 0 ? null : JSON.stringify(userExRoles),
     }
     updateUserHandler(updatedUser)
   }
