@@ -3,14 +3,17 @@ import numpy as np
 from langchain_ollama.llms import OllamaLLM
 from langchain_core.messages import HumanMessage
 from dotenv import load_dotenv
+import re
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+import nltk
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import redis
 import json
 import os
 import time
 import mysql.connector
-from langchain_chroma import Chroma
-import chromadb
-from langchain_ollama import OllamaEmbeddings
 load_dotenv()
 
 def extract_skill(jd):
@@ -19,16 +22,8 @@ def extract_skill(jd):
                          
                          {jd}
                          """)]
-  res = model_LLM.invoke(messages)
+  res = model.invoke(messages)
   return res
-
-def dump_vector_store(vector_store):
-  documents = vector_store._collection.get()
-  ids = documents["ids"]  # List of IDs
-  texts = documents["documents"]  # List of texts
-  print(vector_store._collection.count())
-  df = pd.DataFrame({'job_id': ids, 'job_description': texts})
-  df.to_csv(f"./chroma_db/{vector_store._collection_name}.csv", index=False)
 
 # connect to redis
 r = redis.Redis(
@@ -49,16 +44,13 @@ db = mysql.connector.connect(
 cursor = db.cursor(dictionary=True)
 
 # setup LLM
-model_LLM = OllamaLLM(model="llama3.2")
-model_emb = OllamaEmbeddings(model="nomic-embed-text")
-# setup vector store
-chroma_client = chromadb.PersistentClient("./chroma_db")
-vector_store = Chroma(
-    client=chroma_client,
-    collection_name="jd_collection",
-    embedding_function=model_emb
-)
-vector_store.reset_collection()
+model = OllamaLLM(model="llama3.2")
+# define stop words
+stop_words = stopwords.words('english')
+additional_stop_words = ['experience', 'qualification', 'working', 'skill']
+stop_words.extend(additional_stop_words)
+# setup tfidf
+vectorizer = TfidfVectorizer()
 
 print("Python Server Runinng...")
 
@@ -73,28 +65,34 @@ while True:
     _, data = result
     jd_list = json.loads(data)
     extracted_skill_list = []
-    id_list = []
     
     # extract all job description
     for idx, job in enumerate(jd_list):
       print(f"extracting job {job['job_id']} | {idx+1}/{len(jd_list)}")
       skill = extract_skill(job['job_description'])
-      skill = "\n".join([x[2:] for x in skill.splitlines()])
-      extracted_skill_list.append(skill)
-      id_list.append(str(job['job_id']))
-      
+      # lowercase
+      skill = skill.lower()
+      # remove punctuation
+      skill = re.sub(r'[^\w\s]', '', skill)
+      # remove stop words
+      skill = skill.split()
+      tokens = [word for word in skill if word not in stop_words]
+      # lemmatize
+      lemmatizer = WordNetLemmatizer()
+      tokens = [lemmatizer.lemmatize(word) for word in tokens]
+      # reconsturct
+      skill = " ".join(tokens)
+
+      extracted_skill_list.append({'job_id': job['job_id'],
+                          'skill': skill})
       # let machine cool down
       for i in range(4, -1, -1):
         print(f"cooling down... {i}", end=' \r')
         time.sleep(1)
       print('')
     
-    updates = []
-    for i in range(len(extracted_skill_list)):
-      updates.append(f"""WHEN job_id = {id_list[i]} THEN "{extracted_skill_list[i]}" """)  
-    updates = "\n".join(updates)
-    job_id_list = "(" + ", ".join(id_list) + ")"
-    
+    updates = "\n".join([f"WHEN job_id = {x['job_id']} THEN '{x['skill']}'" for x in extracted_skill_list])
+    job_id_list = "(" + ", ".join([str(x['job_id'] )for x in extracted_skill_list]) + ")"
     print("updating database...")
     cursor.execute(f"""
                    UPDATE jobs
@@ -105,16 +103,19 @@ while True:
                    """)
     db.commit()
     
-    # vectorize
-    print("vectorizing...")
-    vector_store.add_texts(texts=extracted_skill_list, ids=id_list)
-    
-    # compute similarity
-    print("recommending...")
-    results = vector_store.similarity_search("risk mangement", k=3)
-    print([x.id for x in results])
-    dump_vector_store(vector_store)
-    
     wait_next_data = True
   else:
     wait_next_data = False
+        
+corpus = np.load("./server/corpus.npy", allow_pickle=True)
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(corpus)
+
+# Example user input
+user_input = ["computer vision pytorch", "program management experience", "master degree engineering"]
+user_vector = vectorizer.transform(user_input)
+
+# Compute cosine similarity
+similarity_scores = cosine_similarity(user_vector, tfidf_matrix)
+# print(similarity_scores.argsort()[:,-1:])
+print(similarity_scores.argsort())
