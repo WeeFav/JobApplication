@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const JobSearchBar = ({onSearchClick}) => {
+const JobSearchBar = ({onSearchClick, tab}) => {
   const [jobTitle, setJobTitle] = useState("");
   const [jobLocation, setJobLocation] = useState("");
   const [jobType, setJobType] = useState("");
+
+  useEffect(() => {
+    setJobTitle("");
+    setJobLocation("");
+    setJobType("");
+  }, [tab])
 
   return (
     <div className="flex flex-row gap-4">

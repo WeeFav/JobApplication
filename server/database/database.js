@@ -403,6 +403,43 @@ export async function delete_application(search) {
 
 /* 
 ===============================================================================
+application
+===============================================================================
+*/
+export async function get_recommendations(search) {
+  let conditions = [];
+  let params = [search.user_id];
+  
+  if (search.jobTitle) {
+    conditions.push("job_title LIKE ?")
+    params.push(`%${search.jobTitle}%`)
+  }
+  if (search.jobType) {
+    conditions.push("job_type LIKE ?")
+    params.push(`%${search.jobType}%`)
+  }
+  if (search.jobLocation) {
+    conditions.push("job_location LIKE ?")
+    params.push(`%${search.jobLocation}%`)
+  }
+
+  let query = `
+  SELECT jobs.job_id, job_title, job_type, job_description, job_location, job_salary
+  FROM recommendations INNER JOIN jobs
+  ON recommendations.job_id = jobs.job_id
+  WHERE recommendations.user_id = ?
+  `;
+
+  if (conditions.length > 0) {
+    query += ` AND ${conditions.join(" AND ")}`
+  }
+  
+  const [res] = await db.query(query, params)
+  return res;
+}
+
+/* 
+===============================================================================
 Redis Queue
 ===============================================================================
 */
