@@ -78,13 +78,13 @@ def extract_skills(job_list):
     
     cursor.execute(f"""
                     UPDATE jobs
-                    SET job_extracted_skill = "{skill}" 
-                    WHERE job_id = {job['job_id']};
-                    """)
+                    SET job_extracted_skill = %s 
+                    WHERE job_id = %s;
+                    """, (skill, job['job_id']))
     db.commit()
 
     # let machine cool down
-    for i in range(6, -1, -1):
+    for i in range(10, -1, -1):
       print(f"cooling down... {i}", end=' \r')
       time.sleep(1)
     print('')
@@ -113,7 +113,7 @@ def recommend():
       roles = ", ".join(roles)
       text += f"{roles}"
       
-    results = vector_store.similarity_search(text, k=3)
+    results = vector_store.similarity_search(text, k=20)
     # print(user['user_id'], [x.id for x in results])
 
     # update recommend table
@@ -152,7 +152,7 @@ def synchronize():
                  """)
   job_list = cursor.fetchall()
   extracted_skill_list = [job['job_extracted_skill'] for job in job_list]
-  id_list = [job['job_id'] for job in job_list]
+  id_list = [str(job['job_id']) for job in job_list]
   
   # vectorize
   print("vectorizing...")
