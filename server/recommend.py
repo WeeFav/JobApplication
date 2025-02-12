@@ -113,21 +113,30 @@ def recommend():
       roles = ", ".join(roles)
       text += f"{roles}"
       
-    results = vector_store.similarity_search(text, k=20)
-    # print(user['user_id'], [x.id for x in results])
+    results = vector_store.similarity_search(text, k=int(0.3 * vector_store._collection.count()))
 
+    curr_ids = [int(x.id) for x in results]
+    
     # update recommend table
+    params = [user['user_id'], *curr_ids]
+    cursor.execute(f"""
+                   DELETE FROM recommendations WHERE user_id = %s AND job_id NOT IN ({", ".join(['%s'] * len(curr_ids))});
+                   """, params)
+    db.commit()
+        
+    params = []
+    for idx, id in enumerate(curr_ids):
+      params.append(user['user_id'])
+      params.append(id)
+      params.append(idx+1)
     
     cursor.execute(f"""
-                   DELETE FROM recommendations WHERE user_id = {int(user['user_id'])} AND job_id NOT IN {str(tuple([int(x.id) for x in results]))};
-                   """)
+                  INSERT IGNORE INTO recommendations (user_id, job_id, priority)
+                  VALUES {", ".join(['(%s, %s, %s)'] * len(curr_ids))}
+                  ON DUPLICATE KEY UPDATE priority = VALUES(priority);
+                  """, params)
     db.commit()
-    cursor.execute(f"""
-                   INSERT INTO recommendations (user_id, job_id)
-                   VALUES {", ".join([str((int(user['user_id']), int(x.id))) for x in results])};
-                   """)
-    db.commit()  
-
+    
 def synchronize():
   cursor.execute("""
                  SELECT job_id, job_description FROM jobs
@@ -146,19 +155,20 @@ def synchronize():
   
   print(f"found {len(job_ids)} jobs not in vector store")
   
-  cursor.execute(f"""
-                 SELECT job_id, job_extracted_skill FROM jobs
-                 WHERE job_id in {tuple(job_ids)}
-                 """)
-  job_list = cursor.fetchall()
-  extracted_skill_list = [job['job_extracted_skill'] for job in job_list]
-  id_list = [str(job['job_id']) for job in job_list]
-  
-  # vectorize
-  print("vectorizing...")
-  vector_store.add_texts(texts=extracted_skill_list, ids=id_list)
-  
-  dump_vector_store(vector_store)
+  if len(job_ids) > 0:
+    cursor.execute(f"""
+                  SELECT job_id, job_extracted_skill FROM jobs
+                  WHERE job_id in ({", ".join(['%s'] * len(job_ids))})
+                  """, job_ids)
+    job_list = cursor.fetchall()
+    extracted_skill_list = [job['job_extracted_skill'] for job in job_list]
+    id_list = [str(job['job_id']) for job in job_list]
+    
+    # vectorize
+    print("vectorizing...")
+    vector_store.add_texts(texts=extracted_skill_list, ids=id_list)
+    
+    dump_vector_store(vector_store)
 
 def main():
   wait_next_data = True

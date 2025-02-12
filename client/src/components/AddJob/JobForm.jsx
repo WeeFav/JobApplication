@@ -47,23 +47,23 @@ const JobForm = () => {
     else {
       if (companyInfoButton === 'exist') {
         newJob = {
-          jobTitle,
-          jobType,
-          jobLocation,
-          jobDescription,
-          jobSalary,
-          companyID: selectedCompanyID,
+          job_title: jobTitle,
+          job_type: jobType,
+          job_location: jobLocation,
+          job_description: jobDescription,
+          job_salary: jobSalary,
+          company_id: selectedCompanyID,
           is_custom: 1,
           user_id: accountContext.ID
         }
       }
       else {
         newJob = {
-          jobTitle,
-          jobType,
-          jobLocation,
-          jobDescription,
-          jobSalary,
+          job_title: jobTitle,
+          job_type: jobType,
+          job_location: jobLocation,
+          job_description: jobDescription,
+          job_salary: jobSalary,
           is_custom: 1,
           user_id: accountContext.ID,
           company: {

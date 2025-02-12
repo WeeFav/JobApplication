@@ -228,9 +228,10 @@ app.post('/job', async (req, res) => {
   // insert into database
   const job_id = await db.add_job(newJob);
   
-  // extract job
-  db.extract_jd(JSON.stringify([{job_id: job_id,
-    job_description: newJob.job_description}]));
+  if (!newJob.is_custom) {
+    // extract job
+    db.extract_jd(JSON.stringify([{job_id: job_id, job_description: newJob.job_description}]));
+  }
 
   res.json({ job_id: job_id });
 });

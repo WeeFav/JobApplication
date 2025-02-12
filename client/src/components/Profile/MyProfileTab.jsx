@@ -31,7 +31,9 @@ const MyProfileTab = ({ profileInfo }) => {
     setPreview(URL.createObjectURL(file));
   };
 
-  const onSubmitFormClick = () => {
+  const onSubmitFormClick = async (e) => {
+    e.preventDefault();
+
     const filename = !accountContext.isCompany ? `user${profileInfo.user_id}.png` : `company${profileInfo.company_id}.png`
     
     if (!accountContext.isCompany) {
@@ -48,7 +50,8 @@ const MyProfileTab = ({ profileInfo }) => {
         account_email: email
       }
 
-      updateUserHandler(updatedUser, updatedAccount)
+      await updateUserHandler(updatedUser, updatedAccount);
+      window.location.reload();
     }
     else {
       // Company
@@ -189,7 +192,7 @@ const updateUserHandler = async (updatedUser, updatedAccount) => {
     },
     body: JSON.stringify(updatedUser)
   });
-
+  
   res = await fetch('/api/account', {
     method: 'PUT',
     headers: {
