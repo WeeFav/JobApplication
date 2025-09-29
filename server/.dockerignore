@@ -1,0 +1,6 @@
+node_modules
+.gitignore
+uploads/
+images/
+__pycache__/
+chroma_db/
