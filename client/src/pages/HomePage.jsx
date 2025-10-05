@@ -1,16 +1,13 @@
 import Hero from "../components/Home/Hero"
 import JobListings from "../components/Jobs/JobListings";
-import { useState, useContext, useEffect } from "react"
-import { AccountContext } from "../App";
+import { useState, useEffect } from "react"
 
 const HomePage = () => {
-  const accountContext = useContext(AccountContext);
-  
   const [jobs, setJobs] = useState();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadJobs(accountContext.ID, setJobs, setLoading, accountContext.isCompany);
+    loadJobs(setJobs, setLoading);
   }, []);
 
   return (
@@ -22,7 +19,7 @@ const HomePage = () => {
         <div>
           <div className="mb-6">
             <h2 className="text-3xl font-bold text-website-darkGray text-center">
-              {!accountContext.isCompany ? 'Recently Applied Jobs' : 'Recently Posted Jobs'}
+              Recently Applied Jobs
             </h2>
             <div className="mt-10">
               <JobListings jobs={jobs} loading={loading} isHome={true} />
@@ -43,15 +40,9 @@ API
 */
 
 // function to load applied jobs
-const loadJobs = async (id, setJobs, setLoading, is_company) => {
+const loadJobs = async (setJobs, setLoading) => {
   try {
-    let res;
-    if (!is_company) {
-      res = await fetch(`/api/application?user_id=${id}&limit=3`);
-    }
-    else {
-      res = await fetch(`/api/job?is_custom=0&company_id=${id}&limit=3`);
-    }
+    let res = await fetch(`/api/applications?limit=3`);
     const data = await res.json();
     setJobs(data);
   } catch (error) {

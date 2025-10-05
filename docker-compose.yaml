@@ -1,27 +1,68 @@
 version: "3.9"
 services:
-  backend:
+  # backend
+  server:
     build:
-      context: ./backend
-      dockerfile: ../backend.Dockerfile
+      context: ./server
+      dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - 8000:8000
     volumes:
-      - ./backend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
+      - ./server:/app # overrides /app from COPY in Dockerfile
+      - jobapplication_server_node_modules:/app/node_modules # create docker volume
 
-  frontend:
+  # frontend
+  client:
     build:
-      context: ./frontend
-      dockerfile: ../frontend.Dockerfile
+      context: ./client
+      dockerfile: Dockerfile
     ports:
-      - "5173:5173"
+      - 5000:5000
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./client:/app
+      - jobapplication_client_node_modules:/app/node_modules
+
+  # postgres
+  postgres:
+    image: pgvector/pgvector:pg13
     environment:
-      - NODE_ENV=development
-    depends_on:
-      - backend
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=postgres
+    volumes:
+      - jobapplication_postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" 
+
+  # pgadmin
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=root@root.com
+      - PGADMIN_DEFAULT_PASSWORD=root
+    ports:
+      - "8082:80"
+    volumes:
+      - jobapplication_pgadmin:/var/lib/pgadmin
+
+  # qdrant
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - jobapplication_qdrant:/qdrant/storage
+
+volumes:
+  jobapplication_postgres:
+    external: true
+  jobapplication_pgadmin:
+    external: true
+  jobapplication_qdrant:
+    external: true
+  jobapplication_server_node_modules:
+    external: true
+  jobapplication_client_node_modules:
+    external: true

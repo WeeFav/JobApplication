@@ -24,12 +24,9 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
-        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={
-          <ProtectedRoute validUser={'user and company'} redirectPath={'/login'}>
             <MainLayout />
-          </ProtectedRoute>
-        }>
+        }>  
           {/* All */}
           <Route index element={<HomePage />} />
           <Route path="/jobs/:id" element={<JobPage />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
@@ -72,9 +69,7 @@ function App() {
   );
 
   return (
-    <AccountProvider>
-      <RouterProvider router={router} />
-    </AccountProvider>
+    <RouterProvider router={router} />
   )
 };
 
@@ -111,21 +106,6 @@ const CompanysProvider = ({ children }) => {
   );
 };
 
-const AccountProvider = ({ children }) => {
-  const [isCompany, setIsCompany] = useState(parseInt(sessionStorage.getItem("is_company")));
-  const [ID, setID] = useState(parseInt(sessionStorage.getItem(`${isCompany ? 'company' : 'user'}_id`)));
-
-  console.log("accountProvider");
-  useEffect(() => {
-    console.log("accountProvider useEffect");
-  }, []);
-
-  return (
-    <AccountContext.Provider value={{ ID, isCompany, setID, setIsCompany }}>
-      {children}
-    </AccountContext.Provider>
-  );
-};
 
 /*
 -----------------------------------------------------------

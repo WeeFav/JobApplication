@@ -7,10 +7,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
+    watch: {
+        usePolling: true,
+        interval: 300, // check every 300ms
+    },
     port: 5000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000/', // Your backend server URL
+        target: 'http://server:8000/', // Your backend server URL
         changeOrigin: true, // Needed for virtual hosted sites
         rewrite: (path) => path.replace(/^\/api/, ''), // Rewrite '/api' to ''
       },
