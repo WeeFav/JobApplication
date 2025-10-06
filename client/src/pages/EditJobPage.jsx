@@ -1,6 +1,5 @@
 import { useParams, useLoaderData, useNavigate } from "react-router-dom"
 import { useState, useContext, useEffect } from "react"
-import CustomCompany from "../components/AddJob/CustomCompany";
 import { AccountContext } from "../App";
 import { CompanysContext } from "../App";
 

@@ -13,16 +13,11 @@ const db = new Pool({
   port: process.env.DB_PORT,
 });
 
-// const redis_q = createClient({
-//   username: process.env.REDIS_USER,
-//   password: process.env.REDIS_PASSWORD,
-//   socket: {
-//       host: process.env.REDIS_HOST,
-//       port: parseInt(process.env.REDIS_PORT)
-//   }
-// });
-// redis_q.on('error', err => console.log('Redis Client Error', err));
-// await redis_q.connect();
+const redis_q = createClient({
+  url: 'redis://redis:6379'
+});
+redis_q.on('error', err => console.log('Redis Client Error', err));
+await redis_q.connect();
 
 /* 
 ===============================================================================
@@ -33,34 +28,23 @@ job
 export async function get_jobs(search) {
   let conditions = [];
   let params = [];
+  let idx = 1;
 
   if (search.job_id) {
-    conditions.push("job_id = ?")
+    conditions.push(`job_id = $${idx++}`)
     params.push(search.job_id)
   }
-  if (search.is_custom) {
-    conditions.push("is_custom = ?")
-    params.push(search.is_custom)
-  }
-  if (search.company_id) {
-    conditions.push("company_id = ?")
-    params.push(search.company_id)
+  if (search.company) {
+    conditions.push(`company ILIKE $${idx++}`)
+    params.push(`%${search.company}%`)
   }
   if (search.jobTitle) {
-    conditions.push("job_title LIKE ?")
+    conditions.push(`title ILIKE $${idx++}`)
     params.push(`%${search.jobTitle}%`)
-  }
-  if (search.jobType) {
-    conditions.push("job_type LIKE ?")
-    params.push(`%${search.jobType}%`)
-  }
-  if (search.jobLocation) {
-    conditions.push("job_location LIKE ?")
-    params.push(`%${search.jobLocation}%`)
   }
 
   let query = `
-  SELECT job_id, job_title, job_type, job_description, job_location, job_salary, company_id
+  SELECT jobs.id, jobs.title, jobs.company, jobs.description_extracted
   FROM jobs
   `;
 
@@ -69,12 +53,12 @@ export async function get_jobs(search) {
   }
 
   if (search.limit && search.limit > 0) {
-    query += ` LIMIT ?`;
+    query += ` LIMIT $${idx++}`;
     params.push(parseInt(search.limit));
   }
 
-  const [res] = await db.query(query, params);
-  return res;
+  const res = await db.query(query, params);
+  return res.rows;
 }
 
 export async function get_job(job_id) {
@@ -91,16 +75,18 @@ export async function get_job(job_id) {
 }
 
 export async function add_job(newJob) {
-  const columns = Object.keys(newJob);
-  const placeholders = columns.map(() => '?').join(', ');
-  const query = `
-    INSERT INTO jobs (${columns.join(', ')})
-    VALUES (${placeholders})
-  `;
+  await redis_q.lPush('queue', JSON.stringify([newJob]));
+
+  // const columns = Object.keys(newJob);
+  // const placeholders = columns.map(() => '?').join(', ');
+  // const query = `
+  //   INSERT INTO jobs (${columns.join(', ')})
+  //   VALUES (${placeholders})
+  // `;
    
-  const [res] = await db.query(query, Object.values(newJob));
-  const job_id = res.insertId;
-  return job_id;
+  // const [res] = await db.query(query, Object.values(newJob));
+  // const job_id = res.insertId;
+  // return job_id;
 }
 
 export async function update_job(updatedJob) {
@@ -183,39 +169,40 @@ export async function delete_application(search) {
 
 /* 
 ===============================================================================
-application
+recommendations
 ===============================================================================
 */
 export async function get_recommendations(search) {
   let conditions = [];
-  let params = [search.user_id];
-  
+  let params = [];
+  let idx = 1;
+
   if (search.jobTitle) {
-    conditions.push("job_title LIKE ?")
+    conditions.push(`title ILIKE $${idx++}`)
     params.push(`%${search.jobTitle}%`)
   }
-  if (search.jobType) {
-    conditions.push("job_type LIKE ?")
-    params.push(`%${search.jobType}%`)
+  if (search.company) {
+    conditions.push(`company ILIKE $${idx++}`)
+    params.push(`%${search.company}%`)
   }
-  if (search.jobLocation) {
-    conditions.push("job_location LIKE ?")
-    params.push(`%${search.jobLocation}%`)
+  if (search.score) {
+    conditions.push(`score >= $${idx++}`)
+    params.push(search.score)
   }
 
+
   let query = `
-  SELECT jobs.job_id, job_title, job_type, job_description, job_location, job_salary
+  SELECT jobs.id, jobs.title, jobs.company, jobs.description_extracted, recommendations.score
   FROM recommendations INNER JOIN jobs
-  ON recommendations.job_id = jobs.job_id
-  WHERE recommendations.user_id = ?
+  ON recommendations.job_id = jobs.id
   `;
 
   if (conditions.length > 0) {
-    query += ` AND ${conditions.join(" AND ")}`
+    query += `WHERE ${conditions.join(" AND ")}`;
   }
   
-  const [res] = await db.query(query, params)
-  return res;
+  const res = await db.query(query, params);
+  return res.rows;
 }
 
 /* 

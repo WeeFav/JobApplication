@@ -29,7 +29,7 @@ job
 ===============================================================================
 */
 
-app.get('/job', async (req, res) => {
+app.get('/jobs', async (req, res) => {
   const jobs = await db.get_jobs(req.query);
   res.json(jobs);
 });
@@ -46,17 +46,12 @@ app.get('/job/:id', async (req, res) => {
   }
 })
 
-app.post('/job', async (req, res) => {
+app.post('/jobs', async (req, res) => {
   const newJob = req.body;
   
   // insert into database
   const job_id = await db.add_job(newJob);
   
-  if (!newJob.is_custom) {
-    // extract job
-    db.extract_jd(JSON.stringify([{job_id: job_id, job_description: newJob.job_description}]));
-  }
-
   res.json({ job_id: job_id });
 });
 
@@ -143,7 +138,7 @@ recommendation
 ===============================================================================
 */
 
-app.get('/recommend', async (req, res) => {
+app.get('/recommendations', async (req, res) => {
   const jobs = await db.get_recommendations(req.query);
   res.json(jobs);
 })

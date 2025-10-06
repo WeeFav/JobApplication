@@ -1,11 +1,8 @@
 import JobListings from "../components/Jobs/JobListings"
 import JobSearchBar from "../components/Jobs/JobSearchBar"
-import { useState, useContext, useEffect } from "react"
-import { AccountContext } from "../App";
+import { useState, useEffect } from "react"
 
 const AppliedJobsPage = () => {
-  const accountContext = useContext(AccountContext);
-  
   let jobs;
   let loading;
 
@@ -13,14 +10,14 @@ const AppliedJobsPage = () => {
   const [unfilteredApplicationsLoading, setUnfilteredApplicationsLoading] = useState(true);
 
   useEffect(() => {
-    loadApplications(accountContext.ID, setUnfilteredApplications, setUnfilteredApplicationsLoading);
+    loadApplications(setUnfilteredApplications, setUnfilteredApplicationsLoading);
   }, [])
 
-  const  [filteredApplications, setFilteredApplications]  = useState(null);
+  const [filteredApplications, setFilteredApplications]  = useState(null);
   const [filteredApplicationsLoading, setFilteredApplicationsLoading] = useState(true);
 
-  const onSearchClick = async (jobTitle, jobLocation, jobType) => {
-    setFilteredApplications(await searchApplicationHandler(accountContext.ID, jobTitle, jobLocation, jobType));
+  const onSearchClick = async (jobTitle, company) => {
+    setFilteredApplications(await searchApplicationHandler(jobTitle, company));
     setFilteredApplicationsLoading(false);
   };
 
@@ -60,9 +57,9 @@ API
 */
 
 // function to load user application
-const loadApplications = async (user_id, setUnfilteredApplications, setUnfilteredApplicationsLoading) => {
+const loadApplications = async (setUnfilteredApplications, setUnfilteredApplicationsLoading) => {
   try {
-    const res = await fetch(`/api/application?user_id=${user_id}`);
+    const res = await fetch(`/api/applications`);
     const data = await res.json();
     setUnfilteredApplications(data);
   } catch (error) {
@@ -73,8 +70,8 @@ const loadApplications = async (user_id, setUnfilteredApplications, setUnfiltere
 }
 
 // function to search job
-const searchApplicationHandler = async (user_id, jobTitle, jobLocation, jobType) => {
-  const res = await fetch(`/api/application?user_id=${user_id}&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+const searchApplicationHandler = async (jobTitle, company) => {
+  const res = await fetch(`/api/applications?jobTitle=${jobTitle}&company=${company}`);
   const data = await res.json();
   return data;
 }

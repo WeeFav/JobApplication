@@ -1,2 +1,4 @@
 job_dataset/
 .vscode/
+__pycache__/
+.env

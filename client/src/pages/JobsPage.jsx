@@ -3,24 +3,20 @@ import JobSearchBar from "../components/Jobs/JobSearchBar"
 import { useState, useContext, useEffect } from "react"
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import { AccountContext } from "../App";
 
 const JobsPage = () => {
-  const accountContext = useContext(AccountContext);
-  
   const [tab, setTab] = useState('all')
-
   const [jobs, setJobs] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    loadJobs(setJobs, setLoading, tab, accountContext.ID);
+    loadJobs(setJobs, setLoading, tab);
   }, [tab])
 
-  const onSearchClick = async (jobTitle, jobLocation, jobType) => {
+  const onSearchClick = async (jobTitle, company, score) => {
     setLoading(true);
-    setJobs(await searchJobHandler(jobTitle, jobLocation, jobType, tab, accountContext.ID));
+    setJobs(await searchJobHandler(jobTitle, company, score, tab));
     setLoading(false);
   };
 
@@ -59,15 +55,15 @@ API
 */
 
 // function to load company jobs
-const loadJobs = async (setJobs, setLoading, tab, user_id) => {
+const loadJobs = async (setJobs, setLoading, tab) => {
   try {
     let res;
 
     if (tab === 'all') {
-      res = await fetch(`/api/job?is_custom=0`);
+      res = await fetch(`/api/jobs`);
     }
     else if (tab === 'rec') {
-      res = await fetch(`/api/recommend?user_id=${user_id}`);
+      res = await fetch(`/api/recommendations`);
     }
 
     const data = await res.json();
@@ -80,14 +76,14 @@ const loadJobs = async (setJobs, setLoading, tab, user_id) => {
 }
 
 // function to search job
-const searchJobHandler = async (jobTitle, jobLocation, jobType, tab, user_id) => {
+const searchJobHandler = async (jobTitle, company, score, tab) => {
   let res;
 
   if (tab === 'all') {
-    res = await fetch(`/api/job?is_custom=0&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+    res = await fetch(`/api/jobs?jobTitle=${jobTitle}&company=${company}`);
   }
   else if (tab === 'rec') {
-    res = await fetch(`/api/recommend?user_id=${user_id}&jobTitle=${jobTitle}&jobLocation=${jobLocation}&jobType=${jobType}`);
+    res = await fetch(`/api/recommendations?jobTitle=${jobTitle}&company=${company}&score=${score}`);
   }
 
   const data = await res.json();

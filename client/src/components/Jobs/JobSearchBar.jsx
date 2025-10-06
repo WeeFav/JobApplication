@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 
-const JobSearchBar = ({onSearchClick, tab}) => {
+const JobSearchBar = ({ onSearchClick, tab }) => {
   const [jobTitle, setJobTitle] = useState("");
-  const [jobLocation, setJobLocation] = useState("");
-  const [jobType, setJobType] = useState("");
+  const [company, setCompany] = useState("");
+  const [score, setScore] = useState("");
 
   useEffect(() => {
     setJobTitle("");
-    setJobLocation("");
-    setJobType("");
+    setCompany("");
+    setScore("");
   }, [tab])
 
   return (
@@ -28,40 +28,45 @@ const JobSearchBar = ({onSearchClick, tab}) => {
         />
       </div>
 
-      {/* Location Input */}
+      {/* Company Input */}
       <div className="flex-grow">
-        <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-          Location
+        <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+          Company
         </label>
         <input
-          id="location"
+          id="Company"
           type="text"
-          placeholder="e.g., New York"
+          placeholder="e.g., Apple"
           className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-website-blue"
-          value={jobLocation}
-          onChange={(e) => setJobLocation(e.target.value)}
+          value={company}
+          onChange={(e) => setCompany(e.target.value)}
         />
       </div>
 
-      {/* Type Input */}
-      <div className="flex-grow">
-        <label htmlFor="job-type" className="block text-sm font-medium text-gray-700 mb-1">
-          Job Type
-        </label>
-        <input
-          id="job-type"
-          type="text"
-          placeholder="e.g., Full-time"
-          className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-website-blue"
-          value={jobType}
-          onChange={(e) => setJobType(e.target.value)}
-        />
-      </div>
+      {/* Score Input */}
+      {tab === 'rec' ?
+        <div className="flex-grow">
+          <label htmlFor="score" className="block text-sm font-medium text-gray-700 mb-1">
+            Score
+          </label>
+          <input
+            id="score"
+            type="number"
+            placeholder="minimum score"
+            className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-website-blue"
+            value={score}
+            onChange={(e) => setScore(e.target.value)}
+          />
+        </div>
+        :
+        <></>
+      }
+
 
       {/* Search Button */}
       <button
         className="bg-website-gold hover:bg-website-darkGold text-white rounded mt-6 px-4"
-        onClick={() => onSearchClick(jobTitle, jobLocation, jobType)}
+        onClick={() => onSearchClick(jobTitle, company, score)}
       >
         Search
       </button>

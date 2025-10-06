@@ -17,4 +17,11 @@ CREATE TABLE applications (
   application_date DATE NOT NULL DEFAULT CURRENT_DATE
 );
 
+CREATE TABLE recommendations (
+  job_id INTEGER REFERENCES jobs(id) 
+  ON DELETE CASCADE
+  ON UPDATE CASCADE,
+  score INT NOT NULL
+);
+
 

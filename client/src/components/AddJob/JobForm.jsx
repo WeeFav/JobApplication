@@ -1,28 +1,14 @@
 import { useState, useEffect, useContext } from "react"
 import { useNavigate } from "react-router-dom";
-import { AccountContext } from "../../App";
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
-import CustomCompany from "./CustomCompany";
 
 const JobForm = () => {
-  const navigate = useNavigate();
-  const accountContext = useContext(AccountContext);
-
   const [jobTitle, setJobTitle] = useState('');
-  const [jobType, setJobType] = useState('Full-Time');
-  const [jobLocation, setJobLocation] = useState('');
+  const [company, setCompany] = useState('');
   const [jobDescription, setJobDescription] = useState('');
-  const [jobSalary, setJobSalary] = useState('Under $50K');
+  const [url, setUrl] = useState('');
 
-  const [companyName, setCompanyName] = useState('');
-  const [companyDescription, setCompanyDescription] = useState('');
-  const [companyEmail, setCompanyEmail] = useState('');
-  const [companyPhone, setCompanyPhone] = useState('');
-  const [selectedCompanyID, setSelectedCompanyID] = useState('');
-
-  const [companyInfoButton, setCompanyInfoButton] = useState('exist');
-  
   // alert popup
   const [open, setOpen] = useState(false);
   const handleClose = () => {
@@ -33,62 +19,19 @@ const JobForm = () => {
     e.preventDefault();
     let newJob;
 
-    if (accountContext.isCompany) {
-      newJob = {
-        job_title: jobTitle,
-        job_type: jobType,
-        job_location: jobLocation,
-        job_description: jobDescription,
-        job_salary: jobSalary,
-        company_id: accountContext.ID,
-        is_custom: 0
-      }
-    }
-    else {
-      if (companyInfoButton === 'exist') {
-        newJob = {
-          job_title: jobTitle,
-          job_type: jobType,
-          job_location: jobLocation,
-          job_description: jobDescription,
-          job_salary: jobSalary,
-          company_id: selectedCompanyID,
-          is_custom: 1,
-          user_id: accountContext.ID
-        }
-      }
-      else {
-        newJob = {
-          job_title: jobTitle,
-          job_type: jobType,
-          job_location: jobLocation,
-          job_description: jobDescription,
-          job_salary: jobSalary,
-          is_custom: 1,
-          user_id: accountContext.ID,
-          company: {
-            company_name: companyName,
-            company_description: companyDescription,
-            company_email: companyEmail,
-            company_phone: companyPhone,
-            is_custom: 1,
-            user_id: accountContext.ID
-          }
-        }
-      }
+    newJob = {
+      job_title: jobTitle,
+      company: company,
+      job_description: jobDescription,
+      job_url: url
     }
 
-    addJobHandler(newJob, accountContext.ID);
+    addJobHandler(newJob);
     setOpen(true);
     setJobTitle('');
-    setJobType('Full-Time');
-    setJobLocation('');
     setJobDescription('');
-    setJobSalary('Under $50K');
-    setCompanyName('');
-    setCompanyDescription('');
-    setCompanyEmail('');
-    setCompanyPhone('');
+    setCompany('');
+    setUrl('');
     // return navigate('/');
   };
 
@@ -96,29 +39,9 @@ const JobForm = () => {
   return (
     <>
       <form onSubmit={onSubmitFormClick}>
-        {/* Job Section */}
-        <div className="mb-4">
-          <label htmlFor="type" className="block text-gray-700 font-bold mb-2">
-            Job Type
-          </label>
-          <select
-            id="type"
-            name="type"
-            className="border rounded w-full py-2 px-3"
-            required
-            value={jobType}
-            onChange={(e) => setJobType(e.target.value)}
-          >
-            <option value="Full-Time">Full-Time</option>
-            <option value="Part-Time">Part-Time</option>
-            <option value="Remote">Remote</option>
-            <option value="Internship">Internship</option>
-          </select>
-        </div>
-
         <div className="mb-4">
           <label className="block text-gray-700 font-bold mb-2">
-            Job Listing Name
+            Job Title
           </label>
           <input
             type="text"
@@ -131,6 +54,39 @@ const JobForm = () => {
             onChange={(e) => setJobTitle(e.target.value)}
           />
         </div>
+
+        <div className="mb-4">
+          <label className="block text-gray-700 font-bold mb-2">
+            Company
+          </label>
+          <input
+            type="text"
+            id="company"
+            name="company"
+            className="border rounded w-full py-2 px-3 mb-2"
+            placeholder="eg. Beautiful Apartment In Miami"
+            required
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-gray-700 font-bold mb-2">
+            URL
+          </label>
+          <input
+            type="text"
+            id="url"
+            name="url"
+            className="border rounded w-full py-2 px-3 mb-2"
+            placeholder="eg. Beautiful Apartment In Miami"
+            required
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+        </div>
+
         <div className="mb-4">
           <label
             htmlFor="description"
@@ -147,69 +103,6 @@ const JobForm = () => {
             onChange={(e) => setJobDescription(e.target.value)}
           ></textarea>
         </div>
-
-        <div className="mb-4">
-          <label htmlFor="type" className="block text-gray-700 font-bold mb-2">
-            Salary
-          </label>
-          <select
-            id="salary"
-            name="salary"
-            className="border rounded w-full py-2 px-3"
-            required
-            value={jobSalary}
-            onChange={(e) => setJobSalary(e.target.value)}
-          >
-            <option value="Under $50K">Under $50K</option>
-            <option value="$50K - 60K">$50K - $60K</option>
-            <option value="$60K - 70K">$60K - $70K</option>
-            <option value="$70K - 80K">$70K - $80K</option>
-            <option value="$80K - 90K">$80K - $90K</option>
-            <option value="$90K - 100K">$90K - $100K</option>
-            <option value="$100K - 125K">$100K - $125K</option>
-            <option value="$125K - 150K">$125K - $150K</option>
-            <option value="$150K - 175K">$150K - $175K</option>
-            <option value="$175K - 200K">$175K - $200K</option>
-            <option value="Over $200K">Over $200K</option>
-          </select>
-        </div>
-
-        <div className='mb-4'>
-          <label className='block text-gray-700 font-bold mb-2'>
-            Location
-          </label>
-          <input
-            type='text'
-            id='location'
-            name='location'
-            className='border rounded w-full py-2 px-3 mb-2'
-            placeholder='Company Location'
-            required
-            value={jobLocation}
-            onChange={(e) => setJobLocation(e.target.value)}
-          />
-        </div>
-
-        {accountContext.isCompany ?
-          <></>
-          :
-          <CustomCompany param={
-            {
-              companyName,
-              companyDescription,
-              companyEmail,
-              companyPhone,
-              selectedCompanyID,
-              companyInfoButton,
-              setCompanyName,
-              setCompanyDescription,
-              setCompanyEmail,
-              setCompanyPhone,
-              setSelectedCompanyID,
-              setCompanyInfoButton
-            }
-          } />
-        }
 
         {/* Add Job Button */}
         <div>
@@ -244,25 +137,11 @@ API
 */
 
 // function to add job
-const addJobHandler = async (newJob, user_id) => {
+const addJobHandler = async (newJob) => {
   let res;
 
-  // if custom company, add to database first
-  if (newJob.company) {
-    res = await fetch('/api/company', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(newJob.company)
-    });
-
-    const { company_id } = await res.json();
-    newJob['companyID'] = company_id;
-  }
-
   // add job to database
-  res = await fetch('/api/job', {
+  res = await fetch('/api/jobs', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -272,19 +151,4 @@ const addJobHandler = async (newJob, user_id) => {
 
   const { job_id } = await res.json();
 
-  // if custom job, add application to database
-  if (newJob.is_custom) {
-    const application = {
-      job_id: job_id,
-      user_id: user_id
-    }
-
-    res = await fetch('/api/application', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(application)
-    });
-  }
 };

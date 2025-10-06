@@ -19,9 +19,6 @@ const Navbar = () => {
                 <NavLink to="/jobs" className={linkClass}>
                 Jobs
                 </NavLink>
-                <NavLink to="/companies" className={linkClass}>
-                Companies
-                </NavLink>
                 <NavLink to="/applied-jobs" className={linkClass}>
                 Applied Jobs
                 </NavLink>
