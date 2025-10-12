@@ -48,7 +48,7 @@ app.get('/job/:id', async (req, res) => {
 
 app.post('/jobs', async (req, res) => {
   const newJob = req.body;
-  
+
   // insert into database
   const job_id = await db.add_job(newJob);
   
