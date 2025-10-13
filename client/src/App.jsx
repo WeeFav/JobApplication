@@ -55,7 +55,7 @@ Loaders
 */
 const jobLoader = async ({ params }) => {
   try {
-    const res = await fetch(`/api/job/${params.id}`);
+    const res = await fetch(`/api/jobs/${params.id}`);
     const job = await res.json();
     return job;
   } catch (error) {

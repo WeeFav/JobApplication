@@ -34,7 +34,7 @@ const JobListing = ({ job }) => {
         <div className="bg-website-lightGray flex flex-col lg:flex-row justify-between py-2 px-4 rounded-br rounded-bl">
           <div className="flex text-orange-700 items-center" />
           <Link
-            to={`/jobs/${job.job_id}`}
+            to={`/jobs/${job.id}`}
             className="h-[36px] bg-website-blue text-white px-4 py-2 rounded-lg text-center text-sm"
           >
             Read More

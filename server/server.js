@@ -34,7 +34,7 @@ app.get('/jobs', async (req, res) => {
   res.json(jobs);
 });
 
-app.get('/job/:id', async (req, res) => {
+app.get('/jobs/:id', async (req, res) => {
   const job_id = req.params.id;
   const [job] = await db.get_job(job_id);
 

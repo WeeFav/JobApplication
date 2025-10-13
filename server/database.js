@@ -31,7 +31,7 @@ export async function get_jobs(search) {
   let idx = 1;
 
   if (search.job_id) {
-    conditions.push(`job_id = $${idx++}`)
+    conditions.push(`id = $${idx++}`)
     params.push(search.job_id)
   }
   if (search.company) {
@@ -63,15 +63,13 @@ export async function get_jobs(search) {
 
 export async function get_job(job_id) {
   let query = `
-    SELECT job_id, job_title, job_type, job_description, job_location, job_salary, jobs.is_custom AS custom_job, company_name, company_description, company_email, company_phone, companys.is_custom AS custom_company, jobs.company_id, jobs.user_id as user_id
+    SELECT id, title, company, url, description, post_date, scrape_date
     FROM jobs
-    INNER JOIN companys
-    ON jobs.company_id = companys.company_id
-    WHERE job_id = ?;
+    WHERE id = $1;
   `;
 
-  const [res] = await db.query(query, [job_id]);
-  return res;
+  const res = await db.query(query, [job_id]);
+  return res.rows;
 }
 
 export async function add_job(newJob) {

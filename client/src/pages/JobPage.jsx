@@ -2,30 +2,11 @@ import { useLoaderData, useNavigate } from "react-router-dom"
 import { FaArrowLeft, FaMapMarker } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { useState, useContext, useEffect } from "react"
-import { AccountContext } from "../App";
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 
 const JobPage = () => {
-  const accountContext = useContext(AccountContext);
-  const navigate = useNavigate();
   const job = useLoaderData();
-
-  // first check if user/company allow to see other jobs
-  // if not, redirect to home page
-  useEffect(() => {
-    if (!job.custom_job) { // job is owned by company
-      if (!((!accountContext.isCompany) || (accountContext.isCompany && accountContext.ID === job.company_id))) { // only user or company who owns the job can see. if not, navigate
-        navigate('/');
-      }
-    }
-    else { // job is owned by user
-      if (!(!accountContext.isCompany && accountContext.ID === job.user_id)) { // only user who owns the job can see. if not, navigate
-        navigate('/');
-      }
-    }
-  }, []);
-
 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +15,7 @@ const JobPage = () => {
 
   const [openApply, setOpenApply] = useState(false);
   const [openUnapply, setOpenUnapply] = useState(false);
+
   const handleApplyClose = () => {
     setOpenApply(false);
   };
@@ -42,7 +24,7 @@ const JobPage = () => {
   };
 
   useEffect(() => {
-    loadApplications(accountContext.ID, job.job_id, setApplications, setLoading)
+    loadApplications(job.id, setApplications, setLoading)
   }, [applied]);
 
   useEffect(() => {
@@ -54,7 +36,7 @@ const JobPage = () => {
 
     if (confirm) {
       await deleteJobHandler(job);
-      navigate(accountContext.isCompany ? "/company-jobs" : "/jobs");
+      // navigate(accountContext.isCompany ? "/company-jobs" : "/jobs");
     }
 
   };
@@ -63,7 +45,6 @@ const JobPage = () => {
   const onApplyClick = async () => {
     const application = {
       job_id: job.job_id,
-      user_id: accountContext.ID
     }
 
     await applyJobHandler(application);
@@ -82,7 +63,7 @@ const JobPage = () => {
     <div className="flex flex-col flex-grow">
       <section>
         <div className="container m-auto py-4 px-6">
-          <Link to={accountContext.isCompany ? "/company-jobs" : "/jobs"} className="text-website-blue hover:text-website-gold flex items-center">
+          <Link to="/jobs" className="text-website-blue hover:text-website-gold flex items-center">
             <FaArrowLeft className="mr-2" />
             Back to Job Listings
           </Link>
@@ -96,9 +77,9 @@ const JobPage = () => {
               <div
                 className="bg-white p-6 rounded-lg shadow-md text-center md:text-left"
               >
-                <div className="text-gray-500 mb-4">{job.job_type}</div>
+                <div className="text-gray-500 mb-4">{job.url}</div>
                 <h1 className="text-3xl font-bold mb-4">
-                  {job.job_title}
+                  {job.title}
                 </h1>
                 <div className="text-gray-500 mb-4 flex align-middle justify-center md:justify-start">
                   <FaMapMarker className="text-orange-700 mr-1 mt-1" />
@@ -112,79 +93,48 @@ const JobPage = () => {
                 </h3>
 
                 <p className="mb-4 whitespace-pre-wrap">
-                  {job.job_description}
+                  {job.description}
                 </p>
 
-                <h3 className="text-website-blue text-lg font-bold mb-2">Salary</h3>
-
-                <p className="mb-4">{job.job_salary} / Year</p>
               </div>
             </main>
 
             <aside>
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold mb-6">Company Info</h3>
-
-                <h2 className="text-2xl">{job.company_name}</h2>
-
-                <p className="my-2">
-                  {job.company_description}
-                </p>
-
-                <hr className="my-4" />
-
-                <h3 className="text-xl">Contact Email:</h3>
-
-                <p className="my-2 bg-website-lightGray p-2 font-bold">
-                  {job.company_email}
-                </p>
-
-                <h3 className="text-xl">Contact Phone:</h3>
-
-                <p className="my-2 bg-website-lightGray p-2 font-bold">{job.company_phone}</p>
-              </div>
-
               {loading ?
                 <div>loading</div>
                 :
                 <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                   <h3 className="text-xl font-bold mb-6">Manage Job</h3>
-                  {accountContext.isCompany || (!accountContext.isCompany && job.custom_job) ?
+                  <Link
+                    to={`/jobs/edit/${job.job_id}`}
+                    className="bg-website-blue hover:bg-website-gold text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
+                    Edit Job
+                  </Link>
+                  <button
+                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                    onClick={onDeleteClick}
+                  >
+                    Delete Job
+                  </button>
+
+                  {applied ?
                     <>
-                      <Link
-                        to={`/jobs/edit/${job.job_id}`}
-                        className="bg-website-blue hover:bg-website-gold text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block">
-                        Edit Job
-                      </Link>
                       <button
-                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
-                        onClick={onDeleteClick}
+                        className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                        onClick={onUnapplyClick}
                       >
-                        Delete Job
+                        Unapply
                       </button>
+
                     </>
                     :
                     <>
-                      {applied ?
-                        <>
-                          <button
-                            className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
-                            onClick={onUnapplyClick}
-                          >
-                            Unapply
-                          </button>
-
-                        </>
-                        :
-                        <>
-                          <button
-                            className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
-                            onClick={onApplyClick}
-                          >
-                            Apply Job
-                          </button>
-                        </>
-                      }
+                      <button
+                        className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                        onClick={onApplyClick}
+                      >
+                        Apply Job
+                      </button>
                     </>
                   }
                   <Snackbar open={openUnapply} autoHideDuration={3000} onClose={handleUnapplyClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
@@ -226,9 +176,9 @@ API
 */
 
 // function to load application to this job
-const loadApplications = async (user_id, job_id, setApplications, setLoading) => {
+const loadApplications = async (job_id, setApplications, setLoading) => {
   try {
-    const res = await fetch(`/api/application?user_id=${user_id}&job_id=${job_id}`);
+    const res = await fetch(`/api/applications?job_id=${job_id}`);
     const data = await res.json();
     setApplications(data);
   } catch (error) {
@@ -248,7 +198,7 @@ const deleteJobHandler = async (job) => {
   if (job.custom_company) {
     await fetch(`/api/company?company_id=${job.company_id}`, {
       method: 'DELETE'
-    });  
+    });
   }
 };
 
