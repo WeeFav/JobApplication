@@ -1,11 +1,14 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import ScrollToTop from "../components/ScrollToTop";
 
 const MainLayout = () => {
+  const location = useLocation();
+  const isJobPage = location.pathname.startsWith("/jobs");
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`flex flex-col ${isJobPage ? "h-screen overflow-hidden" : "min-h-screen"}`}>
       <ScrollToTop />
       <Navbar />
       <Outlet />
@@ -13,7 +16,6 @@ const MainLayout = () => {
         <Footer />
       </footer>
     </div>
-
   );
 };
 
