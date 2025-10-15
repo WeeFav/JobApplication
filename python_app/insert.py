@@ -27,15 +27,15 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 def insert(jobs: List[Dict], job_site):
-    df = pd.DataFrame(jobs)
+    df = pd.DataFrame(jobs) 
     description_extracted_list = [] # for label studio annotation
     
     for i in range(len(df)):
         # canonicalize url
-        url_norm = canonicalize_url(df.iloc[i]['job_url'])
+        url_norm = canonicalize_url(df.iloc[i]['url'])
           
         # generate hash
-        title_norm = df.iloc[i]['job_title'].strip().lower()
+        title_norm = df.iloc[i]['title'].strip().lower()
         company_norm = df.iloc[i]['company'].strip().lower()
         combined = title_norm + company_norm + url_norm
         hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
@@ -55,7 +55,7 @@ def insert(jobs: List[Dict], job_site):
         
         
         # extract description
-        description = df.iloc[i]['job_description']
+        description = df.iloc[i]['description']
         if job_site == "Jobright":
             description_extracted = description
         else:
@@ -65,11 +65,11 @@ def insert(jobs: List[Dict], job_site):
                 
         # insert into postgres
         cursor.execute("""
-            INSERT INTO jobs (hash, title, company, url, description, description_extracted) 
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING scrape_date
             """,
-            (hash, df.iloc[i]['job_title'], df.iloc[i]['company'], url_norm, description, description_extracted)
+            (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
         )
         conn.commit()
         
@@ -85,11 +85,13 @@ def insert(jobs: List[Dict], job_site):
             }
         )
         
+        print("here") 
+        
         client.upsert(
             collection_name=collection_name,
             points=[point]
         )
-            
+             
         print(f"processed job {i + 1}")
     
     return description_extracted_list

@@ -30,7 +30,7 @@ def main():
       result = r.brpop('queue', timeout=1)   
       if result:
         _, data = result
-        insert(json.loads(data), 'manual')
+        insert([json.loads(data)], 'manual')
   except Exception:
     traceback.print_exc()
     pubsub.unsubscribe('scrape')

@@ -73,7 +73,7 @@ export async function get_job(job_id) {
 }
 
 export async function add_job(newJob) {
-  await redis_q.lPush('queue', JSON.stringify([newJob]));
+  await redis_q.lPush('queue', JSON.stringify(newJob));
 
   // const columns = Object.keys(newJob);
   // const placeholders = columns.map(() => '?').join(', ');
