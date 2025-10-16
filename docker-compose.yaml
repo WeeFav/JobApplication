@@ -71,7 +71,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./python_app:/app
-
+      - ./python_app/.hf_cache:/root/.cache/huggingface
 
 volumes:
   jobapplication_postgres:

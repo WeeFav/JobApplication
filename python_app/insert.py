@@ -84,9 +84,7 @@ def insert(jobs: List[Dict], job_site):
                 "scrape_date": scrape_date
             }
         )
-        
-        print("here") 
-        
+                
         client.upsert(
             collection_name=collection_name,
             points=[point]
