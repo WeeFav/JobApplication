@@ -9,6 +9,7 @@ import JobsPage from "./pages/JobsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AddJobPage from "./pages/AddJobPage";
 import AppliedJobsPage from "./pages/AppliedJobsPage";
+import ScrapePage from "./pages/ScrapePage";
 import { useState, useEffect, createContext } from "react";
 
 export const CompanysContext = createContext();
@@ -29,6 +30,7 @@ function App() {
           <Route path="/jobs/edit/:id" element={<EditJobPage />} loader={jobLoader} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/applied-jobs" element={<AppliedJobsPage />} />
+          <Route path="/scrape" element={<ScrapePage />} />
           <Route path="/*" element={<NotFoundPage />} />
         </Route>
       </>
