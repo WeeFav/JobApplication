@@ -12,15 +12,15 @@ const JobForm = () => {
 
   // alert popup
   const [open, setOpen] = useState(false);
-  const handleClose = () => {
-    setOpen(false);
-  };
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState('success');
+  
+  const handleClose = () => setOpen(false);
 
-  const onSubmitFormClick = (e) => {
+  const onSubmitFormClick = async (e) => {
     e.preventDefault();
-    let newJob;
-
-    newJob = {
+    
+    let newJob = {
       title: title,
       company: company,
       description: description,
@@ -29,14 +29,23 @@ const JobForm = () => {
       post_date: new Date().toISOString().split('T')[0]
     }
 
-    addJobHandler(newJob);
+    const res = await addJobHandler(newJob);
+
+    if (res.success) {
+      setAlertSeverity('success');
+      setAlertMessage('Succesfully created job');
+    }
+    else {
+      setAlertSeverity('error');
+      setAlertMessage(res.message);
+    }
+
     setOpen(true);
     setTitle('');
     setDescription('');
     setCompany('');
     setUrl('');
     setLocation('');
-    // return navigate('/');
   };
 
 
@@ -135,11 +144,11 @@ const JobForm = () => {
           <Snackbar open={open} autoHideDuration={3000} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
             <Alert
               onClose={handleClose}
-              severity="success"
+              severity={alertSeverity}
               variant="filled"
               sx={{ width: '100%' }}
             >
-              Succesfully created job
+              {alertMessage}
             </Alert>
           </Snackbar>
         </div>
@@ -158,10 +167,7 @@ API
 
 // function to add job
 const addJobHandler = async (newJob) => {
-  let res;
-
-  // add job to database
-  res = await fetch('/api/jobs', {
+  const res = await fetch('/api/jobs', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -169,6 +175,6 @@ const addJobHandler = async (newJob) => {
     body: JSON.stringify(newJob)
   });
 
-  const { job_id } = await res.json();
-
+  const message_json = await res.json();
+  return { success: res.ok, message: message_json.message }
 };

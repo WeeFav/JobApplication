@@ -205,9 +205,14 @@ export async function get_recommendations(search) {
 
 /* 
 ===============================================================================
-Redis Queue
+Redis
 ===============================================================================
 */
 export async function extract_jd(jobDescriptionList) {
   await redis_q.lPush('queue', jobDescriptionList);
+}
+
+export async function scrape(scrapeInfo) {
+  console.log("pub")
+  await redis_q.publish('scrape', JSON.stringify(scrapeInfo));
 }

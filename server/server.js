@@ -48,11 +48,16 @@ app.get('/jobs/:id', async (req, res) => {
 
 app.post('/jobs', async (req, res) => {
   const newJob = req.body;
+  const python_res = await fetch('http://python:8080/jobs', {
+    method: 'POST', 
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newJob)
+  });
 
-  // insert into database
-  const job_id = await db.add_job(newJob);
-  
-  res.json({ job_id: job_id });
+  const message_json = await python_res.json();
+  res.status(python_res.status).json({message: message_json.message});
 });
 
 const uploadJobs = multer({ dest: 'uploads/' });
@@ -141,6 +146,18 @@ recommendation
 app.get('/recommendations', async (req, res) => {
   const jobs = await db.get_recommendations(req.query);
   res.json(jobs);
+})
+
+/* 
+===============================================================================
+scrape
+===============================================================================
+*/
+
+app.post('/scrape', async (req, res) => {
+  const scrapeInfo = req.body;
+  await db.scrape(scrapeInfo);
+  res.json({ message: 'Scrape successfully' });
 })
 
 /* 

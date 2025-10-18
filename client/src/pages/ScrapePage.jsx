@@ -5,8 +5,12 @@ const ScrapePage = () => {
   const [numJobs, setNumJobs] = useState(10);
 
   const handleScrape = () => {
-    console.log(`Scraping ${numJobs} jobs from ${jobsite}`);
-    // TODO: connect with backend scraping API or logic here
+    let scrapeInfo = {
+      jobsite: jobsite,
+      numJobs: numJobs
+    }
+
+    scrapeHandler(scrapeInfo);
   };
 
   return (
@@ -22,7 +26,7 @@ const ScrapePage = () => {
           <select
             value={jobsite}
             onChange={(e) => setJobsite(e.target.value)}
-            className="w-full p-2 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-2 rounded-lg text-black focus:outline-none focus:ring-2"
           >
             <option value="linkedin">LinkedIn</option>
             <option value="jobright">JobRight</option>
@@ -39,14 +43,14 @@ const ScrapePage = () => {
             min="1"
             value={numJobs}
             onChange={(e) => setNumJobs(e.target.value)}
-            className="w-full p-2 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-2 rounded-lg  text-black focus:outline-none focus:ring-2"
           />
         </div>
 
         {/* Button */}
         <button
           onClick={handleScrape}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all"
+          className="w-full bg-website-gold text-white font-medium py-2 px-4 rounded-lg transition-all"
         >
           Scrape
         </button>
@@ -56,3 +60,27 @@ const ScrapePage = () => {
 }
 
 export default ScrapePage
+
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+// function to add job
+const scrapeHandler = async (scrapeInfo) => {
+  let res;
+
+  // add job to database
+  res = await fetch('/api/scrape', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(scrapeInfo)
+  });
+
+  await res.json();
+
+};
