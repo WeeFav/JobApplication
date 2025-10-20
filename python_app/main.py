@@ -13,7 +13,7 @@ def scrape(message):
 def add_job():
     data = flask.request.json
     try:
-        # insert([data], 'manual')
+        insert([data], 'manual')
         return flask.jsonify({"message": "success"}), 200
     except:
         return flask.jsonify({"message": "python insert failed"}), 500        

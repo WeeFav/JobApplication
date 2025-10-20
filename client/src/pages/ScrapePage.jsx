@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 const ScrapePage = () => {
   const [jobsite, setJobsite] = useState("linkedin");
   const [numJobs, setNumJobs] = useState(10);
+  const wsRef = useRef(null);
 
   const handleScrape = () => {
     let scrapeInfo = {
@@ -10,7 +11,7 @@ const ScrapePage = () => {
       numJobs: numJobs
     }
 
-    scrapeHandler(scrapeInfo);
+    scrapeHandler(scrapeInfo, wsRef);
   };
 
   return (
@@ -69,18 +70,28 @@ API
 */
 
 // function to add job
-const scrapeHandler = async (scrapeInfo) => {
-  let res;
+const scrapeHandler = async (scrapeInfo, wsRef) => {
+  // Create socket
+  const ws = new WebSocket('ws://server:8000');
+  wsRef.current = ws;
 
-  // add job to database
-  res = await fetch('/api/scrape', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(scrapeInfo)
-  });
+  ws.onopen = () => {
+    console.log('Connected to WebSocket');
+    ws.send(JSON.stringify({ type: 'start' })); // optional: tell backend to start
+  };
 
-  await res.json();
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    setMessages((prev) => [...prev, msg.data]);
 
+    if (msg.type === 'done') {
+      console.log('Task done, closing socket');
+      ws.close();
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('Socket closed');
+    wsRef.current = null;
+  };
 };
