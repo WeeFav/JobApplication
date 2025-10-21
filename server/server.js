@@ -8,6 +8,8 @@ import multer from "multer";
 import fs from "fs";
 import csv from "csv-parser";
 import { spawn } from "child_process";
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,6 +24,12 @@ app.use(cors(corsOptions));
 
 // Middleware to parse JSON
 app.use(express.json());
+
+// Create an HTTP server from Express app
+const server = createServer(app);
+
+// Create WebSocket server that attaches to the same HTTP server
+const wss = new WebSocketServer({ server });
 
 /* 
 ===============================================================================
@@ -150,15 +158,26 @@ app.get('/recommendations', async (req, res) => {
 
 /* 
 ===============================================================================
-scrape
+Websocket
 ===============================================================================
 */
 
-app.post('/scrape', async (req, res) => {
-  const scrapeInfo = req.body;
-  await db.scrape(scrapeInfo);
-  res.json({ message: 'Scrape successfully' });
-})
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+
+  ws.on('message', (msg) => {
+    console.log('Received:', msg.toString());
+  });
+
+  ws.send(JSON.stringify({ type: 'progress', data: 'Task started...' }));
+
+  setTimeout(() => {
+    ws.send(JSON.stringify({ type: 'done', data: 'Task completed!' }));
+    ws.close();
+  }, 10000);
+
+  ws.on('close', () => console.log('Client disconnected'));
+});
 
 /* 
 ===============================================================================
@@ -188,7 +207,7 @@ app.post("/save-image", upload.single("image"), (req, res) => {
   }
 });
 
-
-app.listen(8000, () => {
+// Start HTTP + WS server
+server.listen(8000, '0.0.0.0', () => {
   console.log("Server started at port 8000");
 });

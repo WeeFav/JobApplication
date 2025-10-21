@@ -72,7 +72,7 @@ API
 // function to add job
 const scrapeHandler = async (scrapeInfo, wsRef) => {
   // Create socket
-  const ws = new WebSocket('ws://server:8000');
+  const ws = new WebSocket('ws://localhost:8000');
   wsRef.current = ws;
 
   ws.onopen = () => {
@@ -82,7 +82,7 @@ const scrapeHandler = async (scrapeInfo, wsRef) => {
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    setMessages((prev) => [...prev, msg.data]);
+    console.log(msg.data);
 
     if (msg.type === 'done') {
       console.log('Task done, closing socket');
