@@ -57,7 +57,7 @@ app.get('/jobs/:id', async (req, res) => {
 app.post('/jobs', async (req, res) => {
   const newJob = req.body;
   const python_res = await fetch('http://python:8080/jobs', {
-    method: 'POST', 
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
@@ -65,7 +65,7 @@ app.post('/jobs', async (req, res) => {
   });
 
   const message_json = await python_res.json();
-  res.status(python_res.status).json({message: message_json.message});
+  res.status(python_res.status).json({ message: message_json.message });
 });
 
 const uploadJobs = multer({ dest: 'uploads/' });
@@ -94,8 +94,10 @@ app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
         // inserting into database
         const job_id = await db.add_job(newJob);
         // append job_descripion, job_id to list for extraction
-        jobDescriptionList.push({job_id: job_id,
-          job_description: newJob.job_description});        
+        jobDescriptionList.push({
+          job_id: job_id,
+          job_description: newJob.job_description
+        });
         return;
       }))
         .then(() => {
@@ -158,25 +160,46 @@ app.get('/recommendations', async (req, res) => {
 
 /* 
 ===============================================================================
-Websocket
+scrape
 ===============================================================================
 */
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
 
-  ws.on('message', (msg) => {
-    console.log('Received:', msg.toString());
+  ws.on('message', async (msg) => {
+    const scrapeInfo = JSON.parse(msg);
+    if (scrapeInfo.jobsite && scrapeInfo.numJobs) {
+      // POST request to /scrape in python
+      const python_res = await fetch('http://python:8080/scrape', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(scrapeInfo)
+      });
+      const message_json = await python_res.json(); // python will respond with success or fail after scrape
+      ws.send(JSON.stringify({ success: python_res.ok, message: message_json.message}));
+      ws.close();
+    }
   });
 
-  ws.send(JSON.stringify({ type: 'progress', data: 'Task started...' }));
+  ws.on('close', () => console.log('Socket closed'));
+});
 
-  setTimeout(() => {
-    ws.send(JSON.stringify({ type: 'done', data: 'Task completed!' }));
-    ws.close();
-  }, 10000);
+app.post('/notify', async (req, res) => {
+  const data = req.body;
 
-  ws.on('close', () => console.log('Client disconnected'));
+  if (data.job_scraped) {
+    // Send message to all connected WebSocket clients
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) { // 1 = OPEN
+        client.send(JSON.stringify({ job_scraped: true }));
+      }
+    });
+  }
+
+  res.json({ message: 'Notification sent via WebSocket' });
 });
 
 /* 

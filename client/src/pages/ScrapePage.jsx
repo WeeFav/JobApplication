@@ -3,15 +3,21 @@ import React, { useState, useRef } from "react";
 const ScrapePage = () => {
   const [jobsite, setJobsite] = useState("linkedin");
   const [numJobs, setNumJobs] = useState(10);
+  const [scrapeNum, setScrapeNum] = useState(0);
+  const [isScraping, setIsScraping] = useState(false);
   const wsRef = useRef(null);
 
-  const handleScrape = () => {
+  const handleScrape = async () => {
+    setIsScraping(true);
+    setScrapeNum(0); // reset count
+
     let scrapeInfo = {
       jobsite: jobsite,
       numJobs: numJobs
     }
 
-    scrapeHandler(scrapeInfo, wsRef);
+    let r = await scrapeHandler(scrapeInfo, wsRef, setScrapeNum);
+    setIsScraping(false);
   };
 
   return (
@@ -43,7 +49,7 @@ const ScrapePage = () => {
             type="number"
             min="1"
             value={numJobs}
-            onChange={(e) => setNumJobs(e.target.value)}
+            onChange={(e) => setNumJobs(Number(e.target.value))}
             className="w-full p-2 rounded-lg  text-black focus:outline-none focus:ring-2"
           />
         </div>
@@ -53,8 +59,21 @@ const ScrapePage = () => {
           onClick={handleScrape}
           className="w-full bg-website-gold text-white font-medium py-2 px-4 rounded-lg transition-all"
         >
-          Scrape
+          {isScraping ? "Scraping..." : "Scrape"}
         </button>
+
+        {/* Scrape Progress Display */}
+        {isScraping || scrapeNum > 0 ? 
+          <div className="mt-6 bg-gray-800 rounded-lg p-4">
+            <p className="text-lg font-medium">
+              Scraped Jobs:{" "}
+              <span className="text-website-gold font-bold">{scrapeNum}</span>
+            </p>
+          </div>
+          : 
+          <></>
+        }
+
       </div>
     </div>
   )
@@ -69,24 +88,31 @@ API
 ===============================================================================
 */
 
-// function to add job
-const scrapeHandler = async (scrapeInfo, wsRef) => {
+const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum) => {
   // Create socket
   const ws = new WebSocket('ws://localhost:8000');
   wsRef.current = ws;
+  let count = 0;
 
   ws.onopen = () => {
     console.log('Connected to WebSocket');
-    ws.send(JSON.stringify({ type: 'start' })); // optional: tell backend to start
+    ws.send(JSON.stringify(scrapeInfo));
   };
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    console.log(msg.data);
-
-    if (msg.type === 'done') {
-      console.log('Task done, closing socket');
-      ws.close();
+    if (msg.job_scraped) {
+      count++;
+      setScrapeNum(count);
+      console.log(`Job ${count} scraped`);
+    }
+    else if ("success" in msg) {
+      if (msg.success) {
+        console.log("Job scrape success");
+      }
+      else {
+        console.log("Job scrape failed");
+      }
     }
   };
 
@@ -94,4 +120,6 @@ const scrapeHandler = async (scrapeInfo, wsRef) => {
     console.log('Socket closed');
     wsRef.current = null;
   };
+
+  return 0;
 };
