@@ -62,7 +62,7 @@ app.post('/jobs', async (req, res) => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(newJob)
-  });
+  }); 
 
   const message_json = await python_res.json();
   res.status(python_res.status).json({ message: message_json.message });
@@ -170,16 +170,37 @@ wss.on('connection', (ws) => {
   ws.on('message', async (msg) => {
     const scrapeInfo = JSON.parse(msg);
     if (scrapeInfo.jobsite && scrapeInfo.numJobs) {
-      // POST request to /scrape in python
-      const python_res = await fetch('http://python:8080/scrape', {
+      // start scrape jobs
+      ws.send(JSON.stringify({ type: "scrape", start: true}));
+      
+      // call python API
+      let python_res = await fetch('http://python:8080/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(scrapeInfo)
       });
+      const jobs = await python_res.json(); // python will respond with success or fail after scrape
+      
+      ws.send(JSON.stringify({ type: "scrape", success: python_res.ok}));
+      if (!python_res.ok) {
+        ws.close();
+      }
+
+      // start insert jobs
+      ws.send(JSON.stringify({ type: "insert", start: true}));
+      
+      // call python API
+      python_res = await fetch('http://python:8080/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(jobs)
+      });
       const message_json = await python_res.json(); // python will respond with success or fail after scrape
-      ws.send(JSON.stringify({ success: python_res.ok, message: message_json.message}));
+
       ws.close();
     }
   });
@@ -190,15 +211,13 @@ wss.on('connection', (ws) => {
 app.post('/notify', async (req, res) => {
   const data = req.body;
 
-  if (data.job_scraped) {
-    // Send message to all connected WebSocket clients
-    wss.clients.forEach((client) => {
-      if (client.readyState === 1) { // 1 = OPEN
-        client.send(JSON.stringify({ job_scraped: true }));
-      }
-    });
-  }
-
+  // Send message to all connected WebSocket clients
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) { // 1 = OPEN
+      client.send(JSON.stringify(data));
+    }
+  });
+  
   res.json({ message: 'Notification sent via WebSocket' });
 });
 

@@ -5,10 +5,11 @@ const ScrapePage = () => {
   const [numJobs, setNumJobs] = useState(10);
   const [scrapeNum, setScrapeNum] = useState(0);
   const [isScraping, setIsScraping] = useState(false);
+  const [insertNum, setInsertNum] = useState(0);
+  const [isInserting, setIsInserting] = useState(false);
   const wsRef = useRef(null);
 
   const handleScrape = async () => {
-    setIsScraping(true);
     setScrapeNum(0); // reset count
 
     let scrapeInfo = {
@@ -16,8 +17,7 @@ const ScrapePage = () => {
       numJobs: numJobs
     }
 
-    let r = await scrapeHandler(scrapeInfo, wsRef, setScrapeNum);
-    setIsScraping(false);
+    await scrapeHandler(scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting);
   };
 
   return (
@@ -56,6 +56,7 @@ const ScrapePage = () => {
 
         {/* Button */}
         <button
+          disabled={isScraping}
           onClick={handleScrape}
           className="w-full bg-website-gold text-white font-medium py-2 px-4 rounded-lg transition-all"
         >
@@ -63,14 +64,14 @@ const ScrapePage = () => {
         </button>
 
         {/* Scrape Progress Display */}
-        {isScraping || scrapeNum > 0 ? 
+        {isScraping || scrapeNum > 0 ?
           <div className="mt-6 bg-gray-800 rounded-lg p-4">
             <p className="text-lg font-medium">
               Scraped Jobs:{" "}
               <span className="text-website-gold font-bold">{scrapeNum}</span>
             </p>
           </div>
-          : 
+          :
           <></>
         }
 
@@ -88,11 +89,12 @@ API
 ===============================================================================
 */
 
-const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum) => {
+const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting) => {
   // Create socket
   const ws = new WebSocket('ws://localhost:8000');
   wsRef.current = ws;
-  let count = 0;
+  let scrapeNum = 0;
+  let insertNum = 0;
 
   ws.onopen = () => {
     console.log('Connected to WebSocket');
@@ -101,17 +103,40 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum) => {
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    if (msg.job_scraped) {
-      count++;
-      setScrapeNum(count);
-      console.log(`Job ${count} scraped`);
-    }
-    else if ("success" in msg) {
-      if (msg.success) {
+    if (msg.type === "scrape") {
+      if (msg.start) {
+        setIsScraping(true);
+      }
+      else if (msg.update) {
+        scrapeNum++;
+        setScrapeNum(scrapeNum);
+        console.log(`Job ${scrapeNum} scraped`);
+      }
+      else if (msg.success) {
         console.log("Job scrape success");
+        setIsScraping(false);
       }
       else {
         console.log("Job scrape failed");
+        setIsScraping(false);
+      }
+    }
+    else if (msg.type === "insert") {
+      if (msg.start) {
+        setIsInserting(true);
+      }      
+      else if (msg.update) {
+        insertNum++;
+        setInsertNum(insertNum);
+        console.log(`Job ${insertNum} inserted`);
+      }
+      else if (msg.success) {
+        console.log("Job insert success");
+        setIsInserting(false);
+      }
+      else {
+        console.log("Job insert failed");
+        setIsInserting(false);
       }
     }
   };
@@ -121,5 +146,4 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum) => {
     wsRef.current = null;
   };
 
-  return 0;
 };

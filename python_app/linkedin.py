@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright, Playwright
 import time
-import pandas as pd
 import math
+import requests
 
 def get_auth():
     """Only need when need to sign into LinkedIn"""
@@ -18,9 +18,10 @@ def get_auth():
         
         page.pause()
         
-        context.storage_state(path="auth/linkedin_auth.json")
+        context.storage_state(path="./auth/linkedin_auth.json")
 
 def scrape_linkedin(jobs_to_scrape):
+    print("Start LinkedIn scrape")
     jobs_per_page = 25
     pages = math.ceil(jobs_to_scrape / jobs_per_page)
     
@@ -43,7 +44,7 @@ def scrape_linkedin(jobs_to_scrape):
         page = context.new_page()
 
         page.goto("https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")
-        
+       
         for page_num in range(1, pages + 1):
             scroll_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div")
             ul_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div/ul")
@@ -97,10 +98,13 @@ def scrape_linkedin(jobs_to_scrape):
                 # need to scroll because linkedin has a weird issue where job not in view will not get scraped
                 scroll_locator.evaluate("(el) => el.scrollBy(0, 132)")
             
+                # notify js server 1 job has been scraped
+                reponse = requests.post("http://server:8000/notify", json={"type": "scrape", "update": True})
+
             # click pagination
             if page_num != pages:
                 pagination_locator = page.locator("ul.jobs-search-pagination__pages")
-                pagination_locator.get_by_text(f"{str(page_num + 1)}").click()
+                pagination_locator.get_by_text(f"{str(page_num + 1)}").click()    
                             
         context.close()
         browser.close() 

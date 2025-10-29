@@ -1,6 +1,5 @@
 import pkg from 'pg';
 import dotenv from "dotenv";
-import { createClient } from 'redis';
 
 dotenv.config();
 
@@ -12,12 +11,6 @@ const db = new Pool({
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
 });
-
-const redis_q = createClient({
-  url: 'redis://redis:6379'
-});
-redis_q.on('error', err => console.log('Redis Client Error', err));
-await redis_q.connect();
 
 /* 
 ===============================================================================
@@ -70,21 +63,6 @@ export async function get_job(job_id) {
 
   const res = await db.query(query, [job_id]);
   return res.rows;
-}
-
-export async function add_job(newJob) {
-  await redis_q.lPush('queue', JSON.stringify(newJob));
-
-  // const columns = Object.keys(newJob);
-  // const placeholders = columns.map(() => '?').join(', ');
-  // const query = `
-  //   INSERT INTO jobs (${columns.join(', ')})
-  //   VALUES (${placeholders})
-  // `;
-   
-  // const [res] = await db.query(query, Object.values(newJob));
-  // const job_id = res.insertId;
-  // return job_id;
 }
 
 export async function update_job(updatedJob) {
@@ -201,18 +179,4 @@ export async function get_recommendations(search) {
   
   const res = await db.query(query, params);
   return res.rows;
-}
-
-/* 
-===============================================================================
-Redis
-===============================================================================
-*/
-export async function extract_jd(jobDescriptionList) {
-  await redis_q.lPush('queue', jobDescriptionList);
-}
-
-export async function scrape(scrapeInfo) {
-  console.log("pub")
-  await redis_q.publish('scrape', JSON.stringify(scrapeInfo));
 }
