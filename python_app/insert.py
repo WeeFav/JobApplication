@@ -8,6 +8,7 @@ import uuid
 import sys
 from dotenv import load_dotenv
 from typing import List, Dict
+import requests
 
 from preprocess_job import extract_description, canonicalize_url
 
@@ -27,6 +28,7 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 def insert(jobs: List[Dict], job_site):
+    print(job_site)
     df = pd.DataFrame(jobs) 
     description_extracted_list = [] # for label studio annotation
     
@@ -90,6 +92,9 @@ def insert(jobs: List[Dict], job_site):
             points=[point]
         )
              
+        # notify js server 1 job has been scraped
+        reponse = requests.post("http://server:8000/notify", json={"type": "insert", "update": True})
+        
         print(f"processed job {i + 1}")
     
     return description_extracted_list

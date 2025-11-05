@@ -2,6 +2,7 @@ from playwright.sync_api import sync_playwright, Playwright
 import time
 import math
 import requests
+from preprocess_job import extract_post_date
 
 def get_auth():
     """Only need when need to sign into LinkedIn"""
@@ -24,17 +25,9 @@ def scrape_linkedin(jobs_to_scrape):
     print("Start LinkedIn scrape")
     jobs_per_page = 25
     pages = math.ceil(jobs_to_scrape / jobs_per_page)
+    jobs = []
     
-    with sync_playwright() as playwright:
-        jobs = {
-            'title': [],
-            'company': [],
-            'description': [], 
-            'url': [],
-            'location': [],
-            'post_time': []
-        }
-        
+    with sync_playwright() as playwright:     
         # open browser and navigate to jobright
         browser = playwright.chromium.launch(
             channel="chrome",
@@ -64,8 +57,9 @@ def scrape_linkedin(jobs_to_scrape):
                 
                 details_locator = page.locator("xpath=//div[contains(@class, 'job-details-jobs-unified-top-card__tertiary-description-container')]/span")
                 location = details_locator.locator("xpath=./span[1]").inner_text()
-                post_time = details_locator.locator("xpath=./span[3]").inner_text()
-                                
+                post_time = details_locator.locator("xpath=./span[3]").inner_text()                
+                post_date = extract_post_date(post_time)
+                
                 apply_locator = page.locator("button#jobs-apply-button-id").first
                 apply_locator.wait_for()
                 apply_text = apply_locator.locator("span.artdeco-button__text").inner_text()
@@ -86,12 +80,14 @@ def scrape_linkedin(jobs_to_scrape):
                 # move down here so description have time to load
                 description = page.locator("xpath=//div[@id='job-details']/div[@class='mt4']").inner_text()
                 
-                jobs['title'].append(title)
-                jobs['company'].append(company)
-                jobs['description'].append(description)
-                jobs['url'].append(url)
-                jobs['location'].append(location)
-                jobs['post_time'].append(post_time)
+                jobs.append({
+                    "title": title,
+                    "company": company,
+                    "description": description,
+                    "url": url,
+                    "location": location,
+                    "post_date": post_date
+                }) 
                 jobs_to_scrape -= 1
                 print(f"{i} | {title} | {company} | {location} | {post_time}")
                 

@@ -14,12 +14,12 @@ const JobForm = () => {
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
-  
+
   const handleClose = () => setOpen(false);
 
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
-    
+
     let newJob = {
       title: title,
       company: company,
@@ -172,7 +172,7 @@ const addJobHandler = async (newJob) => {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(newJob)
+    body: JSON.stringify({ newJobs: [newJob], type: "manual" })
   });
 
   const message_json = await res.json();

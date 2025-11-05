@@ -55,14 +55,14 @@ app.get('/jobs/:id', async (req, res) => {
 })
 
 app.post('/jobs', async (req, res) => {
-  const newJob = req.body;
+  const data = req.body;
   const python_res = await fetch('http://python:8080/jobs', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(newJob)
-  }); 
+    body: JSON.stringify(data)
+  });
 
   const message_json = await python_res.json();
   res.status(python_res.status).json({ message: message_json.message });
@@ -108,7 +108,7 @@ app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
         .catch((error) => {
           console.error('Error inserting rows into MySQL:', error);
           res.status(500).json({ error: 'Failed to insert data into MySQL.' });
-        });
+        }); 
     })
 
   // res.json({ message: 'success' });
@@ -171,8 +171,8 @@ wss.on('connection', (ws) => {
     const scrapeInfo = JSON.parse(msg);
     if (scrapeInfo.jobsite && scrapeInfo.numJobs) {
       // start scrape jobs
-      ws.send(JSON.stringify({ type: "scrape", start: true}));
-      
+      ws.send(JSON.stringify({ type: "scrape", start: true }));
+
       // call python API
       let python_res = await fetch('http://python:8080/scrape', {
         method: 'POST',
@@ -182,25 +182,26 @@ wss.on('connection', (ws) => {
         body: JSON.stringify(scrapeInfo)
       });
       const jobs = await python_res.json(); // python will respond with success or fail after scrape
-      
-      ws.send(JSON.stringify({ type: "scrape", success: python_res.ok}));
+
+      ws.send(JSON.stringify({ type: "scrape", success: python_res.ok }));
       if (!python_res.ok) {
         ws.close();
       }
 
       // start insert jobs
-      ws.send(JSON.stringify({ type: "insert", start: true}));
-      
+      ws.send(JSON.stringify({ type: "insert", start: true }));
+
       // call python API
       python_res = await fetch('http://python:8080/jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(jobs)
+        body: JSON.stringify({ newJobs: jobs, type: scrapeInfo.jobsite })
       });
       const message_json = await python_res.json(); // python will respond with success or fail after scrape
 
+      ws.send(JSON.stringify({ type: "insert", success: python_res.ok }));
       ws.close();
     }
   });
@@ -217,7 +218,7 @@ app.post('/notify', async (req, res) => {
       client.send(JSON.stringify(data));
     }
   });
-  
+
   res.json({ message: 'Notification sent via WebSocket' });
 });
 

@@ -9,6 +9,6 @@ RUN playwright install chrome
 COPY . .
 
 ENV PYTHONUNBUFFERED=1
-ENV DISPLAY=172.21.224.1:0.0 
+ENV DISPLAY=172.21.224.1:0.0
 
-CMD ["watchfiles", "python /app/main.py", "/app"]
+CMD ["watchfiles", "--filter", "python", "python /app/main.py", "/app"]

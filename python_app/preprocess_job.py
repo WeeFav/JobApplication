@@ -5,6 +5,8 @@ from google.api_core.exceptions import ResourceExhausted
 import os
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
+import re
 
 load_dotenv()
 
@@ -55,3 +57,26 @@ def canonicalize_url(url):
     canonical = parsed._replace(query=canonical_query, fragment="")
     return urlunparse(canonical)
 
+def extract_post_date(text):
+    # Get today's date
+    today = datetime.today()
+    
+    # Extract the number and unit (day/week)
+    match = re.search(r'(\d+)\s+(hours|day|week)', text)
+    if not match:
+        return None  # invalid format
+    
+    value = int(match.group(1))
+    unit = match.group(2)
+
+    # Compute the timedelta 
+    if unit == 'hours':
+        delta = timedelta(hours=value)
+    elif unit == 'day':
+        delta = timedelta(days=value)
+    elif unit == 'week':
+        delta = timedelta(weeks=value)
+
+    # Subtract from today to get actual post date
+    post_date = today - delta
+    return post_date.strftime('%Y-%m-%d')

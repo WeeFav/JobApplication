@@ -15,9 +15,10 @@ def scrape(message):
 def add_job():
     data = flask.request.json
     try:
-        insert([data], 'manual')
+        insert(data["newJobs"], data["type"])
         return flask.jsonify({"message": "success"}), 200
-    except:
+    except Exception as e:
+        traceback.print_exc()
         return flask.jsonify({"message": "python insert failed"}), 500        
 
 @app.route('/scrape', methods=['POST'])
