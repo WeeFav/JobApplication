@@ -1,8 +1,6 @@
-import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from "react-router-dom";
-import HomePage from "./pages/HomePage";
+import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider, Navigate } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import NotFoundPage from "./pages/NotFoundPage";
-import JobPage from "./pages/JobPage";
 import EditJobPage from "./pages/EditJobPage";
 import DashboardPage from "./pages/DashboardPage";
 import JobsPage from "./pages/JobsPage";
@@ -22,8 +20,7 @@ function App() {
         <Route path="/" element={
             <MainLayout />
         }>  
-          <Route index element={<HomePage />} />
-          <Route path="/jobs/:id" element={<JobPage />} loader={jobLoader} /> {/* will wait for loader to finish before rendering JobPage */}
+          <Route path="/" element={<Navigate to="/jobs" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/add-job" element={<AddJobPage />} />

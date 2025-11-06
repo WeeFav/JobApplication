@@ -1,4 +1,3 @@
-import JobListings from "../components/Jobs/JobListings"
 import JobSearchBar from "../components/Jobs/JobSearchBar"
 import { useState, useEffect } from "react"
 
@@ -41,7 +40,7 @@ const AppliedJobsPage = () => {
           <JobSearchBar onSearchClick={onSearchClick}/>
         </div>
         <div className="mt-10">
-          <JobListings jobs={jobs} loading={loading}/>
+          {/* <JobListings jobs={jobs} loading={loading}/> */}
         </div>
       </section>
     </>

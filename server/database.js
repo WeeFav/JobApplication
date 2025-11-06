@@ -37,7 +37,7 @@ export async function get_jobs(search) {
   }
 
   let query = `
-  SELECT jobs.id, jobs.title, jobs.company, jobs.description_extracted
+  SELECT *
   FROM jobs
   `;
 
