@@ -43,14 +43,14 @@ app.get('/jobs', async (req, res) => {
 });
 
 app.get('/jobs/:id', async (req, res) => {
-  const job_id = req.params.id;
-  const [job] = await db.get_job(job_id);
+  const id = req.params.id;
+  const [job] = await db.get_job(id);
 
   if (job) {
     res.json(job);
   }
   else {
-    res.status(404).json({ 'error': `Job ${job_id} not found` })
+    res.status(404).json({ 'error': `Job ${id} not found` })
   }
 })
 
@@ -114,13 +114,13 @@ app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
   // res.json({ message: 'success' });
 });
 
-app.put('/job', async (req, res) => {
+app.put('/jobs', async (req, res) => {
   const updatedJob = req.body;
   await db.update_job(updatedJob);
-  res.json({ message: 'success' });
+  res.status(200).json({ message: 'success' });
 });
 
-app.delete('/job', async (req, res) => {
+app.delete('/jobs', async (req, res) => {
   await db.delete_job(req.query);
   res.json({ message: 'Job deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });

@@ -1,6 +1,14 @@
 import React from "react";
+import ScrollToTop from "../ScrollToTop";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const JobDetails = ({ job }) => {
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+
+  }
+
   return (
     <div className="p-6">
       {/* Header Section */}
@@ -35,6 +43,23 @@ const JobDetails = ({ job }) => {
         {job.description_extracted || "No description available."}
       </p>
 
+      {/* Edit + Delete Buttons */}
+      <div className="flex justify-end gap-3">
+        <NavLink
+          to={`/jobs/edit/${job.id}`}
+          className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
+        >
+          Edit
+        </NavLink>
+
+        <button
+          onClick={handleDelete}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+        >
+          Delete
+        </button>
+      </div>
+      
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect, useContext } from "react"
-import { useNavigate } from "react-router-dom";
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 
@@ -9,6 +8,7 @@ const JobForm = () => {
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
   const [location, setLocation] = useState('');
+  const [date, setDate] = useState('');
 
   // alert popup
   const [open, setOpen] = useState(false);
@@ -26,7 +26,7 @@ const JobForm = () => {
       description: description,
       url: url,
       location: location,
-      post_date: new Date().toISOString().split('T')[0]
+      post_date: date
     }
 
     const res = await addJobHandler(newJob);
@@ -46,8 +46,8 @@ const JobForm = () => {
     setCompany('');
     setUrl('');
     setLocation('');
+    setDate('');
   };
-
 
   return (
     <>
@@ -113,6 +113,20 @@ const JobForm = () => {
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="date" className="block text-gray-700 font-bold mb-2">
+            Date Posted
+          </label>
+          <input
+            type="date"
+            id="date"
+            name="date"
+            className="border rounded w-full py-2 px-3"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
           />
         </div>
 

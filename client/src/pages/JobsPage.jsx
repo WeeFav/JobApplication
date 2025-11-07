@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import JobSearchBar from "../components/Jobs/JobSearchBar"
 import JobList from "../components/Jobs/JobList";
 import JobDetails from "../components/Jobs/JobDetails";
@@ -9,6 +9,13 @@ const JobsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTo(0, 0);
+    }
+  }, [selectedJob]);
 
   useEffect(() => {
     setLoading(true);
@@ -38,7 +45,7 @@ const JobsPage = () => {
           </div>
 
           {/* Right Job Details */}
-          <div className="flex-1 overflow-y-auto bg-gray-100">
+          <div ref={containerRef} className="flex-1 overflow-y-auto bg-gray-100">
             {selectedJob ? (
               <JobDetails job={selectedJob} />
             ) : (

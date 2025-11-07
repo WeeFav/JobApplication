@@ -54,29 +54,29 @@ export async function get_jobs(search) {
   return res.rows;
 }
 
-export async function get_job(job_id) {
+export async function get_job(id) {
   let query = `
-    SELECT id, title, company, url, description, post_date, scrape_date
+    SELECT *
     FROM jobs
     WHERE id = $1;
   `;
 
-  const res = await db.query(query, [job_id]);
+  const res = await db.query(query, [id]);
   return res.rows;
 }
 
 export async function update_job(updatedJob) {
   let query = `
     UPDATE jobs
-    SET job_title = ?,
-        job_type = ?,
-        job_description = ?,
-        job_location = ?,
-        job_salary = ?,
-        company_id = ?
-    WHERE job_id = ?;
+    SET title = $1,
+        company = $2,
+        description = $3,
+        url = $4,
+        location = $5,
+        post_date = $6
+    WHERE job_id = $7;
   `;
-  await db.query(query, [updatedJob.jobTitle, updatedJob.jobType, updatedJob.jobDescription, updatedJob.jobLocation, updatedJob.jobSalary, updatedJob.companyID, updatedJob.job_id]);
+  await db.query(query, [updatedJob.title, updatedJob.company, updatedJob.description, updatedJob.url, updatedJob.location, updatedJob.post_date, updatedJob.id]);
 }
 
 export async function delete_job(search) {
