@@ -1,7 +1,8 @@
-import { useLoaderData } from "react-router-dom"
+import { useLoaderData, Link } from "react-router-dom"
 import { useState, useEffect } from "react"
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
+import { FaArrowLeft, FaMapMarker } from "react-icons/fa";
 
 const EditJobPage = () => {
   const job = useLoaderData();
@@ -12,7 +13,7 @@ const EditJobPage = () => {
   const [url, setUrl] = useState(job.url);
   const [location, setLocation] = useState(job.location);
   const [date, setDate] = useState(job.post_date);
-  
+
   // alert popup
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
@@ -51,7 +52,15 @@ const EditJobPage = () => {
   return (
     <>
       <section className="bg-website-lightGray">
-        <div className="container m-auto max-w-2xl py-24">
+        
+        <div className="py-4 px-6">
+          <Link to={"/jobs"} className="text-website-blue hover:text-website-gold flex items-center">
+            <FaArrowLeft className="mr-2" />
+            Back to Job Listings
+          </Link>
+        </div>
+
+        <div className="container m-auto max-w-2xl pb-24">
           <div className="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0">
             <h2 className="text-3xl text-center font-semibold mb-6">Update Job</h2>
               
@@ -129,7 +138,7 @@ const EditJobPage = () => {
                   id="date"
                   name="date"
                   className="border rounded w-full py-2 px-3"
-                  value={date}
+                  value={date ? date.split("T")[0] : ""}
                   onChange={(e) => setDate(e.target.value)}
                 />
               </div>

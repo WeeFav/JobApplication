@@ -45,6 +45,8 @@ export async function get_jobs(search) {
     query += `WHERE ${conditions.join(" AND ")}`
   }
 
+  query += " ORDER BY ID"
+
   if (search.limit && search.limit > 0) {
     query += ` LIMIT $${idx++}`;
     params.push(parseInt(search.limit));
@@ -74,7 +76,7 @@ export async function update_job(updatedJob) {
         url = $4,
         location = $5,
         post_date = $6
-    WHERE job_id = $7;
+    WHERE id = $7;
   `;
   await db.query(query, [updatedJob.title, updatedJob.company, updatedJob.description, updatedJob.url, updatedJob.location, updatedJob.post_date, updatedJob.id]);
 }
@@ -82,9 +84,9 @@ export async function update_job(updatedJob) {
 export async function delete_job(search) {
   let query = `
     DELETE FROM jobs
-    WHERE job_id = ?
+    WHERE id = $1
   `;
-  await db.query(query, [search.job_id]);
+  await db.query(query, [search.id]);
 }
 
 /* 

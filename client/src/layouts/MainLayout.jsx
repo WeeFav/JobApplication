@@ -8,7 +8,7 @@ const MainLayout = () => {
   const isJobPage = location.pathname.startsWith("/jobs");
 
   return (
-    <div className={`flex flex-col ${isJobPage ? "h-screen overflow-hidden" : "min-h-screen"}`}>
+    <div className={`flex flex-col h-screen`}>
       <ScrollToTop />
       <Navbar />
       <Outlet />

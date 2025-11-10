@@ -3,10 +3,12 @@ import ScrollToTop from "../ScrollToTop";
 import { NavLink, useNavigate } from "react-router-dom";
 
 const JobDetails = ({ job }) => {
-  const navigate = useNavigate();
-
   const handleDelete = async () => {
+    const confirm = window.confirm('Are you sure you want to delete this job?');
 
+    if (confirm) {
+      await deleteJobHandler(job);
+    }
   }
 
   return (
@@ -75,3 +77,15 @@ const formatDate = (date) => {
 };
 
 export default JobDetails
+
+/* 
+===============================================================================
+API
+===============================================================================
+*/
+
+const deleteJobHandler = async (job) => {
+  const res = await fetch(`/api/jobs?id=${job.id}`, {
+    method: 'DELETE'
+  });
+};
