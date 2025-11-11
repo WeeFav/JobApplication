@@ -1,13 +1,31 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ScrollToTop from "../ScrollToTop";
 import { NavLink, useNavigate } from "react-router-dom";
 
 const JobDetails = ({ job }) => {
+  const [applied, setApplied] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    loadApplication(job.id, setApplied, setLoading);
+  }, [job]);
+
+  const removeAppliedJobHandler = async () => {
+    await removeAppliedJob(job.id);
+    setApplied(false);
+  }
+
+  const addAppliedJobHandler = async () => {
+    await addAppliedJob(job.id);
+    setApplied(true);
+  }
+
   const handleDelete = async () => {
     const confirm = window.confirm('Are you sure you want to delete this job?');
 
     if (confirm) {
-      await deleteJobHandler(job);
+      await deleteJobHandler(job.id);
     }
   }
 
@@ -20,15 +38,33 @@ const JobDetails = ({ job }) => {
           <p className="text-gray-700">{job.company}</p>
         </div>
 
-        {/* Apply Button */}
-        {job.url && (
+        <div className="flex flex-col items-end gap-2">
+          {/* Apply Button */}
+          {job.url && (
+            <button
+              onClick={() => window.open(job.url, "_blank")}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              Apply Now
+            </button>
+          )}
+
+          {/* Toggle Applied Button */}
           <button
-            onClick={() => window.open(job.url, "_blank")}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            onClick={() =>
+              applied
+                ? removeAppliedJobHandler()
+                : addAppliedJobHandler()
+            }
+            className={`px-4 py-2 rounded-lg transition ${
+              applied
+                ? "bg-red-500 text-white hover:bg-red-600"
+                : "bg-green-500 text-white hover:bg-green-600"
+            }`}
           >
-            Apply Now
+            {applied ? "Remove from Applied" : "Mark as Applied"}
           </button>
-        )}
+        </div>
       </div>
 
       {/* Location + Dates */}
@@ -36,7 +72,8 @@ const JobDetails = ({ job }) => {
         <p>{job.location}</p>
         <p> Posted: {formatDate(job.post_date)}</p>
         <p> Scraped: {formatDate(job.scrape_date)}</p>
-      </div>  
+        <p> Applied: {formatDate(job.application_date)}</p>
+      </div>
 
       <hr className="mb-4" />
 
@@ -84,8 +121,36 @@ API
 ===============================================================================
 */
 
-const deleteJobHandler = async (job) => {
-  const res = await fetch(`/api/jobs?id=${job.id}`, {
+const loadApplication = async (id, setApplied, setLoading) => {
+  const res = await fetch(`/api/applications?job_id=${id}`);
+  const data = await res.json();
+  if (!data || data.length === 0) {
+    setApplied(false);
+  }
+  else {
+    setApplied(true);
+  }
+  setLoading(false);
+};
+
+const removeAppliedJob = async (id) => {
+  const res = await fetch(`/api/applications?id=${id}`, {
+    method: 'DELETE'
+  });
+};
+
+const addAppliedJob = async (id) => {
+  const res = await fetch('/api/applications', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ job_id: id })
+  });
+}
+
+const deleteJobHandler = async (id) => {
+  const res = await fetch(`/api/jobs?id=${id}`, {
     method: 'DELETE'
   });
 };

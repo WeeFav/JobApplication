@@ -1,49 +1,61 @@
+import React, { useState, useEffect, useRef } from "react";
 import JobSearchBar from "../components/Jobs/JobSearchBar"
-import { useState, useEffect } from "react"
+import JobList from "../components/Jobs/JobList";
+import JobDetails from "../components/Jobs/JobDetails";
 
 const AppliedJobsPage = () => {
-  let jobs;
-  let loading;
-
-  const [unfilteredApplications, setUnfilteredApplications] = useState(null);
-  const [unfilteredApplicationsLoading, setUnfilteredApplicationsLoading] = useState(true);
+  const [jobs, setJobs] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    loadApplications(setUnfilteredApplications, setUnfilteredApplicationsLoading);
+    if (containerRef.current) {
+      containerRef.current.scrollTo(0, 0);
+    }
+  }, [selectedJob]);
+
+  useEffect(() => {
+    setLoading(true);
+    loadJobs(setJobs, setLoading);
   }, [])
 
-  const [filteredApplications, setFilteredApplications]  = useState(null);
-  const [filteredApplicationsLoading, setFilteredApplicationsLoading] = useState(true);
-
   const onSearchClick = async (jobTitle, company) => {
-    setFilteredApplications(await searchApplicationHandler(jobTitle, company));
-    setFilteredApplicationsLoading(false);
+    setLoading(true);
+    setJobs(await searchJobHandler(jobTitle, company));
+    setLoading(false);
   };
 
-  if (!filteredApplicationsLoading) {
-    jobs = filteredApplications;
-  }
-  else {
-    jobs = unfilteredApplications;
-    loading = unfilteredApplicationsLoading;
-  }
-  
   return (
-    <>
-      <section className="mx-40 mb-12 flex-grow">
-        <div className="my-12">
-          <h2 className="text-3xl font-bold text-website-darkGray text-center">
-            Applied Jobs
-          </h2>
+    <div className="flex flex-col h-screen overflow-hidden">
+      {loading ? <h2>Loading...</h2> :
+        <>
+        {/* Top Search Bar */}
+        <div className="px-7 my-6">
+          <JobSearchBar onSearchClick={onSearchClick} tab="all" />
         </div>
-        <div className="px-7">
-          <JobSearchBar onSearchClick={onSearchClick}/>
+
+        {/* Main Layout */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Job List */}
+          <div className="w-1/3 border-r overflow-y-auto bg-white">
+            <JobList jobs={jobs} onSelectJob={setSelectedJob} selectedJob={selectedJob} />
+          </div>
+
+          {/* Right Job Details */}
+          <div ref={containerRef} className="flex-1 overflow-y-auto bg-gray-100">
+            {selectedJob ? (
+              <JobDetails job={selectedJob} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Select a job to view details
+              </div>
+            )}
+          </div>
         </div>
-        <div className="mt-10">
-          {/* <JobListings jobs={jobs} loading={loading}/> */}
-        </div>
-      </section>
-    </>
+        </>
+      }
+    </div>
   )
 }
 
@@ -55,21 +67,16 @@ API
 ===============================================================================
 */
 
-// function to load user application
-const loadApplications = async (setUnfilteredApplications, setUnfilteredApplicationsLoading) => {
-  try {
+// function to load company jobs
+const loadJobs = async (setJobs, setLoading) => {
     const res = await fetch(`/api/applications`);
     const data = await res.json();
-    setUnfilteredApplications(data);
-  } catch (error) {
-    console.log("Error fetching data from backend", error);
-  } finally {
-    setUnfilteredApplicationsLoading(false);
-  }
+    setJobs(data);
+    setLoading(false);
 }
 
 // function to search job
-const searchApplicationHandler = async (jobTitle, company) => {
+const searchJobHandler = async (jobTitle, company) => {
   const res = await fetch(`/api/applications?jobTitle=${jobTitle}&company=${company}`);
   const data = await res.json();
   return data;

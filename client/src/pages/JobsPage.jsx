@@ -4,10 +4,8 @@ import JobList from "../components/Jobs/JobList";
 import JobDetails from "../components/Jobs/JobDetails";
 
 const JobsPage = () => {
-  const [tab, setTab] = useState('all')
   const [jobs, setJobs] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
   const containerRef = useRef(null);
 
@@ -19,12 +17,12 @@ const JobsPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    loadJobs(setJobs, setLoading, tab);
-  }, [tab])
+    loadJobs(setJobs, setLoading);
+  }, [])
 
-  const onSearchClick = async (jobTitle, company, score) => {
+  const onSearchClick = async (jobTitle, company) => {
     setLoading(true);
-    setJobs(await searchJobHandler(jobTitle, company, score, tab));
+    setJobs(await searchJobHandler(jobTitle, company));
     setLoading(false);
   };
 
@@ -34,7 +32,7 @@ const JobsPage = () => {
         <>
         {/* Top Search Bar */}
         <div className="px-7 my-6">
-          <JobSearchBar onSearchClick={onSearchClick} tab={tab} />
+          <JobSearchBar onSearchClick={onSearchClick} tab="all" />
         </div>
 
         {/* Main Layout */}
@@ -70,37 +68,16 @@ API
 */
 
 // function to load company jobs
-const loadJobs = async (setJobs, setLoading, tab) => {
-  try {
-    let res;
-
-    if (tab === 'all') {
-      res = await fetch(`/api/jobs`);
-    }
-    else if (tab === 'rec') {
-      res = await fetch(`/api/recommendations`);
-    }
-
+const loadJobs = async (setJobs, setLoading) => {
+    const res = await fetch(`/api/jobs`);
     const data = await res.json();
     setJobs(data);
-  } catch (error) {
-    console.log("Error fetching data from backend", error);
-  } finally {
     setLoading(false);
-  }
 }
 
 // function to search job
-const searchJobHandler = async (jobTitle, company, score, tab) => {
-  let res;
-
-  if (tab === 'all') {
-    res = await fetch(`/api/jobs?jobTitle=${jobTitle}&company=${company}`);
-  }
-  else if (tab === 'rec') {
-    res = await fetch(`/api/recommendations?jobTitle=${jobTitle}&company=${company}&score=${score}`);
-  }
-
+const searchJobHandler = async (jobTitle, company) => {
+  const res = await fetch(`/api/jobs?jobTitle=${jobTitle}&company=${company}`);
   const data = await res.json();
   return data;
 }

@@ -37,12 +37,16 @@ export async function get_jobs(search) {
   }
 
   let query = `
-  SELECT *
+  SELECT jobs.*
   FROM jobs
+  LEFT JOIN applications
+  ON jobs.id = applications.job_id
   `;
 
+  query += "WHERE applications.job_id IS NULL"
+
   if (conditions.length > 0) {
-    query += `WHERE ${conditions.join(" AND ")}`
+    query += ` AND ${conditions.join(" AND ")}`
   }
 
   query += " ORDER BY ID"
@@ -100,17 +104,21 @@ export async function get_applications(search) {
   let params = [];
   let idx = 1;
 
+  if (search.job_id) {
+    conditions.push(`jobs.id = $${idx++}`)
+    params.push(search.job_id)
+  }
   if (search.jobTitle) {
-    conditions.push(`job_title ILIKE $${idx++}`)
+    conditions.push(`jobs.title ILIKE $${idx++}`)
     params.push(`%${search.jobTitle}%`)
   }
   if (search.company) {
-    conditions.push(`company ILIKE $${idx++}`)
+    conditions.push(`jobs.company ILIKE $${idx++}`)
     params.push(`%${search.company}%`)
   }
 
   let query = `
-    SELECT jobs.id, jobs.title, jobs.company, jobs.description_extracted 
+    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, application_date 
     FROM applications
     INNER JOIN jobs
     ON applications.job_id = jobs.id
@@ -129,20 +137,20 @@ export async function get_applications(search) {
   return res.rows;
 }
 
-export async function add_application(application) {
+export async function add_application(job_id) {
   const query = `
-  INSERT INTO applications (job_id, user_id)
-  VALUES (?, ?)
+  INSERT INTO applications (job_id)
+  VALUES ($1)
 `;
-  await db.query(query, [application.job_id, application.user_id]);
+  await db.query(query, [job_id]);
 }
 
 export async function delete_application(search) {
   const query = `
   DELETE FROM applications
-  WHERE application_id = ?
+  WHERE job_id = $1
 `;
-  await db.query(query, [search.application_id]);
+  await db.query(query, [search.id]);
 }
 
 /* 

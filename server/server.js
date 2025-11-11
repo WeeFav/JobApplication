@@ -136,13 +136,13 @@ app.get('/applications', async (req, res) => {
   res.json(applications);
 });
 
-app.post('/application', async (req, res) => {
-  const application = req.body;
-  await db.add_application(application);
+app.post('/applications', async (req, res) => {
+  const {job_id} = req.body;
+  await db.add_application(job_id);
   res.json({ message: 'Application added successfully' });
 });
 
-app.delete('/application', async (req, res) => {
+app.delete('/applications', async (req, res) => {
   await db.delete_application(req.query);
   res.json({ message: 'Application deleted successfully' }) // backend must respond or else frontend fetch will not resolve
 });
