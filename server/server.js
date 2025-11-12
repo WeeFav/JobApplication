@@ -228,26 +228,9 @@ others
 ===============================================================================
 */
 
-// Serve static files from the "images" directory
-app.use("/images", express.static(path.join(__dirname, "images")));
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "images")); // Save images to "/images"
-  },
-  filename: (req, file, cb) => {
-    cb(null, req.body.customFilename); // Unique file name
-  },
-});
-
-const upload = multer({ storage });
-
-app.post("/save-image", upload.single("image"), (req, res) => {
-  try {
-    res.status(200).json({ message: "Image uploaded successfully!", file: req.file });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to upload image" });
-  }
+app.get('/user', async (req, res) => {
+  const [user] = await db.get_user();
+  res.json(user);
 });
 
 // Start HTTP + WS server

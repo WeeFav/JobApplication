@@ -190,3 +190,19 @@ export async function get_recommendations(search) {
   const res = await db.query(query, params);
   return res.rows;
 }
+
+/* 
+===============================================================================
+others
+===============================================================================
+*/
+export async function get_user() {
+  const query = `
+    SELECT *
+    FROM users
+    LIMIT 1
+  `;
+
+  const res = await db.query(query);
+  return res.rows;
+}

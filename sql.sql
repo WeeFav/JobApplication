@@ -26,4 +26,15 @@ CREATE TABLE recommendations (
   score INT NOT NULL
 );
 
+CREATE TABLE users (
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE resumes (
+  name VARCHAR(150) NOT NULL,
+  text TEXT NOT NULL
+);
+
 
