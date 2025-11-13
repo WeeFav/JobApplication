@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import MyProfileTab from "../components/Profile/MyProfileTab";
-import UserInfoTab from "../components/Profile/UserInfoTab";
+import ResumeTab from "../components/Profile/ResumeTab";
 
 const ProfilePage = () => {
   const [tab, setTab] = useState('My Profile');
@@ -11,7 +11,7 @@ const ProfilePage = () => {
       case 'My Profile':
         return <MyProfileTab />;
       case 'Resumes':
-        return <UserInfoTab />;
+        return <ResumeTab />;
       default:
         return <div>Select a tab to view content</div>;
     }
@@ -19,7 +19,7 @@ const ProfilePage = () => {
 
   return (
     <div className="bg-website-blue flex flex-col flex-grow items-center justify-center">
-      <div className="bg-white rounded-xl max-w-4xl mx-auto p-7">
+      <div className="bg-white rounded-xl mx-auto p-7">
         <div className="flex gap-6">
           {/* Sidebar */}
           <div className="w-40 mt-[53px]">
@@ -29,7 +29,7 @@ const ProfilePage = () => {
               >
                 My Profile
               </button>
-              <button className={`pl-4 w-full text-left ${tab === 'User Info' ? selectedTab : "text-gray-500"}`}
+              <button className={`pl-4 w-full text-left ${tab === 'Resumes' ? selectedTab : "text-gray-500"}`}
                 onClick={() => { setTab('Resumes') }}
               >
                 Resumes
@@ -39,7 +39,7 @@ const ProfilePage = () => {
 
           {/* Main Content */}
           <div className="flex-1 space-y-6">
-            <h1 className="text-xl font-semibold text-gray-900">My Profile</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{tab}</h1>
             {renderContent()}
           </div>
         </div>

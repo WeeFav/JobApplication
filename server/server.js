@@ -227,10 +227,20 @@ app.post('/notify', async (req, res) => {
 others
 ===============================================================================
 */
-
 app.get('/user', async (req, res) => {
   const [user] = await db.get_user();
   res.json(user);
+});
+
+app.put('/user', async (req, res) => {
+  const updatedUser = req.body;
+  await db.update_user(updatedUser);
+  res.status(200).json({ message: 'success' });
+});
+
+app.get('/resumes', async (req, res) => {
+  const resumes = await db.get_resumes();
+  res.json(resumes);
 });
 
 // Start HTTP + WS server

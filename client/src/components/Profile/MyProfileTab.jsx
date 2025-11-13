@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import profilePic from '../../assets/images/logo.png';
+import profilePic from '../../assets/images/Sample_User_Icon.png';
 
 const MyProfileTab = () => {
   const [loading, setLoading] = useState(true);
@@ -7,7 +7,6 @@ const MyProfileTab = () => {
   const [lastname, setLastname] = useState("");
   const [email, setEmail] = useState("");
   const [edit, setEdit] = useState(false);
-  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -23,51 +22,13 @@ const MyProfileTab = () => {
 
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
-
-    const filename = !accountContext.isCompany ? `user${profileInfo.user_id}.png` : `company${profileInfo.company_id}.png`
-
-    if (!accountContext.isCompany) {
-      // User
-      const updatedUser = {
-        user_id: profileInfo.user_id,
-        user_name: name,
-        user_email: email,
-        user_image: image ? `/api/images/${filename}` : profileInfo.user_image
-      }
-
-      const updatedAccount = {
-        account_id: profileInfo.user_id,
-        account_email: email
-      }
-
-      await updateUserHandler(updatedUser, updatedAccount);
-      window.location.reload();
+    const updatedUser = {
+      firstname: firstname,
+      lastname: lastname,
+      email: email
     }
-    else {
-      // Company
-      const updatedCompany = {
-        company_id: profileInfo.company_id,
-        company_name: name,
-        company_email: email,
-        company_image: image ? `/api/images/${filename}` : profileInfo.company_image
-      }
-
-      const updatedAccount = {
-        account_id: profileInfo.account_id,
-        account_email: email
-      }
-
-      updateCompanyHandler(updatedCompany, updatedAccount)
-    }
-
-    // save uploaded image to backend
-    if (image) {
-      const formData = new FormData();
-      formData.append("customFilename", filename);
-      formData.append("image", image);
-
-      saveImageHandler(formData);
-    }
+    await updateUserHandler(updatedUser);
+    window.location.reload();
   }
 
   return (
@@ -193,39 +154,12 @@ const loadUserProfile = async () => {
 };
 
 // function to update user
-const updateUserHandler = async (updatedUser, updatedAccount) => {
-  let res = await fetch('/api/user', {
+const updateUserHandler = async (updatedUser) => {
+  const res = await fetch('/api/user', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(updatedUser)
-  });
-
-  res = await fetch('/api/account', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(updatedAccount)
-  });
-};
-
-// function to update company
-const updateCompanyHandler = async (updatedCompany, updatedAccount) => {
-  let res = await fetch('/api/company', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(updatedCompany)
-  });
-
-  res = await fetch('/api/account', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(updatedAccount)
   });
 };

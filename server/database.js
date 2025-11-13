@@ -206,3 +206,23 @@ export async function get_user() {
   const res = await db.query(query);
   return res.rows;
 }
+
+export async function update_user(updatedUser) {
+  let query = `
+    UPDATE users
+    SET first_name = $1,
+        last_name = $2,
+        email = $3
+  `;
+  await db.query(query, [updatedUser.firstname, updatedUser.lastname, updatedUser.email]);
+}
+
+export async function get_resumes() {
+  const query = `
+    SELECT *
+    FROM resumes
+    ORDER BY id
+  `;
+  const res = await db.query(query);
+  return res.rows;
+}
