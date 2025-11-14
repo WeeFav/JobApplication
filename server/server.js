@@ -243,6 +243,12 @@ app.get('/resumes', async (req, res) => {
   res.json(resumes);
 });
 
+app.put('/resumes', async (req, res) => {
+  const resumes = req.body;
+  await db.update_resumes(resumes);
+  res.status(200).json({ message: 'success' });
+});
+
 // Start HTTP + WS server
 server.listen(8000, '0.0.0.0', () => {
   console.log("Server started at port 8000");

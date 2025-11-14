@@ -226,3 +226,33 @@ export async function get_resumes() {
   const res = await db.query(query);
   return res.rows;
 }
+
+export async function update_resumes(resumes) {
+  const params = [];
+  const values = [];
+  
+  // 1. Bulk upsert
+  resumes.forEach((resume, i) => {
+    const base = i * 3;
+    params.push(`($${base + 1}, $${base + 2}, $${base + 3})`);
+    values.push(resume.id, resume.name, resume.text);
+  });
+
+  let query = `
+    INSERT INTO resumes (id, name, text)
+    VALUES ${params.join(", ")}
+    ON CONFLICT (id)
+    DO UPDATE SET
+        name = EXCLUDED.name,
+        text = EXCLUDED.text
+  `;
+  await db.query(query, values);
+
+  // 2. Delete rows not in resumes
+  const ids = resumes.map((r) => r.id);
+  query = `
+    DELETE FROM resumes 
+    WHERE id NOT IN (SELECT UNNEST($1::int[]))
+  `;
+  await db.query(query, [ids]);
+}
