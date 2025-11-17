@@ -15,7 +15,7 @@ def scrape(message):
 def add_job():
     data = flask.request.json
     try:
-        insert(data["newJobs"], data["type"])
+        new_ids = insert(data["newJobs"], data["type"])
         return flask.jsonify({"message": "success"}), 200
     except Exception as e:
         traceback.print_exc()

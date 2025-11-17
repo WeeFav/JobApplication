@@ -23,7 +23,13 @@ CREATE TABLE recommendations (
   job_id INTEGER REFERENCES jobs(id) 
   ON DELETE CASCADE
   ON UPDATE CASCADE,
-  score INT NOT NULL
+  resume_id INTEGER REFERENCES resumes(id) 
+  ON DELETE CASCADE
+  ON UPDATE CASCADE,
+  similarity_score REAL NOT NULL,
+  keyword_score REAL NOT NULL,
+  embeddings_score REAL NOT NULL,
+  final_score REAL NOT NULL
 );
 
 CREATE TABLE users (

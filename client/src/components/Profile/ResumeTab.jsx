@@ -1,10 +1,16 @@
 import { useState, useEffect } from "react"
+import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
 
 const ResumeTab = () => {
   const [resumes, setResumes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(1);
   const [editId, setEditId] = useState(null);
+  // alert popup
+  const [open, setOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState('success');
 
   useEffect(() => {
     setLoading(true);
@@ -25,8 +31,18 @@ const ResumeTab = () => {
     }
   };
 
-  const onSaveClick = () => {
-    updateResumes(resumes);
+  const onSaveClick = async () => {
+    const res = await updateResumes(resumes);
+    if (res.success) {
+      setAlertSeverity('success');
+      setAlertMessage('Succesfully update resume');
+    }
+    else {
+      setAlertSeverity('error');
+      setAlertMessage(res.message);
+    }
+
+    setOpen(true);
   }
 
   const updateName = (id, newName) => {
@@ -123,6 +139,18 @@ const ResumeTab = () => {
           />
         </div>
       )}
+
+      <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert
+          onClose={() => setOpen(false)}
+          severity={alertSeverity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {alertMessage}
+        </Alert>
+      </Snackbar>
+
     </div>
   )
 }

@@ -30,7 +30,7 @@ model_name = "BAAI/bge-base-en-v1.5"
 def insert(jobs: List[Dict], job_site):
     print(job_site)
     df = pd.DataFrame(jobs) 
-    description_extracted_list = [] # for label studio annotation
+    new_ids = []
     
     for i in range(len(df)):
         # canonicalize url
@@ -62,27 +62,24 @@ def insert(jobs: List[Dict], job_site):
             description_extracted = description
         else:
             description_extracted = extract_description(description)
-        
-        description_extracted_list.append(description_extracted)      
-                
+                        
         # insert into postgres
         cursor.execute("""
             INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING scrape_date
+            RETURNING id, scrape_date
             """,
             (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
         )
         conn.commit()
         
-        scrape_date = cursor.fetchone()[0]
+        id, scrape_date = cursor.fetchone()[0]
           
         # insert into qdrant
         point = models.PointStruct(
-            id=str(uuid.uuid4()),
+            id=id,
             vector=models.Document(text=description_extracted, model=model_name),
             payload={
-                "hash": hash,
                 "scrape_date": scrape_date
             }
         )
@@ -91,11 +88,13 @@ def insert(jobs: List[Dict], job_site):
             collection_name=collection_name,
             points=[point]
         )
+        
+        new_ids.append(id)
              
         # notify js server 1 job has been scraped
         reponse = requests.post("http://server:8000/notify", json={"type": "insert", "update": True})
         
         print(f"processed job {i + 1}")
     
-    return description_extracted_list
+    return new_ids
             
