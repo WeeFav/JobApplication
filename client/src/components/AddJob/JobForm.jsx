@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect, useRef } from "react"
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 
@@ -9,6 +9,7 @@ const JobForm = () => {
   const [url, setUrl] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
+  const wsRef = useRef(null);
 
   // alert popup
   const [open, setOpen] = useState(false);
@@ -29,7 +30,7 @@ const JobForm = () => {
       post_date: date
     }
 
-    const res = await addJobHandler(newJob);
+    const res = await addJobHandler(newJob, wsRef);
 
     if (res.success) {
       setAlertSeverity('success');
@@ -180,15 +181,45 @@ API
 */
 
 // function to add job
-const addJobHandler = async (newJob) => {
-  const res = await fetch('/api/jobs', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ newJobs: [newJob], type: "manual" })
-  });
+const addJobHandler = async (newJob, wsRef) => {
+  // Create socket
+  const ws = new WebSocket('ws://localhost:8000');
+  wsRef.current = ws;
 
-  const message_json = await res.json();
-  return { success: res.ok, message: message_json.message }
+  ws.onopen = () => {
+    console.log('Connected to WebSocket');
+    ws.send(JSON.stringify({ newJobs: [newJob], type: "manual" }));
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === "insert") {
+      if (msg.start) {
+        console.log("start insert");
+      }      
+      else if (msg.success) {
+        console.log("Job insert success");
+      }
+      else {
+        console.log("Job insert failed");
+      }
+    }
+    else if (msg.type === "recommend") {
+      if (msg.start) {
+        console.log("start recommend");
+      }      
+      else if (msg.success) {
+        console.log("Recommend success");
+      }
+      else {
+        console.log("Recommend failed");
+      }
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('Socket closed');
+    wsRef.current = null;
+  };
+
 };

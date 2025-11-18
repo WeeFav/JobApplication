@@ -237,7 +237,7 @@ def keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings):
     
     return freq_score, embed_score, edu_score, major_score
 
-def main(args):
+def get_recommendations(new_ids):
     # --- 1. Resume ---
     
     # upload resume
@@ -295,13 +295,6 @@ def main(args):
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)    
     
     print(ranked)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--resume', type=str, required=True)
-    args = parser.parse_args()
-    main(args)
     
     
     

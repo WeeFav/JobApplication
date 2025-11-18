@@ -108,7 +108,7 @@ app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
         .catch((error) => {
           console.error('Error inserting rows into MySQL:', error);
           res.status(500).json({ error: 'Failed to insert data into MySQL.' });
-        }); 
+        });
     })
 
   // res.json({ message: 'success' });
@@ -137,7 +137,7 @@ app.get('/applications', async (req, res) => {
 });
 
 app.post('/applications', async (req, res) => {
-  const {job_id} = req.body;
+  const { job_id } = req.body;
   await db.add_application(job_id);
   res.json({ message: 'Application added successfully' });
 });
@@ -168,40 +168,70 @@ wss.on('connection', (ws) => {
   console.log('Client connected');
 
   ws.on('message', async (msg) => {
-    const scrapeInfo = JSON.parse(msg);
-    if (scrapeInfo.jobsite && scrapeInfo.numJobs) {
-      // start scrape jobs
-      ws.send(JSON.stringify({ type: "scrape", start: true }));
+    const data = JSON.parse(msg);
 
-      // call python API
-      let python_res = await fetch('http://python:8080/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(scrapeInfo)
-      });
-      const jobs = await python_res.json(); // python will respond with success or fail after scrape
+    if ((data.jobsite && data.numJobs) || (data.newJobs && data.type)) {
+      let jobs;
+      let source;
 
-      ws.send(JSON.stringify({ type: "scrape", success: python_res.ok }));
-      if (!python_res.ok) {
-        ws.close();
+      // *** Scrape or Get Jobs *** //
+      if (data.jobsite && data.numJobs) {
+        // start scrape jobs
+        ws.send(JSON.stringify({ type: "scrape", start: true }));
+
+        let python_res = await fetch('http://python:8080/scrape', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(scrapeInfo)
+        });
+
+        jobs = await python_res.json(); // python will respond with success or fail after scrape
+        source = data.jobsite;
+
+        ws.send(JSON.stringify({ type: "scrape", success: python_res.ok }));
+        if (!python_res.ok) {
+          ws.close();
+        }
+      }
+      else if (data.newJobs && data.type) {
+        jobs = data.newJobs;
+        source = data.type;
       }
 
-      // start insert jobs
+      // *** Insert Jobs *** //
       ws.send(JSON.stringify({ type: "insert", start: true }));
 
-      // call python API
       python_res = await fetch('http://python:8080/jobs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ newJobs: jobs, type: scrapeInfo.jobsite })
+        body: JSON.stringify({ newJobs: jobs, type: source })
       });
-      const message_json = await python_res.json(); // python will respond with success or fail after scrape
+
+      const new_ids = await python_res.json(); // python will respond with success or fail after scrape
 
       ws.send(JSON.stringify({ type: "insert", success: python_res.ok }));
+      if (!python_res.ok) {
+        ws.close();
+      }
+
+      // *** Recommend Jobs *** //
+      ws.send(JSON.stringify({ type: "recommend", start: true }));
+
+      python_res = await fetch('http://python:8080/recommend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(new_ids)
+      });
+
+      await python_res.json(); // python will respond with success or fail after scrape
+
+      ws.send(JSON.stringify({ type: "recommend", success: python_res.ok }));
       ws.close();
     }
   });

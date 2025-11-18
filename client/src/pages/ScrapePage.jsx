@@ -139,6 +139,17 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, set
         setIsInserting(false);
       }
     }
+    else if (msg.type === "recommend") {
+      if (msg.start) {
+        console.log("start recommend");
+      }      
+      else if (msg.success) {
+        console.log("Recommend success");
+      }
+      else {
+        console.log("Recommend failed");
+      }
+    }
   };
 
   ws.onclose = () => {
