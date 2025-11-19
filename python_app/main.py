@@ -5,7 +5,7 @@ import time
 import requests
 from insert import insert
 from linkedin import scrape_linkedin
-from recom import get_recommendations
+from recommend import resume_recommendations, job_recommendations
 
 app = flask.Flask(__name__)
 
@@ -32,11 +32,21 @@ def scrape():
         traceback.print_exc()
         return flask.jsonify({"message": "python scrape failed"}), 500
 
-@app.route('/recommend', methods=['POST'])
-def recommend():
+@app.route('/recommend/job', methods=['POST'])
+def recommend_job():
     new_ids = flask.request.json
     try:
-        get_recommendations(new_ids)
+        job_recommendations(new_ids)
+        return flask.jsonify({"message": "python recommend success"}), 200
+    except Exception as e:
+        traceback.print_exc()
+        return flask.jsonify({"message": "python recommend failed"}), 500
+
+@app.route('/recommend/resume', methods=['POST'])
+def recommend_resume():
+    new_ids = flask.request.json
+    try:
+        resume_recommendations(new_ids)
         return flask.jsonify({"message": "python recommend success"}), 200
     except Exception as e:
         traceback.print_exc()

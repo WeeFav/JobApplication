@@ -235,16 +235,17 @@ export async function update_resumes(resumes) {
   resumes.forEach((resume, i) => {
     const base = i * 3;
     params.push(`($${base + 1}, $${base + 2}, $${base + 3})`);
-    values.push(resume.id, resume.name, resume.text);
+    values.push(resume.id, resume.name, resume.content, resume.isUpdated);
   });
 
   let query = `
-    INSERT INTO resumes (id, name, text)
+    INSERT INTO resumes (id, name, content, isUpdated)
     VALUES ${params.join(", ")}
     ON CONFLICT (id)
     DO UPDATE SET
         name = EXCLUDED.name,
-        text = EXCLUDED.text
+        content = EXCLUDED.content,
+        isUpdated = EXCLUDED.isUpdated
   `;
   await db.query(query, values);
 

@@ -221,7 +221,7 @@ wss.on('connection', (ws) => {
       // *** Recommend Jobs *** //
       ws.send(JSON.stringify({ type: "recommend", start: true }));
 
-      python_res = await fetch('http://python:8080/recommend', {
+      python_res = await fetch('http://python:8080/recommend/job', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

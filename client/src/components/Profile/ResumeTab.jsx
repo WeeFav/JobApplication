@@ -7,6 +7,7 @@ const ResumeTab = () => {
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(1);
   const [editId, setEditId] = useState(null);
+  const [savedSnapshot, setSavedSnapshot] = useState([]);
   // alert popup
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
@@ -14,12 +15,12 @@ const ResumeTab = () => {
 
   useEffect(() => {
     setLoading(true);
-    loadResumes(setResumes, setLoading);
+    loadResumes(setResumes, setLoading, setSavedSnapshot);
   }, []);
 
   const onAddClick = () => {
     const newId = resumes.at(-1).id + 1;
-    setResumes([...resumes, { id: newId, name: `New Resume`, text: "" }]);
+    setResumes([...resumes, { id: newId, name: `New Resume`, content: "" }]);
     setActiveId(newId);
   };
 
@@ -31,8 +32,33 @@ const ResumeTab = () => {
     }
   };
 
+  const detectUpdatedResumes = (current, snapshot) => {
+    const updated = [];
+  
+    current.forEach(r => {
+      const old = snapshot.find(s => s.id === r.id);
+  
+      // New resume
+      if (!old) {
+        updated.push({ ...r, isUpdated: true });
+        return;
+      }
+  
+      // Text changed
+      if (old.content !== r.content) {
+        updated.push({ ...r, isUpdated: true });
+        return;
+      }
+    });
+  
+    return updated; // list of updated resumes
+  };
+
   const onSaveClick = async () => {
-    const res = await updateResumes(resumes);
+    const updatedResumes = detectUpdatedResumes(resumes, savedSnapshot);
+    
+    const res = await updateResumes(updatedResumes);
+
     if (res.success) {
       setAlertSeverity('success');
       setAlertMessage('Succesfully update resume');
@@ -56,7 +82,7 @@ const ResumeTab = () => {
   const updateContent = (id, newContent) => {
     setResumes(
       resumes.map((r) =>
-        r.id === id ? { ...r, text: newContent } : r
+        r.id === id ? { ...r, content: newContent } : r
       )
     );
   };
@@ -134,7 +160,7 @@ const ResumeTab = () => {
           <textarea
             className="w-full h-[70vh] rounded-md p-3 resize-none focus:outline-none"
             placeholder="Enter your resume here..."
-            value={activeResume.text}
+            value={activeResume.content}
             onChange={(e) => updateContent(activeId, e.target.value)}
           />
         </div>
@@ -162,10 +188,11 @@ export default ResumeTab
 API
 ===============================================================================
 */
-const loadResumes = async (setResumes, setLoading) => {
+const loadResumes = async (setResumes, setLoading, setSavedSnapshot) => {
   const res = await fetch('/api/resumes');
   const data = await res.json();
   setResumes(data);
+  setSavedSnapshot(data);
   setLoading(false);
 };
 
