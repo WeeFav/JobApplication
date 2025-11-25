@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright, Playwright
 import time
 import math
-import requests
+from queue import Queue
 from preprocess_job import extract_post_date
 
 def get_auth():
@@ -21,11 +21,10 @@ def get_auth():
         
         context.storage_state(path="./auth/linkedin_auth.json")
 
-def scrape_linkedin(jobs_to_scrape):
+def scrape_linkedin(jobs_to_scrape, q):
     print("Start LinkedIn scrape")
     jobs_per_page = 25
     pages = math.ceil(jobs_to_scrape / jobs_per_page)
-    jobs = []
     
     with sync_playwright() as playwright:     
         # open browser and navigate to jobright
@@ -80,7 +79,7 @@ def scrape_linkedin(jobs_to_scrape):
                 # move down here so description have time to load
                 description = page.locator("xpath=//div[@id='job-details']/div[@class='mt4']").inner_text()
                 
-                jobs.append({
+                q.put({
                     "title": title,
                     "company": company,
                     "description": description,
@@ -88,24 +87,22 @@ def scrape_linkedin(jobs_to_scrape):
                     "location": location,
                     "post_date": post_date
                 }) 
+                
                 jobs_to_scrape -= 1
                 print(f"{i} | {title} | {company} | {location} | {post_time}")
                 
                 # need to scroll because linkedin has a weird issue where job not in view will not get scraped
                 scroll_locator.evaluate("(el) => el.scrollBy(0, 132)")
             
-                # notify js server 1 job has been scraped
-                reponse = requests.post("http://server:8000/notify", json={"type": "scrape", "update": True})
-
             # click pagination
             if page_num != pages:
                 pagination_locator = page.locator("ul.jobs-search-pagination__pages")
                 pagination_locator.get_by_text(f"{str(page_num + 1)}").click()    
                             
         context.close()
-        browser.close() 
+        browser.close()
         
-        return jobs
+    q.put({"done": True}) 
             
 if __name__ == '__main__':
     # get_auth()
