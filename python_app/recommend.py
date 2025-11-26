@@ -237,7 +237,8 @@ def keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings):
     
     return freq_score, embed_score, edu_score, major_score
 
-def resume_recommendations():
+def recommend_by_resume():
+    """Recommend caused by update in resume"""
     # get resumes
     cursor.execute("""
         SELECT * FROM resumes
@@ -246,7 +247,8 @@ def resume_recommendations():
     res = cursor.fetchall()
 
 
-def job_recommendations(new_ids):
+def recommend_by_job(new_ids):
+    """Recommend caused by update in job"""
     # get resumes
     cursor.execute("""
         SELECT * FROM resumes

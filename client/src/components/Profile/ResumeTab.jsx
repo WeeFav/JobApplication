@@ -40,13 +40,13 @@ const ResumeTab = () => {
   
       // New resume
       if (!old) {
-        updated.push({ ...r, isUpdated: true });
+        updated.push(r);
         return;
       }
   
       // Text changed
       if (old.content !== r.content) {
-        updated.push({ ...r, isUpdated: true });
+        updated.push(r);
         return;
       }
     });
@@ -57,15 +57,15 @@ const ResumeTab = () => {
   const onSaveClick = async () => {
     const updatedResumes = detectUpdatedResumes(resumes, savedSnapshot);
     
-    const res = await updateResumes(updatedResumes);
+    const success = await updateResumes(updatedResumes);
 
-    if (res.success) {
+    if (success) {
       setAlertSeverity('success');
       setAlertMessage('Succesfully update resume');
     }
     else {
       setAlertSeverity('error');
-      setAlertMessage(res.message);
+      setAlertMessage('Fail to update resume');
     }
 
     setOpen(true);
@@ -196,16 +196,39 @@ const loadResumes = async (setResumes, setLoading, setSavedSnapshot) => {
   setLoading(false);
 };
 
-const updateResumes = async (resumes) => {
-  const res = await fetch('/api/resumes', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(resumes)
-  });
+const updateResumes = async (updatedResumes) => {
+  // Create socket
+  const ws = new WebSocket('ws://localhost:8080/resumes');
+  wsRef.current = ws;
+  let success;
 
-  const message_json = await res.json();
-  return { success: res.ok, message: message_json.message }
+  ws.onopen = () => {
+    console.log('Connected to WebSocket');
+    ws.send(JSON.stringify(updatedResumes));
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === "recommend") {
+      if (msg.start) {
+        console.log("start recommend");
+      }      
+      else if (msg.success) {
+        console.log("Recommend success");
+        success = true;
+      }
+      else {
+        console.log("Recommend failed");
+        success = false;
+      }
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('Socket closed');
+    wsRef.current = null;
+  };
+
+  return success;
 };
 

@@ -183,7 +183,7 @@ API
 // function to add job
 const addJobHandler = async (newJob, wsRef) => {
   // Create socket
-  const ws = new WebSocket('ws://localhost:8080');
+  const ws = new WebSocket('ws://localhost:8080/jobs');
   wsRef.current = ws;
 
   ws.onopen = () => {

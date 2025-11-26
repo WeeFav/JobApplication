@@ -27,10 +27,9 @@ client = QdrantClient("http://qdrant:6333")
 collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
-def insert(jobs: List[Dict], job_site):
+def insert(jobs: List[Dict], job_site, q):
     print(job_site)
     df = pd.DataFrame(jobs) 
-    new_ids = []
     
     for i in range(len(df)):
         # canonicalize url
@@ -89,12 +88,9 @@ def insert(jobs: List[Dict], job_site):
             points=[point]
         )
         
-        new_ids.append(id)
-             
-        # notify js server 1 job has been scraped
-        reponse = requests.post("http://server:8000/notify", json={"type": "insert", "update": True})
+        q.put({"id": id})
         
         print(f"processed job {i + 1}")
     
-    return new_ids
+    q.put({"done": True})
             

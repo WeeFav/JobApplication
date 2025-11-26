@@ -8,33 +8,11 @@ import threading
 from queue import Queue
 from insert import insert
 from linkedin import scrape_linkedin
-from recommend import resume_recommendations, job_recommendations
+from recommend import recommend_by_job, recommend_by_resume
 
 app = flask.Flask(__name__)
 sock = Sock(app)
-
-def scrape(message):
-    print(message)
  
-@app.route('/jobs', methods=['POST'])
-def add_job():
-    data = flask.request.json
-    try:
-        new_ids = insert(data["newJobs"], data["type"])
-        return flask.jsonify(new_ids), 200
-    except Exception as e:
-        traceback.print_exc()
-        return flask.jsonify({"message": "python insert failed"}), 500        
-
-def scrape():
-    scrapeInfo = flask.request.json
-    try:
-        jobs = scrape_linkedin(scrapeInfo['numJobs'])
-        return flask.jsonify(jobs), 200
-    except Exception as e:
-        traceback.print_exc()
-        return flask.jsonify({"message": "python scrape failed"}), 500
-
 @app.route('/recommend/job', methods=['POST'])
 def recommend_job():
     new_ids = flask.request.json
@@ -60,9 +38,10 @@ def jobs_ws(ws):
     raw = ws.receive()
     data = json.loads(raw)
     
-    # scrape
+    ### Scrape Jobs ###
     if 'jobsite' in data and 'numJobs' in data:
         ws.send(json.dumps({"type": "scrape", "start": True}))
+        
         jobs = []
         source = data['jobsite']
         
@@ -81,20 +60,86 @@ def jobs_ws(ws):
             
             ws.send(json.dumps({"type": "scrape", "success": True}))                
         except Exception as e:
+            traceback.print_exc()
             ws.send(json.dumps({"type": "scrape", "success": False}))                
-            ws.close()
-        
-    # get job
+            ws.close()    
+    ### Get Jobs ###
     elif 'newJobs' in data and 'type' in data:
         jobs = data['newJobs']
         source = data['type']
     
-    # insert jobs
+    ### Insert Jobs ###
+    ws.send(json.dumps({"type": "insert", "start": True}))
+    new_ids = []
     
+    try:
+        q = Queue()
+        t = threading.Thread(target=insert, args=(jobs, source, q))
+        t.start()
+        
+        # Stream updates from queue to WebSocket
+        while True:
+            update = q.get()  # blocking wait
+            if "done" in update:
+                break
+            new_ids.append(update)
+            ws.send({"type": "insert", "update": True}) 
+        
+        ws.send(json.dumps({"type": "insert", "success": True}))                
+    except Exception as e:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "insert", "success": False}))                
+        ws.close()
+        
+    ### Recommend ###       
+    ws.send(json.dumps({"type": "recommend", "start": True}))
+    
+    try:
+        q = Queue()
+        t = threading.Thread(target=recommend_by_job, args=(new_ids, q))
+        t.start()
+        
+        # Stream updates from queue to WebSocket
+        while True:
+            update = q.get()  # blocking wait
+            if "done" in update:
+                break
+            ws.send({"type": "recommend", "update": True}) 
+        
+        ws.send(json.dumps({"type": "recommend", "success": True}))                
+    except Exception as e:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "recommend", "success": False}))                
+        ws.close()    
     
 @sock.route('/resumes')
 def resumes_ws(ws):
-    ws.receive()
+    raw = ws.receive()
+    updatedResumes = json.loads(raw)
+    
+    ### Insert Resume ###
+    # save embeddings to db
+    
+    ### Recommend ###
+    ws.send(json.dumps({"type": "recommend", "start": True}))
+    
+    try:
+        q = Queue()
+        t = threading.Thread(target=recommend_by_resume, args=(updatedResumes, q))
+        t.start()
+        
+        # Stream updates from queue to WebSocket
+        while True:
+            update = q.get()  # blocking wait
+            if "done" in update:
+                break
+            ws.send({"type": "recommend", "update": True}) 
+        
+        ws.send(json.dumps({"type": "recommend", "success": True}))                
+    except Exception as e:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "recommend", "success": False}))                
+        ws.close()    
 
 if __name__ == '__main__':
     print("Python backend started")
