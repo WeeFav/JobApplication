@@ -6,33 +6,13 @@ import time
 import requests
 import threading
 from queue import Queue
-from insert import insert
+from insert import insert_jobs, insert_resumes
 from linkedin import scrape_linkedin
 from recommend import recommend_by_job, recommend_by_resume
 
 app = flask.Flask(__name__)
 sock = Sock(app)
  
-@app.route('/recommend/job', methods=['POST'])
-def recommend_job():
-    new_ids = flask.request.json
-    try:
-        job_recommendations(new_ids)
-        return flask.jsonify({"message": "python recommend success"}), 200
-    except Exception as e:
-        traceback.print_exc()
-        return flask.jsonify({"message": "python recommend failed"}), 500
-
-@app.route('/recommend/resume', methods=['POST'])
-def recommend_resume():
-    new_ids = flask.request.json
-    try:
-        resume_recommendations(new_ids)
-        return flask.jsonify({"message": "python recommend success"}), 200
-    except Exception as e:
-        traceback.print_exc()
-        return flask.jsonify({"message": "python recommend failed"}), 500
-
 @sock.route('/jobs')
 def jobs_ws(ws):
     raw = ws.receive()
@@ -74,7 +54,7 @@ def jobs_ws(ws):
     
     try:
         q = Queue()
-        t = threading.Thread(target=insert, args=(jobs, source, q))
+        t = threading.Thread(target=insert_jobs, args=(jobs, source, q))
         t.start()
         
         # Stream updates from queue to WebSocket
@@ -118,7 +98,15 @@ def resumes_ws(ws):
     updatedResumes = json.loads(raw)
     
     ### Insert Resume ###
-    # save embeddings to db
+    ws.send(json.dumps({"type": "insert", "start": True}))
+    
+    try:
+        insert_resumes(updatedResumes)        
+        ws.send(json.dumps({"type": "insert", "success": True}))                
+    except Exception as e:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "insert", "success": False}))                
+        ws.close()
     
     ### Recommend ###
     ws.send(json.dumps({"type": "recommend", "start": True}))

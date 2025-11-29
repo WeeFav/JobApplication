@@ -13,35 +13,31 @@ import string
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import json
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import cos_sim
 import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 
-client = QdrantClient("http://localhost:6333") # connecting to local Qdrant instance
-collection_name = "aijob"
-model_name = "BAAI/bge-base-en-v1.5"
-    
 conn = psycopg2.connect(
-        host=os.environ["POSTGRES_HOST"],
-        user=os.environ["POSTGRES_USER"],
-        password=os.environ["POSTGRES_PASSWORD"],
-        database=os.environ["POSTGRES_DB"],
-        port=os.environ["POSTGRES_PORT"]
-    )
+    host=os.environ["POSTGRES_HOST"],
+    user=os.environ["POSTGRES_USER"],
+    password=os.environ["POSTGRES_PASSWORD"],
+    database=os.environ["POSTGRES_DB"],
+    port=os.environ["POSTGRES_PORT"]
+)
 cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+client = QdrantClient("http://qdrant:6333")
+collection_name = "jobapplication"
+model_name = "BAAI/bge-base-en-v1.5"
 
 ner_model = "ner_models/7_28"
 stop_words = set(stopwords.words("english"))
 
-with open("skills_abbreviations.json", "r", encoding="utf-8") as f:
-    skills_abbreviations = json.load(f)
-with open("education_abbreviations.json", "r", encoding="utf-8") as f:
-    education_abbreviations = json.load(f)
+# with open("skills_abbreviations.json", "r", encoding="utf-8") as f:
+#     skills_abbreviations = json.load(f)
+# with open("education_abbreviations.json", "r", encoding="utf-8") as f:
+#     education_abbreviations = json.load(f)
     
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-
 def normalize(text: str, abbr):
     # lowercase
     text = text.lower()
@@ -237,7 +233,7 @@ def keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings):
     
     return freq_score, embed_score, edu_score, major_score
 
-def recommend_by_resume():
+def recommend_by_resume(updatedResumes, q):
     """Recommend caused by update in resume"""
     # get resumes
     cursor.execute("""
@@ -245,9 +241,15 @@ def recommend_by_resume():
         """
     )
     res = cursor.fetchall()
+    
+    print(res)
+    
+    q.put({"done": True})
+    
+    return
 
 
-def recommend_by_job(new_ids):
+def recommend_by_job(new_ids, q):
     """Recommend caused by update in job"""
     # get resumes
     cursor.execute("""
@@ -256,9 +258,15 @@ def recommend_by_job(new_ids):
     )
     res = cursor.fetchall()
     
+    print(res)
+    
+    q.put({"done": True})
+    
+    return
+    
     # embed resume
     embedding_model = TextEmbedding(model_name=model_name)    
-    embeddings = list(embedding_model.embed(resumes))
+    embeddings = list(embedding_model.embed())
     
     search_queries = [
         SearchRequest(
@@ -273,7 +281,7 @@ def recommend_by_job(new_ids):
     
             
     # extract keyword
-    r_educations, r_majors, r_skills = extract_keyword(resume)
+    r_educations, r_majors, r_skills = extract_keyword()
     r_embeddings = embed_skills(r_skills)
     
     
@@ -285,7 +293,7 @@ def recommend_by_job(new_ids):
     
     # embed resume
     embedding_model = TextEmbedding(model_name=model_name)
-    embeddings_generator = embedding_model.embed(resume)
+    embeddings_generator = embedding_model.embed()
     embeddings_list = list(embeddings_generator)
     resume_embeddings = embeddings_list[0]
     

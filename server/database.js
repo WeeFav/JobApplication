@@ -219,7 +219,7 @@ export async function update_user(updatedUser) {
 
 export async function get_resumes() {
   const query = `
-    SELECT *
+    SELECT id, name, content, isUpdated
     FROM resumes
     ORDER BY id
   `;

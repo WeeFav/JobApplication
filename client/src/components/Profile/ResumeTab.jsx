@@ -32,26 +32,39 @@ const ResumeTab = () => {
     }
   };
 
+  const updateName = (id, newName) => {
+    setResumes(
+      resumes.map((r) =>
+        r.id === id ? { ...r, name: newName } : r
+      )
+    );
+  };
+
+  const updateContent = (id, newContent) => {
+    setResumes(
+      resumes.map((r) =>
+        r.id === id ? { ...r, content: newContent } : r
+      )
+    );
+  };
+
   const detectUpdatedResumes = (current, snapshot) => {
-    const updated = [];
-  
-    current.forEach(r => {
+    return current.map(r => {
       const old = snapshot.find(s => s.id === r.id);
   
-      // New resume
+      // New resume → mark as updated
       if (!old) {
-        updated.push(r);
-        return;
+        return { ...r, isUpdate: true };
       }
   
-      // Text changed
+      // Content changed → mark as updated
       if (old.content !== r.content) {
-        updated.push(r);
-        return;
+        return { ...r, isUpdate: true };
       }
-    });
   
-    return updated; // list of updated resumes
+      // No change → keep isUpdate as false
+      return { ...r, isUpdate: false };
+    });
   };
 
   const onSaveClick = async () => {
@@ -70,22 +83,6 @@ const ResumeTab = () => {
 
     setOpen(true);
   }
-
-  const updateName = (id, newName) => {
-    setResumes(
-      resumes.map((r) =>
-        r.id === id ? { ...r, name: newName } : r
-      )
-    );
-  };
-
-  const updateContent = (id, newContent) => {
-    setResumes(
-      resumes.map((r) =>
-        r.id === id ? { ...r, content: newContent } : r
-      )
-    );
-  };
 
   const activeResume = resumes.find((r) => r.id === activeId);
 
