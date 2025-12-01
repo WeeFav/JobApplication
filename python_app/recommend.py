@@ -10,6 +10,7 @@ import psycopg2.extras
 import spacy
 from collections import defaultdict
 import string
+import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import json
@@ -31,6 +32,7 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 ner_model = "ner_models/7_28"
+nltk.download('stopwords')
 stop_words = set(stopwords.words("english"))
 
 # with open("skills_abbreviations.json", "r", encoding="utf-8") as f:
@@ -86,7 +88,7 @@ def embed_skills(skills: dict) -> dict:
     cursor.execute(
         """
         SELECT skill, embedding
-        FROM embeddings
+        FROM embedding
         WHERE skill = ANY(%s)
         """,
         (skills_list,)

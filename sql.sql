@@ -42,7 +42,8 @@ CREATE TABLE resumes (
   id SERIAL PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   content TEXT NOT NULL,
-  isUpdated BOOLEAN NOT NULL DEFAULT true
+  isUpdated BOOLEAN NOT NULL DEFAULT true,
+  embedding vector(768) NOT NULL
 );
 
 

@@ -109,7 +109,7 @@ def insert_resumes(updatedResumes):
     embedding_model = TextEmbedding(model_name=model_name)    
     embeddings = list(embedding_model.embed([r[2] for r in update_all]))
     for r, emb in zip(update_all, embeddings):
-        r.append(emb)
+        r.append(emb.tolist())
     
     # 1. Update name only
     if update_name:
@@ -128,14 +128,14 @@ def insert_resumes(updatedResumes):
         execute_batch(
             cursor,
             """
-            INSERT INTO resumes (id, name, content, isUpdated, embeddings)
+            INSERT INTO resumes (id, name, content, isUpdated, embedding)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (id)
             DO UPDATE SET
                 name = EXCLUDED.name,
                 content = EXCLUDED.content,
-                isUpdated = EXCLUDED.isUpdated
-                embeddings = EXCLUDED.embeddings
+                isUpdated = EXCLUDED.isUpdated,
+                embedding = EXCLUDED.embedding
             """,
             update_all
         )        

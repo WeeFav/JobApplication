@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 
@@ -8,6 +8,7 @@ const ResumeTab = () => {
   const [activeId, setActiveId] = useState(1);
   const [editId, setEditId] = useState(null);
   const [savedSnapshot, setSavedSnapshot] = useState([]);
+  const wsRef = useRef(null);
   // alert popup
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
@@ -15,11 +16,17 @@ const ResumeTab = () => {
 
   useEffect(() => {
     setLoading(true);
-    loadResumes(setResumes, setLoading, setSavedSnapshot);
+    loadResumes(setResumes, setLoading, setSavedSnapshot, setActiveId);
   }, []);
 
   const onAddClick = () => {
-    const newId = resumes.at(-1).id + 1;
+    let newId;
+    if (resumes.length == 0) {
+      newId = 0;
+    }
+    else {
+      newId = resumes.at(-1).id + 1;
+    }
     setResumes([...resumes, { id: newId, name: `New Resume`, content: "" }]);
     setActiveId(newId);
   };
@@ -54,23 +61,23 @@ const ResumeTab = () => {
   
       // New resume → mark as updated
       if (!old) {
-        return { ...r, isUpdate: true };
+        return { ...r, isUpdated: true };
       }
   
       // Content changed → mark as updated
       if (old.content !== r.content) {
-        return { ...r, isUpdate: true };
+        return { ...r, isUpdated: true };
       }
   
       // No change → keep isUpdate as false
-      return { ...r, isUpdate: false };
+      return { ...r, isUpdated: false };
     });
   };
 
   const onSaveClick = async () => {
     const updatedResumes = detectUpdatedResumes(resumes, savedSnapshot);
     
-    const success = await updateResumes(updatedResumes);
+    const success = await updateResumes(updatedResumes, wsRef);
 
     if (success) {
       setAlertSeverity('success');
@@ -185,15 +192,16 @@ export default ResumeTab
 API
 ===============================================================================
 */
-const loadResumes = async (setResumes, setLoading, setSavedSnapshot) => {
+const loadResumes = async (setResumes, setLoading, setSavedSnapshot, setActiveId) => {
   const res = await fetch('/api/resumes');
   const data = await res.json();
   setResumes(data);
+  setActiveId(data[0].id);
   setSavedSnapshot(data);
   setLoading(false);
 };
 
-const updateResumes = async (updatedResumes) => {
+const updateResumes = async (updatedResumes, wsRef) => {
   // Create socket
   const ws = new WebSocket('ws://localhost:8080/resumes');
   wsRef.current = ws;
@@ -206,16 +214,29 @@ const updateResumes = async (updatedResumes) => {
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    if (msg.type === "recommend") {
+    if (msg.type === "insert") {
+      if (msg.start) {
+        console.log("start insert");
+      }      
+      else if (msg.success) {
+        console.log("insert success");
+        success = true;
+      }
+      else {
+        console.log("insert failed");
+        success = false;
+      }
+    }
+    else if (msg.type === "recommend") {
       if (msg.start) {
         console.log("start recommend");
       }      
       else if (msg.success) {
-        console.log("Recommend success");
+        console.log("recommend success");
         success = true;
       }
       else {
-        console.log("Recommend failed");
+        console.log("recommend failed");
         success = false;
       }
     }

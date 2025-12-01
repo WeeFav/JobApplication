@@ -127,7 +127,8 @@ def resumes_ws(ws):
     except Exception as e:
         traceback.print_exc()
         ws.send(json.dumps({"type": "recommend", "success": False}))                
-        ws.close()    
+    
+    ws.close()
 
 if __name__ == '__main__':
     print("Python backend started")
