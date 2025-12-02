@@ -150,3 +150,5 @@ def insert_resumes(updatedResumes):
 
     cursor.execute(delete_query, (ids,))
     conn.commit()
+    
+    return [r[0] for r in update_all]

@@ -101,7 +101,7 @@ def resumes_ws(ws):
     ws.send(json.dumps({"type": "insert", "start": True}))
     
     try:
-        insert_resumes(updatedResumes)        
+        ids = insert_resumes(updatedResumes)        
         ws.send(json.dumps({"type": "insert", "success": True}))                
     except Exception as e:
         traceback.print_exc()
@@ -113,7 +113,7 @@ def resumes_ws(ws):
     
     try:
         q = Queue()
-        t = threading.Thread(target=recommend_by_resume, args=(updatedResumes, q))
+        t = threading.Thread(target=recommend_by_resume, args=(ids, q))
         t.start()
         
         # Stream updates from queue to WebSocket

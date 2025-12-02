@@ -78,16 +78,9 @@ const ResumeTab = () => {
     const updatedResumes = detectUpdatedResumes(resumes, savedSnapshot);
     
     const success = await updateResumes(updatedResumes, wsRef);
-
-    if (success) {
-      setAlertSeverity('success');
-      setAlertMessage('Succesfully update resume');
-    }
-    else {
-      setAlertSeverity('error');
-      setAlertMessage('Fail to update resume');
-    }
-
+    
+    setAlertSeverity(success ? "success" : "error");
+    setAlertMessage(success ? "Successfully updated resume" : "Failed to update resume");
     setOpen(true);
   }
 
@@ -201,52 +194,53 @@ const loadResumes = async (setResumes, setLoading, setSavedSnapshot, setActiveId
   setLoading(false);
 };
 
-const updateResumes = async (updatedResumes, wsRef) => {
-  // Create socket
-  const ws = new WebSocket('ws://localhost:8080/resumes');
-  wsRef.current = ws;
-  let success;
-
-  ws.onopen = () => {
-    console.log('Connected to WebSocket');
-    ws.send(JSON.stringify(updatedResumes));
-  };
-
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === "insert") {
-      if (msg.start) {
-        console.log("start insert");
-      }      
-      else if (msg.success) {
-        console.log("insert success");
-        success = true;
+const updateResumes = (updatedResumes, wsRef) => {
+  return new Promise((resolve, reject) => {
+    // Create socket
+    const ws = new WebSocket('ws://localhost:8080/resumes');
+    wsRef.current = ws;
+    let success = false;
+  
+    ws.onopen = () => {
+      console.log('Connected to WebSocket');
+      ws.send(JSON.stringify(updatedResumes));
+    };
+  
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "insert") {
+        if (msg.start) {
+          console.log("start insert");
+        }      
+        else if (msg.success) {
+          console.log("insert success");
+          success = true;
+        }
+        else {
+          console.log("insert failed");
+          success = false;
+        }
       }
-      else {
-        console.log("insert failed");
-        success = false;
+      else if (msg.type === "recommend") {
+        if (msg.start) {
+          console.log("start recommend");
+        }      
+        else if (msg.success) {
+          console.log("recommend success");
+          success = true;
+        }
+        else {
+          console.log("recommend failed");
+          success = false;
+        }
       }
-    }
-    else if (msg.type === "recommend") {
-      if (msg.start) {
-        console.log("start recommend");
-      }      
-      else if (msg.success) {
-        console.log("recommend success");
-        success = true;
-      }
-      else {
-        console.log("recommend failed");
-        success = false;
-      }
-    }
-  };
-
-  ws.onclose = () => {
-    console.log('Socket closed');
-    wsRef.current = null;
-  };
-
-  return success;
+    };
+  
+    ws.onclose = () => {
+      console.log('Socket closed');
+      wsRef.current = null;
+      resolve(success);
+    };
+  })
 };
 

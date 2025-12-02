@@ -235,20 +235,53 @@ def keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings):
     
     return freq_score, embed_score, edu_score, major_score
 
-def recommend_by_resume(updatedResumes, q):
+def recommend_by_resume(ids, q):
     """Recommend caused by update in resume"""
-    # get resumes
-    cursor.execute("""
+    
+    # get resumes with updated embedding
+    placeholders = ",".join(["%s"] * len(ids))
+    cursor.execute(f"""
         SELECT * FROM resumes
-        """
+        WHERE id IN ({placeholders})
+        """,
+        ids
     )
-    res = cursor.fetchall()
+    updatedResumes = cursor.fetchall()
     
-    print(res)
+    # search for all jobs with score > 0.5 up to 30 days ago
+    thirty_days_ago = (datetime.now() - timedelta(days=30)).timestamp() # 30 days ago in Unix format
+    print(f"Recommend jobs up to {datetime.fromtimestamp(thirty_days_ago).isoformat()}")
+
+    search_queries = [
+        SearchRequest(
+            vector=resume['embedding'],
+            filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="timestamp",
+                        range=Range(gte=thirty_days_ago)
+                    )
+                ]
+            ),
+            score_threshold=0.5,
+            with_payload=True
+        )
+        for resume in updatedResumes
+    ]
     
+    # exceute batch search
+    results = client.search_batch(
+        collection_name=collection_name,
+        requests=search_queries
+    )
+    
+    for i, jobs in enumerate(results):
+        print(f"Resume ID {updatedResumes[i]['id']}")
+        
+        ranked = sorted(jobs, key=lambda x: x.score, reverse=True)    
+        print(ranked)
+        
     q.put({"done": True})
-    
-    return
 
 
 def recommend_by_job(new_ids, q):
