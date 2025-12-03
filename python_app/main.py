@@ -36,7 +36,10 @@ def jobs_ws(ws):
                 if "done" in update:
                     break
                 jobs.append(update)
-                ws.send({"type": "scrape", "update": True}) 
+                ws.send(json.dumps({"type": "scrape", "update": True})) 
+            
+            if not update["done"]:
+                raise RuntimeError
             
             ws.send(json.dumps({"type": "scrape", "success": True}))                
         except Exception as e:
@@ -63,7 +66,10 @@ def jobs_ws(ws):
             if "done" in update:
                 break
             new_ids.append(update)
-            ws.send({"type": "insert", "update": True}) 
+            ws.send(json.dumps({"type": "insert", "update": True})) 
+        
+        if not update["done"]:
+            raise RuntimeError
         
         ws.send(json.dumps({"type": "insert", "success": True}))                
     except Exception as e:
@@ -84,7 +90,7 @@ def jobs_ws(ws):
             update = q.get()  # blocking wait
             if "done" in update:
                 break
-            ws.send({"type": "recommend", "update": True}) 
+            ws.send(json.dumps({"type": "recommend", "update": True})) 
         
         ws.send(json.dumps({"type": "recommend", "success": True}))                
     except Exception as e:
@@ -121,7 +127,7 @@ def resumes_ws(ws):
             update = q.get()  # blocking wait
             if "done" in update:
                 break
-            ws.send({"type": "recommend", "update": True}) 
+            ws.send(json.dumps({"type": "recommend", "update": True})) 
         
         ws.send(json.dumps({"type": "recommend", "success": True}))                
     except Exception as e:

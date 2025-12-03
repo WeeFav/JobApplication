@@ -62,7 +62,7 @@ def extract_post_date(text):
     today = datetime.today()
     
     # Extract the number and unit (day/week)
-    match = re.search(r'(\d+)\s+(hours|day|week)', text)
+    match = re.search(r'(\d+)\s+(minutes|hours|day|week)', text)
     if not match:
         return None  # invalid format
     
@@ -70,7 +70,9 @@ def extract_post_date(text):
     unit = match.group(2)
 
     # Compute the timedelta 
-    if unit == 'hours':
+    if unit == 'minutes':
+        delta = timedelta(minutes=value)
+    elif unit == 'hours':
         delta = timedelta(hours=value)
     elif unit == 'day':
         delta = timedelta(days=value)

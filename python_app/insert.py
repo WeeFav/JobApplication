@@ -72,7 +72,7 @@ def insert_jobs(jobs: List[Dict], job_site, q):
         )
         conn.commit()
         
-        id, scrape_date = cursor.fetchone()[0]
+        id, scrape_date = cursor.fetchone()
           
         # insert into qdrant
         point = models.PointStruct(

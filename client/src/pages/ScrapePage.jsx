@@ -91,7 +91,7 @@ API
 
 const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting) => {
   // Create socket
-  const ws = new WebSocket('ws://localhost:8000');
+  const ws = new WebSocket('ws://localhost:8080/jobs');
   wsRef.current = ws;
   let scrapeNum = 0;
   let insertNum = 0;
@@ -105,12 +105,13 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, set
     const msg = JSON.parse(event.data);
     if (msg.type === "scrape") {
       if (msg.start) {
+        console.log("start scrape");
         setIsScraping(true);
       }
       else if (msg.update) {
         scrapeNum++;
         setScrapeNum(scrapeNum);
-        console.log(`Job ${scrapeNum} scraped`);
+        console.log(`${scrapeNum} jobs scraped`);
       }
       else if (msg.success) {
         console.log("Job scrape success");
@@ -123,12 +124,13 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, set
     }
     else if (msg.type === "insert") {
       if (msg.start) {
+        console.log("start insert");
         setIsInserting(true);
       }      
       else if (msg.update) {
         insertNum++;
         setInsertNum(insertNum);
-        console.log(`Job ${insertNum} inserted`);
+        console.log(`${insertNum} jobs inserted`);
       }
       else if (msg.success) {
         console.log("Job insert success");
