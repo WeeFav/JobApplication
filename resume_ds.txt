@@ -1,0 +1,61 @@
+EDUCATION
+
+Carnegie Mellon University Pittsburgh, PA
+MS in ECE Jan 2026 - Dec 2027
+Purdue University West Lafayette, IN
+BS in Computer Engineering Aug 2021 - May 2025
+• GPA: 3.96/4.0; Dean’s List and Semester Honors 2021-2024
+• Coursework: Python for Data Science, Data Structures & Algorithms, Artificial Intelligence, Machine Learning, Object-Oriented C++
+
+WORK EXPERIENCE
+
+Industrial Technology Research Institute Hsinchu, Taiwan
+Autonomous Vehicle Intern Aug 2025 – Present
+• Developed an automatic LiDAR-camera calibration pipeline in C++ with modular algorithms (clustering, point cloud registration),
+improving multimodal data accuracy by 30% and reducing data preparation time by 50%
+• Designed an automated exam-grading system with 98% accuracy using YOLO/OCR in Python, implementing full ML lifecycle
+including data collection, version control, model evaluation, deployment, and monitoring using DVC, MLflow, and NVIDIA Triton
+
+Keysight Technologies Penang, Malaysia
+Software Research Intern May 2024 – Aug 2024
+• Achieved 90% prediction accuracy for shipment data by performing data preprocessing, feature engineering, training 5 ML algorithms
+(Regression, Decision Trees, Clustering, etc.), and model evaluation using Scikit-Learn/TensorFlow
+• Reduced manual QA effort in product validation by developing real-time computer vision pipeline to detect machine UI defects
+• Enhanced image clarity by 35% through generative models that remove glare and reflections, improving defect detection by 11%
+
+Mastercard O’Fallon, MO
+Software Engineer Intern Jun 2023 - Aug 2023
+• Implemented automated payment transaction monitoring by using Splunk and Dynatrace to analyze logs and create detailed reports on
+the incidents, eliminating 25+ hours of manual log analysis and decreasing mean time to resolution by 70%
+• Reduced SQL query deployment time by 50% by implementing CI/CD pipelines using Microsoft Azure APIs and Jenkins, improving
+efficiency and scalability through streamlined process
+• Led development of interactive dashboards for VM and cloud infrastructures performance, helping engineering teams optimize resource
+allocation and accelerating root-cause analysis
+
+PROJECTS
+
+Financial Analysis Project Jan 2025 – May 2025
+• Built ETL pipeline using Airflow and PySpark to ingest financial statements, stock data, and news into AWS Redshift data warehouse,
+reducing data preparation time from hours to minutes and empowering analysts with real-time market insights
+• Translated large-scale financial data into data-driven investment strategies by querying 10M+ record database with optimized SQL, and
+visualizing trends using interactive dashboards in Metabase, providing insights into high-potential/high-risk stocks
+• Achieve 90% accuracy in next-day stock price movement by implementing scalable ML-powered trading signals on AWS SageMaker,
+combining BERT sentiment analysis with LSTM forecasting
+
+Job Application Website Development Dec 2024 - Present
+• Reduced manual job search time by 70% by automating job data collection using Playwright to scrape major portals (LinkedIn, Indeed),
+resulting in 5x job discovery coverage
+• Designed a personalized job recommendation system utilizing NLP and LLMs with Qdrant vector database that achieved 85% match
+accuracy, reducing time spent on searching for relevant roles
+• Streamlined application management by developing a full-stack job application platform on AWS EC2 and RDS using React, Node.js,
+and MySQL, enabling browsing and tracking of 1,000+ daily job listings
+
+Autonomous Drone Research Jan 2023 – Aug 2024
+• Accelerated NanoDet model speed by 2x and reduced model size by 4x using PyTorch quantization, enabling real-time inference
+deployment on edge devices
+• Conducted model evaluation and benchmarking study analyzing 3D object detection models, accelerating follow-on research by weeks
+• Improved team productivity by 40% through knowledge transfer, code reviews, and establishing software development workflows
+
+SKILLS
+• Languages: Python, SQL, C, C++, HTML, CSS, JavaScript
+• Tools: NumPy, Pandas, Spark, Airflow, PostgreSQL, AWS, GCP, Docker, Metabase, PyTorch, TensorFlow, Scikit-Learn, NodeJS, Git

@@ -16,8 +16,11 @@ const Navbar = () => {
                 <NavLink to="/jobs" className={linkClass}>
                 Jobs
                 </NavLink>
+                <NavLink to="/recommended-jobs" className={linkClass}>
+                Recommended
+                </NavLink>
                 <NavLink to="/applied-jobs" className={linkClass}>
-                Applied Jobs
+                Applied
                 </NavLink>
                 <NavLink to="/scrape" className={linkClass}>
                 Scrape Jobs

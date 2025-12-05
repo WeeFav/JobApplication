@@ -15,6 +15,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import json
 import numpy as np
+import ast
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -325,45 +326,42 @@ def recommend_by_resume(ids, q):
     
     # get resumes with updated embedding
     placeholders = ",".join(["%s"] * len(ids))
-    cursor.execute(f"""
-        SELECT * FROM resumes
-        WHERE id IN ({placeholders})
-        """,
-        ids
-    )
-    updatedResumes = cursor.fetchall()
-    
+    try:
+        cursor.execute(f"""
+            SELECT * FROM resumes
+            WHERE id IN ({placeholders})
+            """,
+            ids
+        )
+        updatedResumes = cursor.fetchall()
+    except Exception as e:
+        conn.rollback()
+        print("SQL error:", e)
+        
     # search for all jobs with score > 0.5 up to 30 days ago
     thirty_days_ago = (datetime.now() - timedelta(days=30)).timestamp() # 30 days ago in Unix format
     print(f"Recommend jobs up to {datetime.fromtimestamp(thirty_days_ago).isoformat()}")
 
-    search_queries = [
-        SearchRequest(
-            vector=resume['embedding'],
-            filter=Filter(
+    for resume in updatedResumes:
+        results = client.query_points(
+            collection_name=collection_name,
+            query=ast.literal_eval(resume['embedding']),
+            query_filter=Filter(
                 must=[
                     FieldCondition(
-                        key="timestamp",
+                        key="scrape_date",
                         range=Range(gte=thirty_days_ago)
                     )
                 ]
             ),
             score_threshold=0.5,
+            limit=10_000_000,
             with_payload=True
         )
-        for resume in updatedResumes
-    ]
     
-    # exceute batch search
-    results = client.search_batch(
-        collection_name=collection_name,
-        requests=search_queries
-    )
-    
-    for i, jobs in enumerate(results):
-        print(f"Resume ID {updatedResumes[i]['id']}")
-        
-        ranked = sorted(jobs.payload['hash'], key=lambda x: x.score, reverse=True)    
+        print(f"Resume ID {resume['id']}")
+        print(results)
+        ranked = sorted(results.points, key=lambda x: x.score, reverse=True)    
         print(ranked)
         
     q.put({"done": True})
