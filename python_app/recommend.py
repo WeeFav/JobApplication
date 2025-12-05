@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import os
 import math
 import psycopg2
-import psycopg2.extras
+from psycopg2.extras import execute_batch
 import spacy
 from collections import defaultdict
 import string
@@ -114,7 +114,7 @@ def embed_skills(skills: dict) -> dict:
                 
         # Insert new embeddings into Postgres
         insert_values = [(skill, emb.tolist()) for skill, emb in zip(missing_skills, new_embs)]
-        cursor.executemany(
+        execute_batch(
             """
             INSERT INTO embeddings (skill, embedding) 
             VALUES (%s, %s) 
@@ -360,8 +360,20 @@ def recommend_by_resume(ids, q):
         )
     
         print(f"Resume ID {resume['id']}")
-        print(results)
         ranked = sorted(results.points, key=lambda x: x.score, reverse=True)    
-        print(ranked)
+        
+        params = [(point.id, resume['id'], 0, 0, 0, point.score) for point in ranked]
+            
+        execute_batch(
+            cursor,
+            """
+            INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, final_score)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            params
+        )
+        conn.commit()
         
     q.put({"done": True})
+    
+# [ScoredPoint(id=67, version=55, score=0.636933, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=65, version=53, score=0.62863946, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=66, version=54, score=0.6219132, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=68, version=56, score=0.5946771, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None)]

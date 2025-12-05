@@ -1,5 +1,6 @@
 import React from "react";
 import Pagination from '@mui/material/Pagination';
+import { Gauge } from '@mui/x-charts/Gauge';
 
 const JobList = ({ jobs, onSelectJob, selectedJob }) => {
   return (
@@ -11,9 +12,14 @@ const JobList = ({ jobs, onSelectJob, selectedJob }) => {
           className={`p-4 cursor-pointer hover:bg-blue-50 ${selectedJob?.id === job.id ? "bg-blue-100" : ""
             }`}
         >
-          <h3 className="text-lg font-semibold">{job.title}</h3>
-          <p className="text-sm text-gray-600">{job.company}</p>
-          <div className="flex justify-between text-sm text-gray-500 mt-1">
+          <div className="flex justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">{job.title}</h3>
+              <p className="text-sm text-gray-600">{job.company}</p>
+            </div>
+            <Gauge width={70} height={70} value={Math.ceil(job.final_score * 100)} cornerRadius="50%" />
+          </div>
+          <div className="flex justify-between text-sm text-gray-500">
             <span>{job.location}</span>
             {job.post_date && <span>{timeAgo(job.post_date)}</span>}
           </div>

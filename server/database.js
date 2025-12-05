@@ -178,7 +178,7 @@ export async function get_recommendations(search) {
 
 
   let query = `
-  SELECT jobs.id, jobs.title, jobs.company, jobs.description_extracted, recommendations.final_score
+  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.description_extracted, recommendations.final_score
   FROM recommendations INNER JOIN jobs
   ON recommendations.job_id = jobs.id
   `;
