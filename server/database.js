@@ -49,7 +49,7 @@ export async function get_jobs(search) {
     query += ` AND ${conditions.join(" AND ")}`
   }
 
-  query += " ORDER BY ID"
+  query += " ORDER BY post_date IS NULL, post_date DESC"
 
   if (search.limit && search.limit > 0) {
     query += ` LIMIT $${idx++}`;
@@ -186,6 +186,9 @@ export async function get_recommendations(search) {
   if (conditions.length > 0) {
     query += `WHERE ${conditions.join(" AND ")}`;
   }
+
+  query += " ORDER BY recommendations.final_score DESC, jobs.post_date IS NULL, jobs.post_date DESC"
+
   
   const res = await db.query(query, params);
   return res.rows;

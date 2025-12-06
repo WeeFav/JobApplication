@@ -1,0 +1,62 @@
+EDUCATION
+
+Carnegie Mellon University Pittsburgh, PA
+MS in ECE Jan 2026 - Dec 2027
+Purdue University West Lafayette, IN
+BS in Computer Engineering Aug 2021 - May 2025
+• GPA: 3.96/4.0; Dean’s List and Semester Honors 2021-2024
+• Coursework: Computer Architecture, Microprocessor System, Digital System Design, ASIC Design, Operating Systems, Data Structure
+
+WORK EXPERIENCE
+
+Industrial Technology Research Institute Hsinchu, Taiwan
+Autonomous Vehicle Intern Aug 2025 – Present
+• Developed an automatic multi-sensor calibration pipeline interfacing LiDAR and camera hardware in ROS (C++) framework,
+optimizing data processing algorithms to improve sensor fusion accuracy by 30% and reduce manual labor by 50%
+• Designed an automated exam-grading system with 98% accuracy using YOLO/OCR in Python, implementing full ML lifecycle
+including data collection, version control, model evaluation, deployment, and monitoring using DVC, MLflow, and NVIDIA Triton
+
+Keysight Technologies Penang, Malaysia
+Software Research Intern May 2024 – Aug 2024
+• Achieved 90% prediction accuracy for shipment data by performing data preprocessing, feature engineering, training 5 ML algorithms
+(Regression, Decision Trees, Clustering, etc.), and model evaluation using Scikit-Learn/TensorFlow
+• Reduced manual QA effort in product validation by developing real-time computer vision pipeline to detect machine UI defects
+• Enhanced image clarity by 35% through generative models that remove glare and reflections, improving defect detection by 11%
+
+Mastercard O’Fallon, MO
+Software Engineer Intern Jun 2023 - Aug 2023
+• Implemented automated payment transaction monitoring by using Splunk and Dynatrace to analyze logs and create detailed reports on
+the incidents, eliminating 25+ hours of manual log analysis and decreasing mean time to resolution by 70%
+• Reduced SQL deployment time by 50% by integrating Microsoft Azure API into CI/CD pipelines, improving efficiency and scalability
+• Led development of dashboards for VM and cloud performance, optimizing resource allocation and accelerating root-cause analysis
+
+PROJECTS
+
+Embedded Systems for Autonomous Car May 2025 - Present
+• Engineered low-level (C/C++), real-time control system on ESP32 using FreeRTOS and PID controller, achieving accurate speed and
+position control with minimal latency for robotics applications
+• Integrated multi-sensor feedback (IMU, ultrasonic, encoders) into ESP32 using I2C and UART protocol for robust state estimation
+• Deployed monocular SLAM system on remote computer with TCP low-latency communication in ROS, reducing onboard
+computational load and cutting hardware costs by over 92% compared to LiDAR setup
+• Built Bluetooth control interface with Xbox controller and enabled performance tuning by monitoring system-wide power consumption
+
+Autonomous Car Senior Design Aug 2024 - Dec 2024
+• Built an autonomous driving vehicle by integrating real-time computer vision on Jetson Nano with precise motor control on ESP
+microcontroller, enabling seamless interaction between camera and motors for accurate navigation
+• Led cross-functional team of 4 across mechanical, electrical, and software development, delivering the final product 2 weeks early
+• Designed and laid out custom PCB in KiCAD, integrating voltage regulator, motor driver, and microcontroller IC, reducing wiring
+complexity by 95% for deployment in space-constrained applications
+
+Computer Architecture Laboratory Aug 2024 - Dec 2024
+• Engineered complete multicore processor system supporting 32-bit RISC instruction set with 5-stage pipeline using SystemVerilog,
+improving execution speed and throughput by 38% compared to a single-cycle design
+• Enhanced system reliability by validating processor functionality through comprehensive unit tests and timing diagram analysis
+
+ASIC Hardware Design Jan 2024 - May 2024
+• Designed and integrated a USB support module into a System-on-Chip device, establishing time-critical USB to device communication
+• Laid out RTL diagrams and implemented a modular SystemVerilog design for data reception, transmission, and storage
+• Created comprehensive test benches, achieving 96% code coverage for validating module functionality and hardware synthesis results
+
+SKILLS
+• Languages: Python, C, C++, SystemVerilog, RISC-V, JavaScript, SQL
+• Tools: ESP-IDF, KiCAD, NumPy, Pandas, Docker, AWS, GCP, PyTorch, TensorFlow, ROS, Git

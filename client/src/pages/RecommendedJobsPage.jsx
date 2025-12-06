@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import JobSearchBar from "../components/Jobs/JobSearchBar"
 import JobList from "../components/Jobs/JobList";
 import JobDetails from "../components/Jobs/JobDetails";
+import ResumeToggle from "../components/Jobs/ResumeToggle";
 
 const RecommendedJobsPage = () => {
   const [jobs, setJobs] = useState(null);
@@ -33,6 +34,10 @@ const RecommendedJobsPage = () => {
         {/* Top Search Bar */}
         <div className="px-7 my-6">
           <JobSearchBar onSearchClick={onSearchClick} tab="all" />
+        </div>
+
+        <div className="flex items-center justify-center">
+          <ResumeToggle />
         </div>
 
         {/* Main Layout */}

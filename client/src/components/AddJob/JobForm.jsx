@@ -30,18 +30,8 @@ const JobForm = () => {
       post_date: date
     }
 
-    const res = await addJobHandler(newJob, wsRef);
+    await addJobHandler(newJob, wsRef, setOpen, setAlertMessage, setAlertSeverity);
 
-    if (res.success) {
-      setAlertSeverity('success');
-      setAlertMessage('Succesfully created job');
-    }
-    else {
-      setAlertSeverity('error');
-      setAlertMessage(res.message);
-    }
-
-    setOpen(true);
     setTitle('');
     setDescription('');
     setCompany('');
@@ -181,45 +171,72 @@ API
 */
 
 // function to add job
-const addJobHandler = async (newJob, wsRef) => {
-  // Create socket
-  const ws = new WebSocket('ws://localhost:8080/jobs');
-  wsRef.current = ws;
+const addJobHandler = async (newJob, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
+  return new Promise((resolve, reject) => {
+    // Create socket
+    const ws = new WebSocket('ws://localhost:8080/jobs');
+    wsRef.current = ws;
 
-  ws.onopen = () => {
-    console.log('Connected to WebSocket');
-    ws.send(JSON.stringify({ newJobs: [newJob], type: "manual" }));
-  };
+    ws.onopen = () => {
+      console.log('Connected to WebSocket');
+      ws.send(JSON.stringify({ newJobs: [newJob], type: "manual" }));
+    };
 
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === "insert") {
-      if (msg.start) {
-        console.log("start insert");
-      }      
-      else if (msg.success) {
-        console.log("Job insert success");
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "insert") {
+        if (msg.start) {
+          console.log("start insert");
+        }
+        else if (msg.postgres) {
+          setAlertMessage("Inserting into database");
+          setAlertSeverity("info");
+          setOpen(true);
+        }
+        else if (msg.qdrant) {
+          setAlertMessage("Inserting into qdrant");
+          setAlertSeverity("info");
+          setOpen(true);
+        }
+        else if (msg.success) {
+          console.log("Job insert success");
+          setAlertMessage("Job insert success");
+          setAlertSeverity("success");
+          setOpen(true);
+        }
+        else if (msg.fail) {
+          console.log("Job insert failed");
+          setAlertMessage("Job insert failed");
+          setAlertSeverity("error");
+          setOpen(true);
+        }
       }
-      else {
-        console.log("Job insert failed");
+      else if (msg.type === "recommend") {
+        if (msg.start) {
+          console.log("start recommend");
+          setAlertMessage("Start recommend");
+          setAlertSeverity("info");
+          setOpen(true);
+        }
+        else if (msg.success) {
+          console.log("Recommend success");
+          setAlertMessage("Recommend success");
+          setAlertSeverity("success");
+          setOpen(true);
+        }
+        else {
+          console.log("Recommend failed");
+          setAlertMessage("Recommend failed");
+          setAlertSeverity("error");
+          setOpen(true);
+        }
       }
-    }
-    else if (msg.type === "recommend") {
-      if (msg.start) {
-        console.log("start recommend");
-      }      
-      else if (msg.success) {
-        console.log("Recommend success");
-      }
-      else {
-        console.log("Recommend failed");
-      }
-    }
-  };
+    };
 
-  ws.onclose = () => {
-    console.log('Socket closed');
-    wsRef.current = null;
-  };
-
+    ws.onclose = () => {
+      console.log('Socket closed');
+      wsRef.current = null;
+      resolve();
+    };
+  })
 };

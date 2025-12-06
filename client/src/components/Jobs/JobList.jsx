@@ -17,7 +17,7 @@ const JobList = ({ jobs, onSelectJob, selectedJob }) => {
               <h3 className="text-lg font-semibold">{job.title}</h3>
               <p className="text-sm text-gray-600">{job.company}</p>
             </div>
-            <Gauge width={70} height={70} value={Math.ceil(job.final_score * 100)} cornerRadius="50%" />
+            {job.final_score ? <Gauge width={70} height={70} value={Math.ceil(job.final_score * 100)} cornerRadius="50%" /> : <></> }
           </div>
           <div className="flex justify-between text-sm text-gray-500">
             <span>{job.location}</span>

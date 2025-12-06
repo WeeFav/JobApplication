@@ -28,73 +28,82 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 def insert_jobs(jobs: List[Dict], job_site, q):
-    print(job_site)
-    df = pd.DataFrame(jobs) 
-    
-    for i in range(len(df)):
-        # canonicalize url
-        url_norm = canonicalize_url(df.iloc[i]['url'])
-          
-        # generate hash
-        title_norm = df.iloc[i]['title'].strip().lower()
-        company_norm = df.iloc[i]['company'].strip().lower()
-        combined = title_norm + company_norm + url_norm
-        hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
+    try:
+        print(job_site)
+        df = pd.DataFrame(jobs) 
+        
+        for i in range(len(df)):
+            q.put({"postgres": True})
+            
+            # canonicalize url
+            url_norm = canonicalize_url(df.iloc[i]['url'])
+            
+            # generate hash
+            title_norm = df.iloc[i]['title'].strip().lower()
+            company_norm = df.iloc[i]['company'].strip().lower()
+            combined = title_norm + company_norm + url_norm
+            hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
 
-        # check if job exist
-        cursor.execute("""
-            SELECT * FROM jobs
-            WHERE hash = %s
-            """, 
-            (hash,)
-        )
-        res = cursor.fetchall()
-        
-        if res:
-            print(f"[!] Duplicate hash detected: {hash}, nothing inserted.")
-            continue
-        
-        
-        # extract description
-        description = df.iloc[i]['description']
-        if job_site == "Jobright":
-            description_extracted = description
-        else:
-            description_extracted = extract_description(description)
-                       
-        # insert into postgres
-        cursor.execute("""
-            INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, scrape_date
-            """,
-            (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
-        )
-        conn.commit()
-        
-        id, scrape_date = cursor.fetchone()
-          
-        # insert into qdrant  
-        dt = datetime.datetime.combine(scrape_date, datetime.time.min)
-              
-        point = models.PointStruct(
-            id=id,
-            vector=models.Document(text=description_extracted, model=model_name),
-            payload={
-                "scrape_date": int(dt.timestamp())
-            }
-        )
+            # check if job exist
+            cursor.execute("""
+                SELECT * FROM jobs
+                WHERE hash = %s
+                """, 
+                (hash,)
+            )
+            res = cursor.fetchall()
+            
+            if res:
+                print(f"[!] Duplicate hash detected: {hash}, nothing inserted.")
+                continue
+            
+            
+            # extract description
+            description = df.iloc[i]['description']
+            if job_site == "Jobright":
+                description_extracted = description
+            else:
+                description_extracted = extract_description(description)
+                        
+            # insert into postgres
+            cursor.execute("""
+                INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, scrape_date
+                """,
+                (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
+            )
+            conn.commit()
+            
+            q.put({"qdrant": True})
+            
+            id, scrape_date = cursor.fetchone()
+            
+            # insert into qdrant  
+            dt = datetime.datetime.combine(scrape_date, datetime.time.min)
                 
-        client.upsert(
-            collection_name=collection_name,
-            points=[point]
-        )
-        
-        q.put({"id": id})
-        
-        print(f"processed job {i + 1}")
+            point = models.PointStruct(
+                id=id,
+                vector=models.Document(text=description_extracted, model=model_name),
+                payload={
+                    "scrape_date": int(dt.timestamp())
+                }
+            )
+                    
+            client.upsert(
+                collection_name=collection_name,
+                points=[point]
+            )
+            
+            q.put({"id": id})
+            
+            print(f"processed job {i + 1}")
+            
+        q.put({"done": True})
+    except Exception as e:
+        print(e)
+        q.put({"done": False})
     
-    q.put({"done": True})
                        
 def insert_resumes(updatedResumes):
     update_name = []

@@ -63,18 +63,25 @@ def jobs_ws(ws):
         # Stream updates from queue to WebSocket
         while True:
             update = q.get()  # blocking wait
-            if "done" in update:
-                break
-            new_ids.append(update)
-            ws.send(json.dumps({"type": "insert", "update": True})) 
+            
+            if "done" in update: # either entire operation is successful or something fails
+                break 
+            elif "id" in update: # 1 job is done
+                new_ids.append(update["id"]) 
+                ws.send(json.dumps({"type": "insert", "update": True})) # for scrape page
+            elif "postgres" in update:
+                ws.send(json.dumps({"type": "insert", "postgres": True})) # for add/edit job page
+            elif "qdrant" in update:
+                ws.send(json.dumps({"type": "insert", "qdrant": True})) # for add/edit job page
         
+        # check if operation is successful
         if not update["done"]:
             raise RuntimeError
         
         ws.send(json.dumps({"type": "insert", "success": True}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "success": False}))                
+        ws.send(json.dumps({"type": "insert", "fail": True}))                
         ws.close()
         
     ### Recommend ###       
@@ -88,14 +95,17 @@ def jobs_ws(ws):
         # Stream updates from queue to WebSocket
         while True:
             update = q.get()  # blocking wait
-            if "done" in update:
+            if "done" in update: # either entire operation is successful or something fails
                 break
-            ws.send(json.dumps({"type": "recommend", "update": True})) 
+            
+        # check if operation is successful
+        if not update["done"]:
+            raise RuntimeError
         
         ws.send(json.dumps({"type": "recommend", "success": True}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "recommend", "success": False}))                
+        ws.send(json.dumps({"type": "recommend", "fail": True}))                
         ws.close()    
     
 @sock.route('/resumes')

@@ -1,7 +1,7 @@
 import argparse
 from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
-from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range
+from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range, HasIdCondition
 from datetime import datetime, timedelta
 import os
 import math
@@ -239,18 +239,53 @@ def keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings):
 
 def recommend_by_job(new_ids, q):
     """Recommend caused by update in job"""
+    try:
+        cursor.execute(f"""
+            SELECT * FROM resumes
+            """
+        )
+        resumes = cursor.fetchall()  
+        
+        for resume in resumes:
+            results = client.query_points(
+                collection_name=collection_name,
+                query=ast.literal_eval(resume['embedding']),
+                query_filter=Filter(
+                    must=[
+                        HasIdCondition(has_id=new_ids)
+                    ]
+                ),
+                score_threshold=0.5,
+                limit=10_000_000,
+                with_payload=True
+            )
+            
+            params = [(point.id, resume['id'], 0, 0, 0, point.score) for point in results.points]
+                
+            execute_batch(
+                cursor,
+                """
+                INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, final_score)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                params
+            )
+            conn.commit()            
+                  
+        q.put({"done": True})
+    except Exception as e:
+        print(e)
+        q.put({"done": False})
+    
+    return
+    
     # # get resumes
     # cursor.execute("""
     #     SELECT * FROM resumes
     #     """
     # )
     # res = cursor.fetchall()
-    
-    print("recommend_by_job")
-    
-    q.put({"done": True})
-    
-    return
+
     
     # embed resume
     embedding_model = TextEmbedding(model_name=model_name)    
@@ -360,9 +395,8 @@ def recommend_by_resume(ids, q):
         )
     
         print(f"Resume ID {resume['id']}")
-        ranked = sorted(results.points, key=lambda x: x.score, reverse=True)    
         
-        params = [(point.id, resume['id'], 0, 0, 0, point.score) for point in ranked]
+        params = [(point.id, resume['id'], 0, 0, 0, point.score) for point in results.points]
             
         execute_batch(
             cursor,
