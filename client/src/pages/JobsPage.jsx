@@ -67,17 +67,27 @@ API
 ===============================================================================
 */
 
+const getThirtyDaysAgo = () => {
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const formatted = thirtyDaysAgo.toISOString().split('T')[0];
+  return formatted
+}
+
 // function to load company jobs
 const loadJobs = async (setJobs, setLoading) => {
-    const res = await fetch(`/api/jobs`);
-    const data = await res.json();
-    setJobs(data);
-    setLoading(false);
+  const date = getThirtyDaysAgo();
+  const res = await fetch(`/api/jobs?date=${date}`);
+  const data = await res.json();
+  setJobs(data);
+  setLoading(false);
 }
 
 // function to search job
 const searchJobHandler = async (jobTitle, company) => {
-  const res = await fetch(`/api/jobs?jobTitle=${jobTitle}&company=${company}`);
+  const date = getThirtyDaysAgo();
+  const res = await fetch(`/api/jobs?date=${date}jobTitle=${jobTitle}&company=${company}`);
   const data = await res.json();
   return data;
 }

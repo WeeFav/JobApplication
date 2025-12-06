@@ -43,7 +43,7 @@ const JobDetails = ({ job }) => {
           {job.url && (
             <button
               onClick={() => window.open(job.url, "_blank")}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="bg-website-blue text-white px-4 py-2 rounded-lg"
             >
               Apply Now
             </button>
@@ -86,7 +86,7 @@ const JobDetails = ({ job }) => {
       <div className="flex justify-end gap-3">
         <NavLink
           to={`/jobs/edit/${job.id}`}
-          className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
+          className="bg-website-blue text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
         >
           Edit
         </NavLink>

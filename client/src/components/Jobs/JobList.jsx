@@ -1,6 +1,6 @@
 import React from "react";
 import Pagination from '@mui/material/Pagination';
-import { Gauge } from '@mui/x-charts/Gauge';
+import { Gauge, gaugeClasses } from '@mui/x-charts/Gauge';
 
 const JobList = ({ jobs, onSelectJob, selectedJob }) => {
   return (
@@ -17,7 +17,7 @@ const JobList = ({ jobs, onSelectJob, selectedJob }) => {
               <h3 className="text-lg font-semibold">{job.title}</h3>
               <p className="text-sm text-gray-600">{job.company}</p>
             </div>
-            {job.final_score ? <Gauge width={70} height={70} value={Math.ceil(job.final_score * 100)} cornerRadius="50%" /> : <></> }
+            {job.final_score ? <Gauge width={70} height={70} value={Math.ceil(job.final_score * 100)} cornerRadius="50%" sx={(theme) => ({[`& .${gaugeClasses.valueArc}`]: {fill: '#bc9631',}})}/> : <></> }
           </div>
           <div className="flex justify-between text-sm text-gray-500">
             <span>{job.location}</span>
