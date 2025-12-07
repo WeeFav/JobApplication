@@ -89,14 +89,6 @@ export async function update_job(updatedJob) {
   await db.query(query, [updatedJob.title, updatedJob.company, updatedJob.description, updatedJob.url, updatedJob.location, updatedJob.post_date, updatedJob.id]);
 }
 
-export async function delete_job(search) {
-  let query = `
-    DELETE FROM jobs
-    WHERE id = $1
-  `;
-  await db.query(query, [search.id]);
-}
-
 /* 
 ===============================================================================
 application
@@ -135,7 +127,9 @@ export async function get_applications(search) {
   if (search.limit && search.limit > 0) {
     query += `LIMIT $${idx++}`;
     params.push(parseInt(search.limit));
-  }
+  } 
+
+  query += " ORDER BY applications.application_date DESC";
 
   const res = await db.query(query, params);
   return res.rows;
@@ -178,8 +172,8 @@ export async function get_recommendations(search) {
   if (search.score) {
     conditions.push(`score >= $${idx++}`)
     params.push(search.score)
-  }
-
+  } 
+ 
 
   let query = `
   WITH filtered_recommendations AS (
@@ -207,6 +201,7 @@ export async function get_recommendations(search) {
 
   query += " ORDER BY fr.final_score DESC, jobs.post_date IS NULL, jobs.post_date DESC"
 
+  console.log(search.resumeId);
   
   const res = await db.query(query, params);
   return res.rows;
@@ -214,7 +209,7 @@ export async function get_recommendations(search) {
 
 /* 
 ===============================================================================
-others
+user profile
 ===============================================================================
 */
 export async function get_user() {

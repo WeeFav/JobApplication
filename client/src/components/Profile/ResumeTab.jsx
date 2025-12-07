@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const ResumeTab = () => {
   const [resumes, setResumes] = useState([]);
@@ -58,17 +59,17 @@ const ResumeTab = () => {
   const detectUpdatedResumes = (current, snapshot) => {
     return current.map(r => {
       const old = snapshot.find(s => s.id === r.id);
-  
+
       // New resume → mark as updated
       if (!old) {
         return { ...r, isUpdated: true };
       }
-  
+
       // Content changed → mark as updated
       if (old.content !== r.content) {
         return { ...r, isUpdated: true };
       }
-  
+
       // No change → keep isUpdate as false
       return { ...r, isUpdated: false };
     });
@@ -76,12 +77,7 @@ const ResumeTab = () => {
 
   const onSaveClick = async () => {
     const updatedResumes = detectUpdatedResumes(resumes, savedSnapshot);
-    
-    const success = await updateResumes(updatedResumes, wsRef);
-    
-    setAlertSeverity(success ? "success" : "error");
-    setAlertMessage(success ? "Successfully updated resume" : "Failed to update resume");
-    setOpen(true);
+    await updateResumes(updatedResumes, wsRef, setOpen, setAlertMessage, setAlertSeverity);
   }
 
   const activeResume = resumes.find((r) => r.id === activeId);
@@ -94,8 +90,8 @@ const ResumeTab = () => {
           <div
             key={resume.id}
             className={`flex items-center space-x-2 px-4 py-2 rounded-t-lg cursor-pointer transition-colors ${activeId === resume.id
-                ? "bg-white border-b-2 border-blue-500 shadow-sm"
-                : "bg-gray-200 hover:bg-gray-300"
+              ? "bg-white border-b-2 border-website-gold shadow-sm"
+              : "bg-gray-200 hover:bg-gray-300"
               }`}
             onClick={() => {
               // Only switch tab if NOT in edit mode
@@ -138,14 +134,14 @@ const ResumeTab = () => {
         ))}
         <button
           onClick={onAddClick}
-          className="flex items-center space-x-1 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
+          className="flex items-center space-x-1 px-3 py-2 bg-website-gold text-white rounded-md hover:bg-website-darkGold transition"
         >
           <p>+</p>
           <span>Add</span>
         </button>
         <button
           onClick={onSaveClick}
-          className="flex items-center space-x-1 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
+          className="flex items-center space-x-1 px-3 py-2 bg-website-gold text-white rounded-md hover:bg-website-darkGold transition"
         >
           <span>Save</span>
         </button>
@@ -163,14 +159,17 @@ const ResumeTab = () => {
         </div>
       )}
 
-      <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+      <Snackbar open={open} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <Alert
           onClose={() => setOpen(false)}
           severity={alertSeverity}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ flex: 1 }}
         >
-          {alertMessage}
+          <div className="flex items-center gap-3 overflow-hidden">
+            {alertMessage}
+            {alertSeverity === "success" ? <></> : <CircularProgress size="20px" color="white" />}
+          </div>
         </Alert>
       </Snackbar>
 
@@ -194,52 +193,63 @@ const loadResumes = async (setResumes, setLoading, setSavedSnapshot, setActiveId
   setLoading(false);
 };
 
-const updateResumes = (updatedResumes, wsRef) => {
+const updateResumes = (updatedResumes, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
   return new Promise((resolve, reject) => {
     // Create socket
     const ws = new WebSocket('ws://localhost:8080/resumes');
     wsRef.current = ws;
-    let success = false;
-  
+
     ws.onopen = () => {
       console.log('Connected to WebSocket');
       ws.send(JSON.stringify(updatedResumes));
     };
-  
+
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "insert") {
         if (msg.start) {
           console.log("start insert");
-        }      
+          setAlertMessage("Inserting resume");
+          setAlertSeverity("info");
+          setOpen(true);
+        }
         else if (msg.success) {
           console.log("insert success");
-          success = true;
+          setAlertMessage("Resume insert success");
+          setAlertSeverity("success");
         }
         else {
           console.log("insert failed");
-          success = false;
+          setAlertMessage("Resume insert fail");
+          setAlertSeverity("error");
         }
       }
       else if (msg.type === "recommend") {
         if (msg.start) {
           console.log("start recommend");
-        }      
+          setAlertMessage("Start recommend");
+          setAlertSeverity("info");
+        }
         else if (msg.success) {
           console.log("recommend success");
-          success = true;
+          setAlertMessage("Recommend success");
+          setAlertSeverity("success");
         }
         else {
           console.log("recommend failed");
-          success = false;
+          setAlertMessage("Recommend fail");
+          setAlertSeverity("error");
         }
       }
     };
-  
+
     ws.onclose = () => {
       console.log('Socket closed');
       wsRef.current = null;
-      resolve(success);
+      setTimeout(() => {
+        setOpen(false);
+      }, 3000);
+      resolve();
     };
   })
 };

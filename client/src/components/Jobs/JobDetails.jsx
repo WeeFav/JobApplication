@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ScrollToTop from "../ScrollToTop";
 import { NavLink, useNavigate } from "react-router-dom";
 
-const JobDetails = ({ job }) => {
+const JobDetails = ({ job, handleDelete }) => {
   const [applied, setApplied] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -19,14 +19,6 @@ const JobDetails = ({ job }) => {
   const addAppliedJobHandler = async () => {
     await addAppliedJob(job.id);
     setApplied(true);
-  }
-
-  const handleDelete = async () => {
-    const confirm = window.confirm('Are you sure you want to delete this job?');
-
-    if (confirm) {
-      await deleteJobHandler(job.id);
-    }
   }
 
   return (
@@ -148,9 +140,3 @@ const addAppliedJob = async (id) => {
     body: JSON.stringify({ job_id: id })
   });
 }
-
-const deleteJobHandler = async (id) => {
-  const res = await fetch(`/api/jobs?id=${id}`, {
-    method: 'DELETE'
-  });
-};

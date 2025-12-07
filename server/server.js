@@ -54,66 +54,6 @@ app.get('/jobs/:id', async (req, res) => {
   }
 })
 
-app.post('/jobs', async (req, res) => {
-  const data = req.body;
-  const python_res = await fetch('http://python:8080/jobs', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-
-  const message_json = await python_res.json();
-  res.status(python_res.status).json({ message: message_json.message });
-});
-
-const uploadJobs = multer({ dest: 'uploads/' });
-app.post('/job/upload', uploadJobs.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
-  }
-
-  const company_id = req.body.company_id;
-  const newRows = [];
-  const jobDescriptionList = [];
-
-  fs.createReadStream(req.file.path)
-    .pipe(csv())
-    .on('data', (row) => {
-      // Add a new column/value for each row
-      row.company_id = company_id;
-      row.is_custom = 0;
-      const d = new Date(row.job_date)
-      row.job_date = d.toISOString().slice(0, 10);
-      // Store the modified row in the array
-      newRows.push(row);
-    })
-    .on('end', () => {
-      Promise.all(newRows.map(async (newJob) => {
-        // inserting into database
-        const job_id = await db.add_job(newJob);
-        // append job_descripion, job_id to list for extraction
-        jobDescriptionList.push({
-          job_id: job_id,
-          job_description: newJob.job_description
-        });
-        return;
-      }))
-        .then(() => {
-          db.extract_jd(JSON.stringify(jobDescriptionList));
-          fs.unlinkSync(req.file.path); // Clean up temporary file
-          res.status(200).json({ message: 'CSV processed and data inserted into MySQL.' });
-        })
-        .catch((error) => {
-          console.error('Error inserting rows into MySQL:', error);
-          res.status(500).json({ error: 'Failed to insert data into MySQL.' });
-        });
-    })
-
-  // res.json({ message: 'success' });
-});
-
 app.put('/jobs', async (req, res) => {
   const updatedJob = req.body;
   await db.update_job(updatedJob);
@@ -156,105 +96,11 @@ recommendation
 app.get('/recommendations', async (req, res) => {
   const jobs = await db.get_recommendations(req.query);
   res.json(jobs);
-})
+}) 
 
 /* 
 ===============================================================================
-scrape
-===============================================================================
-*/
-
-wss.on('connection', (ws) => {
-  console.log('Client connected');
-
-  ws.on('message', async (msg) => {
-    const data = JSON.parse(msg);
-
-    if ((data.jobsite && data.numJobs) || (data.newJobs && data.type)) {
-      let jobs;
-      let source;
-
-      // *** Scrape or Get Jobs *** //
-      if (data.jobsite && data.numJobs) {
-        // start scrape jobs
-        ws.send(JSON.stringify({ type: "scrape", start: true }));
-
-        let python_res = await fetch('http://python:8080/scrape', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(scrapeInfo)
-        });
-
-        jobs = await python_res.json(); // python will respond with success or fail after scrape
-        source = data.jobsite;
-
-        ws.send(JSON.stringify({ type: "scrape", success: python_res.ok }));
-        if (!python_res.ok) {
-          ws.close();
-        }
-      }
-      else if (data.newJobs && data.type) {
-        jobs = data.newJobs;
-        source = data.type;
-      }
-
-      // *** Insert Jobs *** //
-      ws.send(JSON.stringify({ type: "insert", start: true }));
-
-      python_res = await fetch('http://python:8080/jobs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ newJobs: jobs, type: source })
-      });
-
-      const new_ids = await python_res.json(); // python will respond with success or fail after scrape
-
-      ws.send(JSON.stringify({ type: "insert", success: python_res.ok }));
-      if (!python_res.ok) {
-        ws.close();
-      }
-
-      // *** Recommend Jobs *** //
-      ws.send(JSON.stringify({ type: "recommend", start: true }));
-
-      python_res = await fetch('http://python:8080/recommend/job', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(new_ids)
-      });
-
-      await python_res.json(); // python will respond with success or fail after scrape
-
-      ws.send(JSON.stringify({ type: "recommend", success: python_res.ok }));
-      ws.close();
-    }
-  });
-
-  ws.on('close', () => console.log('Socket closed'));
-});
-
-app.post('/notify', async (req, res) => {
-  const data = req.body;
-
-  // Send message to all connected WebSocket clients
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // 1 = OPEN
-      client.send(JSON.stringify(data));
-    }
-  });
-
-  res.json({ message: 'Notification sent via WebSocket' });
-});
-
-/* 
-===============================================================================
-others
+user profile
 ===============================================================================
 */
 app.get('/user', async (req, res) => {
@@ -271,12 +117,6 @@ app.put('/user', async (req, res) => {
 app.get('/resumes', async (req, res) => {
   const resumes = await db.get_resumes();
   res.json(resumes);
-});
-
-app.put('/resumes', async (req, res) => {
-  const resumes = req.body;
-  await db.update_resumes(resumes);
-  res.status(200).json({ message: 'success' });
 });
 
 // Start HTTP + WS server

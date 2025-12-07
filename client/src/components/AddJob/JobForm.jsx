@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const JobForm = () => {
   const [title, setTitle] = useState('');
@@ -146,14 +147,17 @@ const JobForm = () => {
           >
             Add Job
           </button>
-          <Snackbar open={open} autoHideDuration={3000} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <Snackbar open={open} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
             <Alert
               onClose={handleClose}
               severity={alertSeverity}
               variant="filled"
-              sx={{ width: '100%' }}
+              sx={{ flex: 1 }}
             >
-              {alertMessage}
+              <div className="flex items-center gap-3 overflow-hidden">
+                {alertMessage}
+                {alertSeverity === "success" ? <></> : <CircularProgress size="20px" color="white"/>}
+              </div>
             </Alert>
           </Snackbar>
         </div>
@@ -196,19 +200,16 @@ const addJobHandler = async (newJob, wsRef, setOpen, setAlertMessage, setAlertSe
         else if (msg.qdrant) {
           setAlertMessage("Inserting into qdrant");
           setAlertSeverity("info");
-          setOpen(true);
         }
         else if (msg.success) {
           console.log("Job insert success");
           setAlertMessage("Job insert success");
           setAlertSeverity("success");
-          setOpen(true);
         }
         else if (msg.fail) {
           console.log("Job insert failed");
           setAlertMessage("Job insert failed");
           setAlertSeverity("error");
-          setOpen(true);
         }
       }
       else if (msg.type === "recommend") {
@@ -216,19 +217,16 @@ const addJobHandler = async (newJob, wsRef, setOpen, setAlertMessage, setAlertSe
           console.log("start recommend");
           setAlertMessage("Start recommend");
           setAlertSeverity("info");
-          setOpen(true);
         }
         else if (msg.success) {
           console.log("Recommend success");
           setAlertMessage("Recommend success");
           setAlertSeverity("success");
-          setOpen(true);
         }
         else {
           console.log("Recommend failed");
           setAlertMessage("Recommend failed");
           setAlertSeverity("error");
-          setOpen(true);
         }
       }
     };
@@ -236,6 +234,9 @@ const addJobHandler = async (newJob, wsRef, setOpen, setAlertMessage, setAlertSe
     ws.onclose = () => {
       console.log('Socket closed');
       wsRef.current = null;
+      setTimeout(() => {
+        setOpen(false);
+      }, 3000);
       resolve();
     };
   })

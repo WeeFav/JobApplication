@@ -1,17 +1,39 @@
 import flask
 from flask_sock import Sock
+from flask_cors import CORS
 import json
 import traceback
 import time
 import requests
 import threading
 from queue import Queue
-from insert import insert_jobs, insert_resumes
+from insert import insert_jobs, insert_resumes, delete_job
 from linkedin import scrape_linkedin
 from recommend import recommend_by_job, recommend_by_resume
 
 app = flask.Flask(__name__)
+CORS(app)
 sock = Sock(app)
+ 
+@sock.route('/test')
+def test_ws(ws):
+    raw = ws.receive()
+    data = json.loads(raw)
+    
+    ws.send(json.dumps({"type": "insert", "start": True}))
+    time.sleep(2)
+    
+    ws.send(json.dumps({"type": "insert", "postgres": True})) # for add/edit job page
+    time.sleep(5)
+    ws.send(json.dumps({"type": "insert", "qdrant": True})) # for add/edit job page
+    time.sleep(5)
+    ws.send(json.dumps({"type": "insert", "success": True}))                
+    
+    ws.send(json.dumps({"type": "recommend", "start": True}))
+    time.sleep(5)
+    ws.send(json.dumps({"type": "recommend", "success": True}))                
+    
+    ws.close()
  
 @sock.route('/jobs')
 def jobs_ws(ws):
@@ -107,6 +129,16 @@ def jobs_ws(ws):
         traceback.print_exc()
         ws.send(json.dumps({"type": "recommend", "fail": True}))                
         ws.close()    
+
+@app.route('/jobs', methods=['DELETE'])
+def delete():
+    try:
+        job_id = flask.request.args.get('id', type=int)
+        delete_job(job_id)
+        return "Delete job success", 200
+    except:
+        return "Delete job failed", 500
+    
     
 @sock.route('/resumes')
 def resumes_ws(ws):
@@ -121,7 +153,7 @@ def resumes_ws(ws):
         ws.send(json.dumps({"type": "insert", "success": True}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "success": False}))                
+        ws.send(json.dumps({"type": "insert", "fail": True}))                
         ws.close()
     
     ### Recommend ###
@@ -142,7 +174,7 @@ def resumes_ws(ws):
         ws.send(json.dumps({"type": "recommend", "success": True}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "recommend", "success": False}))                
+        ws.send(json.dumps({"type": "recommend", "fail": True}))                
     
     ws.close()
 

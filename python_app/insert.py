@@ -163,3 +163,23 @@ def insert_resumes(updatedResumes):
     conn.commit()
     
     return [r[0] for r in update_all]
+
+def delete_job(job_id):
+    # delete from db
+    cursor.execute("""
+        DELETE FROM jobs 
+        WHERE id = %s
+        """,
+        (job_id,)
+    )
+    conn.commit()
+    
+    # delete from qdrant
+    client.delete(
+        collection_name=collection_name,
+        points_selector=models.PointIdsList(
+            points=[job_id],
+        ),
+    )    
+    
+    
