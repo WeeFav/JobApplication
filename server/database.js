@@ -200,8 +200,6 @@ export async function get_recommendations(search) {
   }
 
   query += " ORDER BY fr.final_score DESC, jobs.post_date IS NULL, jobs.post_date DESC"
-
-  console.log(search.resumeId);
   
   const res = await db.query(query, params);
   return res.rows;

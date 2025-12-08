@@ -164,6 +164,53 @@ def insert_resumes(updatedResumes):
     
     return [r[0] for r in update_all]
 
+def update_job(updatedJob, descriptionUpdated, q):
+    try:
+        q.put({"postgres": True})
+        
+        # canonicalize url
+        url_norm = canonicalize_url(updatedJob['url'])
+        
+        # generate hash
+        title_norm = updatedJob['title'].strip().lower()
+        company_norm = updatedJob['company'].strip().lower()
+        combined = title_norm + company_norm + url_norm
+        hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
+
+        # extract description
+        if descriptionUpdated:
+            description_extracted = extract_description(updatedJob['description'])
+        else:
+            description_extracted = updatedJob['description_extracted']
+                    
+        # insert into postgres
+        cursor.execute("""
+            UPDATE jobs
+            SET hash = %s, title = %s, company = %s, url = %s, location = %s, post_date = %s, description = %s, description_extracted = %s
+            WHERE id = %s
+            """,
+            (hash, updatedJob['title'], updatedJob['company'], url_norm, updatedJob['location'], updatedJob['post_date'], updatedJob['description'], description_extracted, updatedJob['id'])
+        )
+        conn.commit()
+        
+        if descriptionUpdated:
+            q.put({"qdrant": True})
+            point = models.PointStruct(
+                id=updatedJob['id'],
+                vector=models.Document(text=description_extracted, model=model_name)
+            )
+                    
+            client.upsert(
+                collection_name=collection_name,
+                points=[point]
+            )
+            q.put({"id": updatedJob['id']})
+        
+        q.put({"done": True})
+    except Exception as e:
+        print(e)
+        q.put({"done": False})
+                
 def delete_job(job_id):
     # delete from db
     cursor.execute("""

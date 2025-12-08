@@ -7,7 +7,7 @@ import time
 import requests
 import threading
 from queue import Queue
-from insert import insert_jobs, insert_resumes, delete_job
+from insert import insert_jobs, insert_resumes, delete_job, update_job
 from linkedin import scrape_linkedin
 from recommend import recommend_by_job, recommend_by_resume
 
@@ -39,6 +39,7 @@ def test_ws(ws):
 def jobs_ws(ws):
     raw = ws.receive()
     data = json.loads(raw)
+    edit = False
     
     ### Scrape Jobs ###
     if 'jobsite' in data and 'numJobs' in data:
@@ -72,14 +73,20 @@ def jobs_ws(ws):
     elif 'newJobs' in data and 'type' in data:
         jobs = data['newJobs']
         source = data['type']
-    
+    elif 'updatedJob' in data and 'descriptionUpdated' in data:
+        edit = True
+                
     ### Insert Jobs ###
     ws.send(json.dumps({"type": "insert", "start": True}))
     new_ids = []
     
     try:
         q = Queue()
-        t = threading.Thread(target=insert_jobs, args=(jobs, source, q))
+        if edit:
+            t = threading.Thread(target=update_job, args=(data['updatedJob'], data['descriptionUpdated'], q))
+        else:
+            t = threading.Thread(target=insert_jobs, args=(jobs, source, q))
+            
         t.start()
         
         # Stream updates from queue to WebSocket
@@ -106,6 +113,9 @@ def jobs_ws(ws):
         ws.send(json.dumps({"type": "insert", "fail": True}))                
         ws.close()
         
+    if edit and not data['descriptionUpdated']:
+        ws.close()
+    
     ### Recommend ###       
     ws.send(json.dumps({"type": "recommend", "start": True}))
     
