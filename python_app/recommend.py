@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import os
 import math
 import psycopg2
-from psycopg2.extras import execute_batch
+from psycopg2.extras import execute_values
 import spacy
 from collections import defaultdict
 import string
@@ -260,17 +260,45 @@ def recommend_by_job(new_ids, q):
                 with_payload=True
             )
             
-            params = [(point.id, resume['id'], 0, 0, 0, point.score) for point in results.points]
-                
-            execute_batch(
+            recommended = {point.id: point.score for point in results.points}
+            upsert_params = []
+            delete_params = []
+            
+            # evaluate every add/edit job
+            for id in new_ids:
+                # if recommended
+                if id in recommended:
+                    upsert_params.append((id, resume['id'], 0, 0, 0, recommended[id]))
+                else:
+                    delete_params.append((id, resume['id']))
+            
+            # upsert recommended                        
+            execute_values(
                 cursor,
                 """
                 INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, final_score)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES %s
+                ON CONFLICT (job_id, resume_id)
+                DO UPDATE SET 
+                    similarity_score = EXCLUDED.similarity_score,
+                    keyword_score = EXCLUDED.keyword_score,
+                    embeddings_score = EXCLUDED.embeddings_score,
+                    final_score = EXCLUDED.final_score
                 """,
-                params
+                upsert_params
             )
-            conn.commit()            
+            
+            # delete non-recommended
+            execute_values(
+                cursor,
+                """
+                DELETE FROM recommendations AS r
+                USING (VALUES %s) AS v(job_id, resume_id)
+                WHERE r.job_id = v.job_id AND r.resume_id = v.resume_id
+                """,
+                delete_params
+            )                                  
+            conn.commit()
                   
         q.put({"done": True})
     except Exception as e:
@@ -396,16 +424,51 @@ def recommend_by_resume(ids, q):
     
         print(f"Resume ID {resume['id']}")
         
-        params = [(point.id, resume['id'], 0, 0, 0, point.score) for point in results.points]
-            
-        execute_batch(
+        recommended = {point.id: point.score for point in results.points}
+        upsert_params = []
+        delete_params = []
+        
+        cursor.execute(f"""
+            SELECT id FROM jobs
+            """,
+        )
+        res = cursor.fetchall()
+        ids = set([job['id'] for job in res])
+        
+        # evaluate every add/edit job
+        for id in ids:
+            # if recommended
+            if id in recommended:
+                upsert_params.append((id, resume['id'], 0, 0, 0, recommended[id]))
+            else:
+                delete_params.append((id, resume['id']))
+        
+        # upsert recommended                        
+        execute_values(
             cursor,
             """
             INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, final_score)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES %s
+            ON CONFLICT (job_id, resume_id)
+            DO UPDATE SET 
+                similarity_score = EXCLUDED.similarity_score,
+                keyword_score = EXCLUDED.keyword_score,
+                embeddings_score = EXCLUDED.embeddings_score,
+                final_score = EXCLUDED.final_score
             """,
-            params
+            upsert_params
         )
+        
+        # delete non-recommended
+        execute_values(
+            cursor,
+            """
+            DELETE FROM recommendations AS r
+            USING (VALUES %s) AS v(job_id, resume_id)
+            WHERE r.job_id = v.job_id AND r.resume_id = v.resume_id
+            """,
+            delete_params
+        )                                  
         conn.commit()
         
     q.put({"done": True})
