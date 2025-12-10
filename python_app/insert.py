@@ -9,7 +9,7 @@ import uuid
 import sys
 from dotenv import load_dotenv
 from typing import List, Dict
-import datetime
+from datetime import datetime
 from preprocess_job import extract_description, canonicalize_url
 
 load_dotenv()
@@ -80,13 +80,11 @@ def insert_jobs(jobs: List[Dict], job_site, q):
             id, scrape_date = cursor.fetchone()
             
             # insert into qdrant  
-            dt = datetime.datetime.combine(scrape_date, datetime.time.min)
-                
             point = models.PointStruct(
                 id=id,
                 vector=models.Document(text=description_extracted, model=model_name),
                 payload={
-                    "scrape_date": int(dt.timestamp())
+                    "scrape_date": scrape_date.isoformat()
                 }
             )
                     
@@ -197,7 +195,10 @@ def update_job(updatedJob, descriptionUpdated, q):
             q.put({"qdrant": True})
             point = models.PointStruct(
                 id=updatedJob['id'],
-                vector=models.Document(text=description_extracted, model=model_name)
+                vector=models.Document(text=description_extracted, model=model_name),
+                payload={
+                    "scrape_date": datetime.strptime(updatedJob['scrape_date'], "%Y-%m-%dT%H:%M:%S.%fZ").date().isoformat()
+                }
             )
                     
             client.upsert(

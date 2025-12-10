@@ -1,7 +1,7 @@
 import argparse
 from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
-from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range, HasIdCondition
+from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range, HasIdCondition, DatetimeRange
 from datetime import datetime, timedelta
 import os
 import math
@@ -402,8 +402,8 @@ def recommend_by_resume(ids, q):
         print("SQL error:", e)
         
     # search for all jobs with score > 0.5 up to 30 days ago
-    thirty_days_ago = (datetime.now() - timedelta(days=30)).timestamp() # 30 days ago in Unix format
-    print(f"Recommend jobs up to {datetime.fromtimestamp(thirty_days_ago).isoformat()}")
+    thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat() # 30 days ago in Unix format
+    print(f"Recommend jobs up to {thirty_days_ago}")
 
     for resume in updatedResumes:
         results = client.query_points(
@@ -413,7 +413,12 @@ def recommend_by_resume(ids, q):
                 must=[
                     FieldCondition(
                         key="scrape_date",
-                        range=Range(gte=thirty_days_ago)
+                        range=DatetimeRange(
+                            gt=None,
+                            gte=thirty_days_ago,
+                            lt=None,
+                            lte=None,
+                        ),
                     )
                 ]
             ),
