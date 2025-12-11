@@ -20,17 +20,25 @@ def test_ws(ws):
     raw = ws.receive()
     data = json.loads(raw)
     
+    ws.send(json.dumps({"type": "scrape", "start": True}))
+    time.sleep(1)
+    for i in range(5):
+        ws.send(json.dumps({"type": "scrape", "update": True}))
+        time.sleep(1) 
+    ws.send(json.dumps({"type": "scrape", "success": True}))                
+    
     ws.send(json.dumps({"type": "insert", "start": True}))
-    time.sleep(2)
-    
-    ws.send(json.dumps({"type": "insert", "postgres": True})) # for add/edit job page
-    time.sleep(5)
-    ws.send(json.dumps({"type": "insert", "qdrant": True})) # for add/edit job page
-    time.sleep(5)
+    time.sleep(1)
+    for i in range(5):
+        ws.send(json.dumps({"type": "insert", "update": True}))
+        time.sleep(1) 
     ws.send(json.dumps({"type": "insert", "success": True}))                
-    
+     
     ws.send(json.dumps({"type": "recommend", "start": True}))
-    time.sleep(5)
+    time.sleep(1)
+    for i in range(5):
+        ws.send(json.dumps({"type": "recommend", "update": True}))
+        time.sleep(1) 
     ws.send(json.dumps({"type": "recommend", "success": True}))                
     
     ws.close()

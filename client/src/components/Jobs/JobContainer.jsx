@@ -17,13 +17,15 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
   }, [selectedJob]);
 
   useEffect(() => {
-    const fetchJobs = async () => {
       setLoading(true);
-      activeId !== null ? await loadJobs(setJobs, setLoading, activeId) : await loadJobs(setJobs, setLoading);
-      setSelectedJob(jobs[0]);
-    };
-    fetchJobs();
+      activeId !== null ? loadJobs(setJobs, setLoading, activeId) : loadJobs(setJobs, setLoading);
   }, [activeId])
+
+  useEffect (() => {
+    if (jobs) { 
+      setSelectedJob(jobs[0]);
+    }
+  }, [jobs])
 
   const onSearchClick = async (jobTitle, company) => {
     setLoading(true);
