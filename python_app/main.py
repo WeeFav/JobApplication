@@ -9,6 +9,7 @@ import threading
 from queue import Queue
 from insert import insert_jobs, insert_resumes, delete_job, update_job
 from linkedin import scrape_linkedin
+from jobright import scrape_jobright
 from recommend import recommend_by_job, recommend_by_resume
 
 app = flask.Flask(__name__)
@@ -58,7 +59,12 @@ def jobs_ws(ws):
         
         try:
             q = Queue()
-            t = threading.Thread(target=scrape_linkedin, args=(data['numJobs'], q))
+            if source == 'linkedin':
+                t = threading.Thread(target=scrape_linkedin, args=(data['numJobs'], q))
+            elif source == 'jobright': 
+                t = threading.Thread(target=scrape_jobright, args=(data['numJobs'], q)) 
+            else:
+                raise NotImplementedError  
             t.start()
             
             # Stream updates from queue to WebSocket

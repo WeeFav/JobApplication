@@ -16,7 +16,7 @@ const ScrapePage = () => {
 
     let scrapeInfo = {
       jobsite: jobsite,
-      numJobs: numJobs
+      numJobs: Number(numJobs)
     }
 
     await scrapeHandler(scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting, setIsRecommending);
@@ -49,9 +49,8 @@ const ScrapePage = () => {
           </label>
           <input
             type="number"
-            min="1"
             value={numJobs}
-            onChange={(e) => setNumJobs(Number(e.target.value))}
+            onChange={(e) => setNumJobs(e.target.value)}
             className="w-full p-2 rounded-lg  text-black focus:outline-none focus:ring-2"
           />
         </div>
