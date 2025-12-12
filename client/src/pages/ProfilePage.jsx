@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import MyProfileTab from "../components/Profile/MyProfileTab";
 import ResumeTab from "../components/Profile/ResumeTab";
+import SystemCheckTab from "../components/Profile/SystemCheckTab";
 
 const ProfilePage = () => {
   const [tab, setTab] = useState('My Profile');
@@ -11,6 +12,8 @@ const ProfilePage = () => {
         return <MyProfileTab />;
       case 'Resumes':
         return <ResumeTab />;
+      case 'System Check':
+        return <SystemCheckTab />;
       default:
         return <div>Select a tab to view content</div>;
     }
@@ -32,6 +35,11 @@ const ProfilePage = () => {
                 onClick={() => { setTab('Resumes') }}
               >
                 Resumes
+              </button>
+              <button className={`pl-4 w-full text-left ${tab === 'System Check' ? "bg-website-gold text-white rounded py-1 font-medium" : "text-gray-500"}`}
+                onClick={() => { setTab('System Check') }}
+              >
+                System Check
               </button>
             </nav>
           </div>

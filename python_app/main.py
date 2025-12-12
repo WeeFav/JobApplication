@@ -11,6 +11,7 @@ from insert import insert_jobs, insert_resumes, delete_job, update_job
 from linkedin import scrape_linkedin
 from jobright import scrape_jobright
 from recommend import recommend_by_job, recommend_by_resume
+from system_check import system_check
 
 app = flask.Flask(__name__)
 CORS(app)
@@ -163,7 +164,6 @@ def delete():
     except:
         return "Delete job failed", 500
     
-    
 @sock.route('/resumes')
 def resumes_ws(ws):
     raw = ws.receive()
@@ -201,6 +201,18 @@ def resumes_ws(ws):
         ws.send(json.dumps({"type": "recommend", "fail": True}))                
     
     ws.close()
+    
+@app.route('/system_check')
+def check():
+    try:
+        in_pg_not_qdrant, in_qdrant_not_pg, mismatched_scrape_dates = system_check()
+        return flask.jsonify({
+            "in_pg_not_qdrant": len(in_pg_not_qdrant),
+            "in_qdrant_not_pg": len(in_qdrant_not_pg),
+            "mismatched_scrape_dates": len(mismatched_scrape_dates)            
+        }), 200
+    except:
+        return "System check failed", 500
 
 if __name__ == '__main__':
     print("Python backend started")
