@@ -82,3 +82,8 @@ def extract_post_date(text):
     # Subtract from today to get actual post date
     post_date = today - delta
     return post_date.strftime('%Y-%m-%d')
+
+def extract_source_from_url(url):
+    netloc = urlparse(url).netloc.lower()
+    netloc = netloc.replace("www.", "")
+    return netloc.split(".")[0]

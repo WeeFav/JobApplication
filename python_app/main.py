@@ -7,11 +7,12 @@ import time
 import requests
 import threading
 from queue import Queue
-from insert import insert_jobs, insert_resumes, delete_job, update_job
-from linkedin import scrape_linkedin
-from jobright import scrape_jobright
+from insert import insert_jobs, insert_resumes, update_job
+import linkedin
+import jobright
 from recommend import recommend_by_job, recommend_by_resume
-from system_check import system_check
+from misc import delete_job, add_application, delete_application, system_check
+from preprocess_job import extract_source_from_url
 
 app = flask.Flask(__name__)
 CORS(app)
@@ -61,9 +62,9 @@ def jobs_ws(ws):
         try:
             q = Queue()
             if source == 'linkedin':
-                t = threading.Thread(target=scrape_linkedin, args=(data['numJobs'], q))
+                t = threading.Thread(target=linkedin.scrape, args=(data['numJobs'], q))
             elif source == 'jobright': 
-                t = threading.Thread(target=scrape_jobright, args=(data['numJobs'], q)) 
+                t = threading.Thread(target=jobright.scrape, args=(data['numJobs'], q)) 
             else:
                 raise NotImplementedError  
             t.start()
@@ -84,10 +85,40 @@ def jobs_ws(ws):
             traceback.print_exc()
             ws.send(json.dumps({"type": "scrape", "success": False}))                
             ws.close()    
-    ### Get Jobs ###
+    ### Get Job from Manual ###
     elif 'newJobs' in data and 'type' in data:
         jobs = data['newJobs']
         source = data['type']
+    ### Get Job from URL ###
+    elif 'url' in data:
+        url = data['url']
+        source = extract_source_from_url(url)
+        
+        ws.send(json.dumps({"type": "scrape", "start": True}))
+                
+        try:
+            q = Queue()
+            if source == 'linkedin':
+                t = threading.Thread(target=linkedin.scrape_from_url, args=(url))
+            elif source == 'jobright': 
+                t = threading.Thread(target=jobright.scrape_from_url, args=(url)) 
+            else:
+                raise NotImplementedError  
+            t.start()
+            
+            # Stream updates from queue to WebSocket
+            update = q.get()  # blocking wait
+            
+            if "fail" in update:
+                raise RuntimeError
+            
+            job = update
+            ws.send(json.dumps({"type": "scrape", "success": True}))                
+        except Exception as e:
+            traceback.print_exc()
+            ws.send(json.dumps({"type": "scrape", "success": False}))                
+            ws.close()    
+    ### Update Job ###
     elif 'updatedJob' in data and 'descriptionUpdated' in data:
         edit = True
                 
@@ -156,7 +187,7 @@ def jobs_ws(ws):
         ws.close()    
 
 @app.route('/jobs', methods=['DELETE'])
-def delete():
+def app_delete_job():
     try:
         job_id = flask.request.args.get('id', type=int)
         delete_job(job_id)
@@ -203,7 +234,7 @@ def resumes_ws(ws):
     ws.close()
     
 @app.route('/system_check')
-def check():
+def app_system_check():
     try:
         in_pg_not_qdrant, in_qdrant_not_pg, mismatched_scrape_dates = system_check()
         return flask.jsonify({
@@ -213,6 +244,27 @@ def check():
         }), 200
     except:
         return "System check failed", 500
+
+@app.route('/applications', methods=['POST'])
+def app_add_application():
+    try:
+        data = flask.request.get_json()
+        add_application(data['id'])
+        return "Add application success", 200
+    except:
+        traceback.print_exc()
+        return "Add application failed", 500
+    
+@app.route('/applications', methods=['DELETE'])
+def app_delete_application():
+    try:
+        job_id = flask.request.args.get('id', type=int)
+        delete_application(job_id)
+        return "Delete application success", 200
+    except:
+        traceback.print_exc()
+        return "Delete application failed", 500
+
 
 if __name__ == '__main__':
     print("Python backend started")

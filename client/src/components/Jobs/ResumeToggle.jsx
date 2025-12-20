@@ -42,7 +42,7 @@ API
 ===============================================================================
 */
 const loadResumes = async (setResumes, setLoading) => {
-  const res = await fetch('/api/resumes');
+  const res = await fetch('/server_api/resumes');
   const data = await res.json();
   setResumes(data);
   setLoading(false);

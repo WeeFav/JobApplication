@@ -17,7 +17,7 @@ API
 
 // function to load company jobs
 const loadJobs = async (setJobs, setLoading) => {
-    const res = await fetch(`/api/applications`);
+    const res = await fetch(`/server_api/applications`);
     const data = await res.json();
     setJobs(data);
     setLoading(false);
@@ -25,7 +25,7 @@ const loadJobs = async (setJobs, setLoading) => {
 
 // function to search job
 const searchJobHandler = async (jobTitle, company) => {
-  const res = await fetch(`/api/applications?jobTitle=${jobTitle}&company=${company}`);
+  const res = await fetch(`/server_api/applications?jobTitle=${jobTitle}&company=${company}`);
   const data = await res.json();
   return data;
 }

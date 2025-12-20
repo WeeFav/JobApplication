@@ -84,7 +84,8 @@ def insert_jobs(jobs: List[Dict], job_site, q):
                 id=id,
                 vector=models.Document(text=description_extracted, model=model_name),
                 payload={
-                    "scrape_date": scrape_date.isoformat()
+                    "scrape_date": scrape_date.isoformat(),
+                    "applied": False,
                 }
             )
                     
@@ -211,23 +212,3 @@ def update_job(updatedJob, descriptionUpdated, q):
     except Exception as e:
         print(e)
         q.put({"done": False})
-                
-def delete_job(job_id):
-    # delete from db
-    cursor.execute("""
-        DELETE FROM jobs 
-        WHERE id = %s
-        """,
-        (job_id,)
-    )
-    conn.commit()
-    
-    # delete from qdrant
-    client.delete(
-        collection_name=collection_name,
-        points_selector=models.PointIdsList(
-            points=[job_id],
-        ),
-    )    
-    
-    

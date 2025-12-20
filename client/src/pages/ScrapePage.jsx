@@ -108,7 +108,7 @@ API
 
 const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting, setIsRecommending) => {
   // Create socket
-  const ws = new WebSocket('ws://localhost:8080/jobs');
+  const ws = new WebSocket('/ws_api/jobs');
   wsRef.current = ws;
   let scrapeNum = 0;
   let insertNum = 0;

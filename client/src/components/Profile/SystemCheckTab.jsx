@@ -37,7 +37,7 @@ API
 ===============================================================================
 */
 const loadSystem = async (setSystem, setLoading, setSavedSnapshot, setActiveId) => {
-  const res = await fetch('http://localhost:8080/system_check');
+  const res = await fetch('/python_api/system_check');
   const data = await res.json();
   setSystem(data);
   setLoading(false);

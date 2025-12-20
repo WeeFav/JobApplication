@@ -197,7 +197,7 @@ API
 const updateJobHandler = async (updatedJob, prev_description, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
   return new Promise((resolve, reject) => {
     // Create socket
-    const ws = new WebSocket('ws://localhost:8080/jobs');
+    const ws = new WebSocket('/ws_api/jobs');
     wsRef.current = ws;
 
     ws.onopen = () => {

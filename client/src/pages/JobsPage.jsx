@@ -26,7 +26,7 @@ const getThirtyDaysAgo = () => {
 // function to load company jobs
 const loadJobs = async (setJobs, setLoading) => {
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/api/jobs?date=${date}`);
+  const res = await fetch(`/server_api/jobs?date=${date}`);
   const data = await res.json();
   setJobs(data);
   setLoading(false);
@@ -35,7 +35,7 @@ const loadJobs = async (setJobs, setLoading) => {
 // function to search job
 const searchJobHandler = async (jobTitle, company) => {
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/api/jobs?date=${date}&jobTitle=${jobTitle}&company=${company}`);
+  const res = await fetch(`/server_api/jobs?date=${date}&jobTitle=${jobTitle}&company=${company}`);
   const data = await res.json();
   return data;
 }

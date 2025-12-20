@@ -114,7 +114,7 @@ API
 */
 
 const loadApplication = async (id, setApplied, setLoading) => {
-  const res = await fetch(`/api/applications?job_id=${id}`);
+  const res = await fetch(`/server_api/applications?job_id=${id}`);
   const data = await res.json();
   if (!data || data.length === 0) {
     setApplied(false);
@@ -126,17 +126,17 @@ const loadApplication = async (id, setApplied, setLoading) => {
 };
 
 const removeAppliedJob = async (id) => {
-  const res = await fetch(`/api/applications?id=${id}`, {
+  const res = await fetch(`/python_api/applications?id=${id}`, {
     method: 'DELETE'
   });
 };
 
 const addAppliedJob = async (id) => {
-  const res = await fetch('/api/applications', {
+  const res = await fetch('/python_api/applications', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ job_id: id })
+    body: JSON.stringify({ id: id })
   });
 }

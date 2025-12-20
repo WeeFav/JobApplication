@@ -1,7 +1,17 @@
+from fastembed import TextEmbedding
 import os
-from dotenv import load_dotenv
 import psycopg2
-from qdrant_client import QdrantClient
+from psycopg2.extras import execute_batch
+import pandas as pd
+import hashlib
+from qdrant_client import QdrantClient, models
+import uuid
+import sys
+from dotenv import load_dotenv
+from typing import List, Dict
+from datetime import datetime
+from preprocess_job import extract_description, canonicalize_url
+
 load_dotenv()
 
 conn = psycopg2.connect(
@@ -15,6 +25,57 @@ cursor = conn.cursor()
 
 client = QdrantClient("http://qdrant:6333")
 collection_name = "jobapplication"
+model_name = "BAAI/bge-base-en-v1.5"
+
+def delete_job(job_id):
+    # delete from db
+    cursor.execute("""
+        DELETE FROM jobs 
+        WHERE id = %s
+        """,
+        (job_id,)
+    )
+    conn.commit()
+    
+    # delete from qdrant
+    client.delete(
+        collection_name=collection_name,
+        points_selector=[job_id]
+    )    
+    
+def add_application(job_id):
+    cursor.execute("""
+        INSERT INTO applications (job_id)
+        VALUES (%s)
+        """,
+        (job_id,)
+    )
+    conn.commit()
+    
+    client.set_payload(
+        collection_name=collection_name,
+        payload={
+            "applied": True,
+        },
+        points=[job_id],
+    )
+        
+def delete_application(job_id):
+    cursor.execute("""
+        DELETE FROM applications
+        WHERE job_id = %s
+        """,
+        (job_id,)
+    )
+    conn.commit()
+    
+    client.set_payload(
+        collection_name=collection_name,
+        payload={
+            "applied": False,
+        },
+        points=[job_id],
+    )
 
 def system_check():
     cursor.execute("""
@@ -56,9 +117,9 @@ def system_check():
         if pg_dict[job_id] != qdrant_dict[job_id]
     ]
     
-    print("In Postgres but not Qdrant:", in_pg_not_qdrant)
-    print("In Qdrant but not Postgres:", in_qdrant_not_pg)
-    print("Scrape date mismatches:", mismatched_scrape_dates)
+    # print("In Postgres but not Qdrant:", in_pg_not_qdrant)
+    # print("In Qdrant but not Postgres:", in_qdrant_not_pg)
+    # print("Scrape date mismatches:", mismatched_scrape_dates)
     
     return in_pg_not_qdrant, in_qdrant_not_pg, mismatched_scrape_dates
     

@@ -185,7 +185,7 @@ API
 ===============================================================================
 */
 const loadResumes = async (setResumes, setLoading, setSavedSnapshot, setActiveId) => {
-  const res = await fetch('/api/resumes');
+  const res = await fetch('/server_api/resumes');
   const data = await res.json();
   setResumes(data);
   setActiveId(data[0].id);
@@ -196,7 +196,7 @@ const loadResumes = async (setResumes, setLoading, setSavedSnapshot, setActiveId
 const updateResumes = (updatedResumes, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
   return new Promise((resolve, reject) => {
     // Create socket
-    const ws = new WebSocket('ws://localhost:8080/resumes');
+    const ws = new WebSocket('/ws_api/resumes');
     wsRef.current = ws;
 
     ws.onopen = () => {

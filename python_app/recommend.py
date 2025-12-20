@@ -1,7 +1,7 @@
 import argparse
 from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
-from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range, HasIdCondition, DatetimeRange
+from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range, HasIdCondition, DatetimeRange, MatchValue
 from datetime import datetime, timedelta
 import os
 import math
@@ -419,6 +419,10 @@ def recommend_by_resume(ids, q):
                             lt=None,
                             lte=None,
                         ),
+                    ),
+                    FieldCondition(
+                        key="applied",
+                        match=MatchValue(value=False)
                     )
                 ]
             ),

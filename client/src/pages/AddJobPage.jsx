@@ -1,10 +1,10 @@
 import { useState, useEffect, useContext } from "react"
 import { useNavigate } from "react-router-dom";
 import JobForm from "../components/AddJob/JobForm";
-import UploadCSV from "../components/AddJob/UploadCSV";
+import UrlForm from "../components/AddJob/UrlForm";
 
 const AddJobPage = () => {
-  const [tab, setTab] = useState('single');
+  const [tab, setTab] = useState('url');
 
   return (
     <>
@@ -17,24 +17,24 @@ const AddJobPage = () => {
             <div className="flex w-full space-x-4 mb-5">
               <button
                 type="button"
-                className={`w-1/2 px-4 py-2 rounded ${tab === 'single' ? 'bg-website-blue text-white' : 'bg-gray-100 text-black'
+                className={`w-1/2 px-4 py-2 rounded ${tab === 'url' ? 'bg-website-blue text-white' : 'bg-gray-100 text-black'
                   } hover:bg-website-blue hover:text-white`}
-                onClick={() => setTab('single')}>
-                Single Job
+                onClick={() => setTab('url')}>
+                From URL
               </button>
               <button
                 type="button"
-                className={`w-1/2 px-4 py-2 rounded ${tab === 'multiple' ? 'bg-website-blue text-white' : 'bg-gray-100 text-black'
+                className={`w-1/2 px-4 py-2 rounded ${tab === 'manual' ? 'bg-website-blue text-white' : 'bg-gray-100 text-black'
                   } hover:bg-website-blue hover:text-white`}
-                onClick={() => setTab('multiple')}>
-                Upload CSV
+                onClick={() => setTab('manual')}>
+                Manual
               </button>
             </div>
 
-            {tab === 'single' ?
-              <JobForm />
+            {tab === 'url' ?
+              <UrlForm />
               :
-              <UploadCSV />
+              <JobForm />
             }
 
           </div>

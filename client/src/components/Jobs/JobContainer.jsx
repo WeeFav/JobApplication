@@ -100,7 +100,7 @@ API
 ===============================================================================
 */
 const deleteJobHandler = async (id) => {
-  const res = await fetch(`http://localhost:8080/jobs?id=${id}`, {
+  const res = await fetch(`/python_api/jobs?id=${id}`, {
     method: 'DELETE'
   });
 };

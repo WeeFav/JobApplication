@@ -22,7 +22,45 @@ def get_auth():
         
         context.storage_state(path="./auth/linkedin_auth.json")
 
-def scrape_linkedin(jobs_to_scrape, q):
+def extract_page(page):
+    title = page.locator("div.job-details-jobs-unified-top-card__job-title").inner_text()
+    company = page.locator("div.job-details-jobs-unified-top-card__company-name").inner_text()
+    
+    details_locator = page.locator("xpath=//div[contains(@class, 'job-details-jobs-unified-top-card__tertiary-description-container')]/span")
+    location = details_locator.locator("xpath=./span[1]").inner_text()
+    post_time = details_locator.locator("xpath=./span[3]").inner_text()                
+    post_date = extract_post_date(post_time)
+    
+    apply_locator = page.locator("button#jobs-apply-button-id").first
+    apply_locator.wait_for()
+    apply_text = apply_locator.locator("span.artdeco-button__text").inner_text()
+    
+    if apply_text == "Apply":
+        try:
+            with page.expect_popup() as popup_info:
+                apply_locator.click()
+            new_page = popup_info.value
+            url = new_page.url
+            new_page.close()
+        except TimeoutError:
+            print("Timeout: No popup appeared within 30 seconds")
+            url = page.url
+    elif apply_text == "Easy Apply":
+        url = page.url
+        
+    # move down here so description have time to load
+    description = page.locator("xpath=//div[@id='job-details']/div[@class='mt4']").inner_text()
+    
+    return {
+        "title": title,
+        "company": company,
+        "description": description,
+        "url": url,
+        "location": location,
+        "post_date": post_date
+    }
+    
+def scrape(jobs_to_scrape, q):
     print("Start LinkedIn scrape")
     jobs_per_page = 25
     pages = math.ceil(jobs_to_scrape / jobs_per_page)
@@ -52,46 +90,12 @@ def scrape_linkedin(jobs_to_scrape, q):
                         break
                     li_locator = lis.nth(i) 
                     li_locator.click()
-                
-                    title = page.locator("div.job-details-jobs-unified-top-card__job-title").inner_text()
-                    company = page.locator("div.job-details-jobs-unified-top-card__company-name").inner_text()
-                    
-                    details_locator = page.locator("xpath=//div[contains(@class, 'job-details-jobs-unified-top-card__tertiary-description-container')]/span")
-                    location = details_locator.locator("xpath=./span[1]").inner_text()
-                    post_time = details_locator.locator("xpath=./span[3]").inner_text()                
-                    post_date = extract_post_date(post_time)
-                    
-                    apply_locator = page.locator("button#jobs-apply-button-id").first
-                    apply_locator.wait_for()
-                    apply_text = apply_locator.locator("span.artdeco-button__text").inner_text()
-                    
-                    if apply_text == "Apply":
-                        try:
-                            with page.expect_popup() as popup_info:
-                                apply_locator.click()
-                            new_page = popup_info.value
-                            url = new_page.url
-                            new_page.close()
-                        except TimeoutError:
-                            print("Timeout: No popup appeared within 30 seconds")
-                            url = page.url
-                    elif apply_text == "Easy Apply":
-                        url = page.url
-                        
-                    # move down here so description have time to load
-                    description = page.locator("xpath=//div[@id='job-details']/div[@class='mt4']").inner_text()
-                    
-                    q.put({
-                        "title": title,
-                        "company": company,
-                        "description": description,
-                        "url": url,
-                        "location": location,
-                        "post_date": post_date
-                    }) 
+                                    
+                    job = extract_page(page)
+                    q.put(job) 
                     
                     jobs_to_scrape -= 1
-                    print(f"{i} | {title} | {company} | {location} | {post_time}")
+                    print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_time']}")
                     
                     # need to scroll because linkedin has a weird issue where job not in view will not get scraped
                     scroll_locator.evaluate("(el) => el.scrollBy(0, 132)")
@@ -108,7 +112,31 @@ def scrape_linkedin(jobs_to_scrape, q):
         q.put({"done": False})
         
     q.put({"done": True}) 
+    
+def scrape_from_url(url, q):
+    try:
+        with sync_playwright() as playwright:     
+            # open browser and navigate to jobright
+            browser = playwright.chromium.launch(
+                channel="chrome",
+                headless=False,
+            )
+            context = browser.new_context(storage_state="auth/linkedin_auth.json")
+            page = context.new_page()
+
+            page.goto(url)
+        
+            job = extract_page(page)
+            q.put(job) 
             
+            print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_time']}")
+                                
+            context.close()
+            browser.close()
+    except:
+        traceback.print_exc()
+        q.put({"fail": True})
+                    
 if __name__ == '__main__':
     get_auth()
     # scrape_linkedin(10)
