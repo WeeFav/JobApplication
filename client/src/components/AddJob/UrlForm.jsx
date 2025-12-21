@@ -76,7 +76,7 @@ API
 const addJobHandler = async (url, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
   return new Promise((resolve, reject) => {
     // Create socket
-    const ws = new WebSocket('/ws_api/jobs');
+    const ws = new WebSocket('/ws_api/scrape_url');
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -121,7 +121,7 @@ const addJobHandler = async (url, wsRef, setOpen, setAlertMessage, setAlertSever
           setAlertMessage("Scrape success");
           setAlertSeverity("success");
         }
-        else {
+        else if (msg.fail) {
           console.log("Scrape failed");
           setAlertMessage("Scrape failed");
           setAlertSeverity("error");

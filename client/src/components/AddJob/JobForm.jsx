@@ -178,7 +178,7 @@ API
 const addJobHandler = async (newJob, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
   return new Promise((resolve, reject) => {
     // Create socket
-    const ws = new WebSocket('/ws_api/jobs');
+    const ws = new WebSocket('/ws_api/manual_job');
     wsRef.current = ws;
 
     ws.onopen = () => {
