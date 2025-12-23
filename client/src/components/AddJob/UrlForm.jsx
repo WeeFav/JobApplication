@@ -11,7 +11,13 @@ const UrlForm = () => {
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
-  const handleClose = () => setOpen(false);
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
+  };
 
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
@@ -86,7 +92,26 @@ const addJobHandler = async (url, wsRef, setOpen, setAlertMessage, setAlertSever
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-      if (msg.type === "insert") {
+
+      if (msg.type === "scrape") {
+        if (msg.start) {
+          console.log("start scrape");
+          setAlertMessage("Start scrape");
+          setAlertSeverity("info");
+          setOpen(true);
+        }
+        else if (msg.success) {
+          console.log("Scrape success");
+          setAlertMessage("Scrape success");
+          setAlertSeverity("success");
+        }
+        else if (msg.fail) {
+          console.log("Scrape failed");
+          setAlertMessage("Scrape failed");
+          setAlertSeverity("error");
+        }
+      }
+      else if (msg.type === "insert") {
         if (msg.start) {
           console.log("start insert");
         }
@@ -110,20 +135,20 @@ const addJobHandler = async (url, wsRef, setOpen, setAlertMessage, setAlertSever
           setAlertSeverity("error");
         }
       }
-      else if (msg.type === "scrape") {
+      else if (msg.type === "recommend") {
         if (msg.start) {
-          console.log("start scrape");
-          setAlertMessage("Start scrape");
+          console.log("start recommend");
+          setAlertMessage("Start recommend");
           setAlertSeverity("info");
         }
         else if (msg.success) {
-          console.log("Scrape success");
-          setAlertMessage("Scrape success");
+          console.log("Recommend success");
+          setAlertMessage("Recommend success");
           setAlertSeverity("success");
         }
         else if (msg.fail) {
-          console.log("Scrape failed");
-          setAlertMessage("Scrape failed");
+          console.log("Recommend failed");
+          setAlertMessage("Recommend failed");
           setAlertSeverity("error");
         }
       }

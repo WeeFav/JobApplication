@@ -15,13 +15,13 @@ const SystemCheckTab = () => {
       {loading ? <></> :
         <div className="flex flex-col gap-2">
           <div className={`w-full p-4 text-white text-center font-semibold rounded-xl shadow-md ${system.in_pg_not_qdrant ? "bg-red-600" : "bg-green-600"}`}>
-            {system.in_pg_not_qdrant ? `Jobs in database but not qdrant: ${system.in_pg_not_qdrant} issue(s) detected` : "System Healthy: No Failures"}
+            {`Jobs in database but not qdrant: ${system.in_pg_not_qdrant} issue(s) detected`}
           </div>
-          <div className={`w-full p-4 text-white text-center font-semibold rounded-xl shadow-md ${system.in_pg_not_qdrant ? "bg-red-600" : "bg-green-600"}`}>
-            {system.in_qdrant_not_pg ? `Jobs in qdrant but not database: ${system.in_qdrant_not_pg} issue(s) detected` : "System Healthy: No Failures"}
+          <div className={`w-full p-4 text-white text-center font-semibold rounded-xl shadow-md ${system.in_qdrant_not_pg ? "bg-red-600" : "bg-green-600"}`}>
+            {`Jobs in qdrant but not database: ${system.in_qdrant_not_pg} issue(s) detected`}
           </div>
-          <div className={`w-full p-4 text-white text-center font-semibold rounded-xl shadow-md ${system.in_pg_not_qdrant ? "bg-red-600" : "bg-green-600"}`}>
-            {system.mismatched_scrape_dates ? `Jobs with mismatched scrape date: ${system.mismatched_scrape_dates} issue(s) detected` : "System Healthy: No Failures"}
+          <div className={`w-full p-4 text-white text-center font-semibold rounded-xl shadow-md ${system.mismatched_scrape_dates ? "bg-red-600" : "bg-green-600"}`}>
+            {`Jobs with mismatched scrape date: ${system.mismatched_scrape_dates} issue(s) detected`}
           </div>
         </div>
       }

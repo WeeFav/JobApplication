@@ -16,9 +16,14 @@ const JobForm = () => {
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
 
-  const handleClose = () => setOpen(false);
-
+    setOpen(false);
+  };
+  
   const onSubmitFormClick = async (e) => {
     e.preventDefault();
 

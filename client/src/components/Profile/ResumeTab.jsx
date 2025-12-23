@@ -10,11 +10,19 @@ const ResumeTab = () => {
   const [editId, setEditId] = useState(null);
   const [savedSnapshot, setSavedSnapshot] = useState([]);
   const wsRef = useRef(null);
+
   // alert popup
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
 
+    setOpen(false);
+  };
+  
   useEffect(() => {
     setLoading(true);
     loadResumes(setResumes, setLoading, setSavedSnapshot, setActiveId);
@@ -159,9 +167,9 @@ const ResumeTab = () => {
         </div>
       )}
 
-      <Snackbar open={open} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+      <Snackbar open={open} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <Alert
-          onClose={() => setOpen(false)}
+          onClose={handleClose}
           severity={alertSeverity}
           variant="filled"
           sx={{ flex: 1 }}

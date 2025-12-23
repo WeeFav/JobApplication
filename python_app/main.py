@@ -243,26 +243,27 @@ def ws_resumes(ws):
         traceback.print_exc()
         ws.send(json.dumps({"type": "insert", "fail": True}))                
         ws.close()
-    
+        
     ### Recommend ###
-    ws.send(json.dumps({"type": "recommend", "start": True}))
-    
-    try:
-        q = Queue()
-        t = threading.Thread(target=recommend_by_resume, args=(ids, q))
-        t.start()
+    if len(ids) > 0:
+        ws.send(json.dumps({"type": "recommend", "start": True}))
         
-        # Stream updates from queue to WebSocket
-        while True:
-            update = q.get()  # blocking wait
-            if "done" in update:
-                break
-            ws.send(json.dumps({"type": "recommend", "update": True})) 
-        
-        ws.send(json.dumps({"type": "recommend", "success": True}))                
-    except Exception as e:
-        traceback.print_exc()
-        ws.send(json.dumps({"type": "recommend", "fail": True}))                
+        try:
+            q = Queue()
+            t = threading.Thread(target=recommend_by_resume, args=(ids, q))
+            t.start()
+            
+            # Stream updates from queue to WebSocket
+            while True:
+                update = q.get()  # blocking wait
+                if "done" in update:
+                    break
+                ws.send(json.dumps({"type": "recommend", "update": True})) 
+            
+            ws.send(json.dumps({"type": "recommend", "success": True}))                
+        except Exception as e:
+            traceback.print_exc()
+            ws.send(json.dumps({"type": "recommend", "fail": True}))                
     
     ws.close()
    

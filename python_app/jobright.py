@@ -115,7 +115,7 @@ def scrape(jobs_to_scrape, q, type='recommend'):
                 q.put(job) 
                 
                 jobs_to_scrape -= 1
-                print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_time']}")
+                print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
             
             context.close()
             browser.close()     
@@ -141,7 +141,7 @@ def scrape_from_url(url, q):
             job = extract_page(page)
             q.put(job) 
             
-            print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_time']}")
+            print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
                                 
             context.close()
             browser.close()

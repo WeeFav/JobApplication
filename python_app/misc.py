@@ -27,6 +27,15 @@ client = QdrantClient("http://qdrant:6333")
 collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
+def create():
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=models.VectorParams(
+            size=client.get_embedding_size(model_name),
+            distance=models.Distance.COSINE
+        )
+    )
+
 def delete_job(job_id):
     # delete from db
     cursor.execute("""
@@ -111,10 +120,10 @@ def system_check():
     # 2. IDs in Qdrant but not Postgres
     in_qdrant_not_pg = set(qdrant_dict.keys()) - set(pg_dict.keys())
 
-    # 3. IDs where scrape_date mismatches
+    # 3. IDs where scrape_date mismatches    
     mismatched_scrape_dates = [
         job_id for job_id in pg_dict.keys() & qdrant_dict.keys()
-        if pg_dict[job_id] != qdrant_dict[job_id]
+        if pg_dict[job_id].isoformat() != qdrant_dict[job_id]
     ]
     
     # print("In Postgres but not Qdrant:", in_pg_not_qdrant)
@@ -123,3 +132,5 @@ def system_check():
     
     return in_pg_not_qdrant, in_qdrant_not_pg, mismatched_scrape_dates
     
+if __name__ == '__main__':
+    create()
