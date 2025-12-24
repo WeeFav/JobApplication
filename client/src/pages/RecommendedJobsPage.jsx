@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import JobContainer from "../components/Jobs/JobContainer";
 
-const JobsPage = () => {
+const RecommendedJobsPage = () => {
+  const [activeId, setActiveId] = useState(0);
+
   return (
-    <JobContainer loadJobs={loadJobs} searchJobHandler={searchJobHandler}/>
+    <JobContainer loadJobs={loadJobs} searchJobHandler={searchJobHandler} activeId={activeId} setActiveId={setActiveId}/>
   )
 }
 
-export default JobsPage
+export default RecommendedJobsPage
 
 /* 
 ===============================================================================
 API
 ===============================================================================
 */
-
 const getThirtyDaysAgo = () => {
   const today = new Date();
   const thirtyDaysAgo = new Date(today);
@@ -23,19 +24,18 @@ const getThirtyDaysAgo = () => {
   return formatted
 }
 
-// function to load company jobs
-const loadJobs = async (setJobs, setLoading) => {
+const loadJobs = async (setJobs, setLoading, activeId) => {
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}`);
+  const res = await fetch(`/server_api/recommendations?date=${date}&resumeId=${activeId}`);
   const data = await res.json();
   setJobs(data);
   setLoading(false);
 }
 
 // function to search job
-const searchJobHandler = async (jobTitle, company) => {
+const searchJobHandler = async (jobTitle, company, activeId) => {
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}&jobTitle=${jobTitle}&company=${company}`);
+  const res = await fetch(`/server_api/recommendations?date=${date}&resumeId=${activeId}&jobTitle=${jobTitle}&company=${company}`);
   const data = await res.json();
   return data;
 }

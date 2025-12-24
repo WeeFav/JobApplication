@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ScrollToTop from "../ScrollToTop";
 import { NavLink, useNavigate } from "react-router-dom";
 
-const JobDetails = ({ job }) => {
+const JobDetails = ({ job, handleDelete }) => {
   const [applied, setApplied] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -21,14 +21,6 @@ const JobDetails = ({ job }) => {
     setApplied(true);
   }
 
-  const handleDelete = async () => {
-    const confirm = window.confirm('Are you sure you want to delete this job?');
-
-    if (confirm) {
-      await deleteJobHandler(job.id);
-    }
-  }
-
   return (
     <div className="p-6">
       {/* Header Section */}
@@ -43,7 +35,7 @@ const JobDetails = ({ job }) => {
           {job.url && (
             <button
               onClick={() => window.open(job.url, "_blank")}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="bg-website-blue text-white px-4 py-2 rounded-lg"
             >
               Apply Now
             </button>
@@ -86,7 +78,7 @@ const JobDetails = ({ job }) => {
       <div className="flex justify-end gap-3">
         <NavLink
           to={`/jobs/edit/${job.id}`}
-          className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
+          className="bg-website-blue text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
         >
           Edit
         </NavLink>
@@ -122,7 +114,7 @@ API
 */
 
 const loadApplication = async (id, setApplied, setLoading) => {
-  const res = await fetch(`/api/applications?job_id=${id}`);
+  const res = await fetch(`/server_api/applications?job_id=${id}`);
   const data = await res.json();
   if (!data || data.length === 0) {
     setApplied(false);
@@ -134,23 +126,17 @@ const loadApplication = async (id, setApplied, setLoading) => {
 };
 
 const removeAppliedJob = async (id) => {
-  const res = await fetch(`/api/applications?id=${id}`, {
+  const res = await fetch(`/python_api/applications?id=${id}`, {
     method: 'DELETE'
   });
 };
 
 const addAppliedJob = async (id) => {
-  const res = await fetch('/api/applications', {
+  const res = await fetch('/python_api/applications', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ job_id: id })
+    body: JSON.stringify({ id: id })
   });
 }
-
-const deleteJobHandler = async (id) => {
-  const res = await fetch(`/api/jobs?id=${id}`, {
-    method: 'DELETE'
-  });
-};

@@ -29,10 +29,11 @@ CREATE TABLE recommendations (
   similarity_score REAL NOT NULL,
   keyword_score REAL NOT NULL,
   embeddings_score REAL NOT NULL,
-  final_score REAL NOT NULL
+  final_score REAL NOT NULL,
+  PRIMARY KEY (job_id, resume_id),
 );
 
-CREATE TABLE users (
+CREATE TABLE, users (
   first_name VARCHAR(50) NOT NULL,
   last_name VARCHAR(50) NOT NULL,
   email VARCHAR(50) NOT NULL
@@ -42,7 +43,8 @@ CREATE TABLE resumes (
   id SERIAL PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   content TEXT NOT NULL,
-  isUpdated BOOLEAN NOT NULL DEFAULT true
+  isUpdated BOOLEAN NOT NULL DEFAULT true,
+  embedding vector(768) NOT NULL
 );
 
 

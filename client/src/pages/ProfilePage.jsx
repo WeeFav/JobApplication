@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import MyProfileTab from "../components/Profile/MyProfileTab";
 import ResumeTab from "../components/Profile/ResumeTab";
+import SystemCheckTab from "../components/Profile/SystemCheckTab";
 
 const ProfilePage = () => {
   const [tab, setTab] = useState('My Profile');
-  const selectedTab = "bg-website-blue text-white rounded py-1 font-medium"
 
   const renderContent = () => {
     switch (tab) {
@@ -12,6 +12,8 @@ const ProfilePage = () => {
         return <MyProfileTab />;
       case 'Resumes':
         return <ResumeTab />;
+      case 'System Check':
+        return <SystemCheckTab />;
       default:
         return <div>Select a tab to view content</div>;
     }
@@ -24,15 +26,20 @@ const ProfilePage = () => {
           {/* Sidebar */}
           <div className="w-40 mt-[53px]">
             <nav className="space-y-4">
-              <button className={`pl-4 w-full text-left ${tab === 'My Profile' ? selectedTab : "text-gray-500"}`}
+              <button className={`pl-4 w-full text-left ${tab === 'My Profile' ? "bg-website-gold text-white rounded py-1 font-medium" : "text-gray-500"}`}
                 onClick={() => { setTab('My Profile') }}
               >
                 My Profile
               </button>
-              <button className={`pl-4 w-full text-left ${tab === 'Resumes' ? selectedTab : "text-gray-500"}`}
+              <button className={`pl-4 w-full text-left ${tab === 'Resumes' ? "bg-website-gold text-white rounded py-1 font-medium" : "text-gray-500"}`}
                 onClick={() => { setTab('Resumes') }}
               >
                 Resumes
+              </button>
+              <button className={`pl-4 w-full text-left ${tab === 'System Check' ? "bg-website-gold text-white rounded py-1 font-medium" : "text-gray-500"}`}
+                onClick={() => { setTab('System Check') }}
+              >
+                System Check
               </button>
             </nav>
           </div>

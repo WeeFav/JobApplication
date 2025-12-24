@@ -145,7 +145,7 @@ API
 // function to load user profile
 const loadUserProfile = async () => {
   try {
-    const res = await fetch(`/api/user`);
+    const res = await fetch(`/server_api/user`);
     const user = await res.json();
     return user;
   } catch (error) {
@@ -155,7 +155,7 @@ const loadUserProfile = async () => {
 
 // function to update user
 const updateUserHandler = async (updatedUser) => {
-  const res = await fetch('/api/user', {
+  const res = await fetch('/server_api/user', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'

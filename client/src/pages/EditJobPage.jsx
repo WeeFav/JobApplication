@@ -1,11 +1,13 @@
 import { useLoaderData, Link } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
+import CircularProgress from '@mui/material/CircularProgress';
 import { FaArrowLeft, FaMapMarker } from "react-icons/fa";
 
 const EditJobPage = () => {
   const job = useLoaderData();
+  const prev_description = job.description;
 
   const [title, setTitle] = useState(job.title);
   const [company, setCompany] = useState(job.company);
@@ -13,12 +15,13 @@ const EditJobPage = () => {
   const [url, setUrl] = useState(job.url);
   const [location, setLocation] = useState(job.location);
   const [date, setDate] = useState(job.post_date);
+  const wsRef = useRef(null);
 
   // alert popup
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
-  
+
   const handleClose = () => setOpen(false);
 
   const onSubmitFormClick = async (e) => {
@@ -35,24 +38,13 @@ const EditJobPage = () => {
       post_date: date
     };
 
-    const res = await updateJobHandler(updatedJob);
-    
-    if (res.success) {
-      setAlertSeverity('success');
-      setAlertMessage('Succesfully update job');
-    }
-    else {
-      setAlertSeverity('error');
-      setAlertMessage(res.message);
-    }
-
-    setOpen(true);
+    await updateJobHandler(updatedJob, prev_description, wsRef, setOpen, setAlertMessage, setAlertSeverity);
   };
 
   return (
     <>
       <section className="bg-website-lightGray">
-        
+
         <div className="py-4 px-6">
           <Link to={"/jobs"} className="text-website-blue hover:text-website-gold flex items-center">
             <FaArrowLeft className="mr-2" />
@@ -63,8 +55,8 @@ const EditJobPage = () => {
         <div className="container m-auto max-w-2xl pb-24">
           <div className="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0">
             <h2 className="text-3xl text-center font-semibold mb-6">Update Job</h2>
-              
-              <form onSubmit={onSubmitFormClick}>
+
+            <form onSubmit={onSubmitFormClick}>
               <div className="mb-4">
                 <label className="block text-gray-700 font-bold mb-2">
                   Job Title
@@ -168,18 +160,21 @@ const EditJobPage = () => {
                 >
                   Update Job
                 </button>
-                <Snackbar open={open} autoHideDuration={3000} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+                <Snackbar open={open} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
                   <Alert
                     onClose={handleClose}
                     severity={alertSeverity}
                     variant="filled"
-                    sx={{ width: '100%' }}
+                    sx={{ flex: 1 }}
                   >
-                    {alertMessage}
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      {alertMessage}
+                      {alertSeverity === "success" ? <></> : <CircularProgress size="20px" color="white" />}
+                    </div>
                   </Alert>
                 </Snackbar>
               </div>
-            </form>            
+            </form>
 
           </div>
         </div>
@@ -199,15 +194,69 @@ API
 */
 
 // function to update job
-const updateJobHandler = async (updatedJob) => {
-  const res = await fetch('/api/jobs', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(updatedJob)
-  });
+const updateJobHandler = async (updatedJob, prev_description, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
+  return new Promise((resolve, reject) => {
+    // Create socket
+    const ws = new WebSocket('/ws_api/update_job');
+    wsRef.current = ws;
 
-  const message_json = await res.json();
-  return { success: res.ok, message: message_json.message }
+    ws.onopen = () => {
+      console.log('Connected to WebSocket');
+      ws.send(JSON.stringify({ updatedJob: updatedJob, descriptionUpdated: (updatedJob.description !== prev_description) }));
+    };
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "insert") {
+        if (msg.start) {
+          console.log("start edit");
+        }
+        else if (msg.postgres) {
+          setAlertMessage("Editing database");
+          setAlertSeverity("info");
+          setOpen(true);
+        }
+        else if (msg.qdrant) {
+          setAlertMessage("Editing qdrant");
+          setAlertSeverity("info");
+        }
+        else if (msg.success) {
+          console.log("Job edit success");
+          setAlertMessage("Job edit success");
+          setAlertSeverity("success");
+        }
+        else if (msg.fail) {
+          console.log("Job edit failed");
+          setAlertMessage("Job edit failed");
+          setAlertSeverity("error");
+        }
+      }
+      else if (msg.type === "recommend") {
+        if (msg.start) {
+          console.log("start recommend");
+          setAlertMessage("Start recommend");
+          setAlertSeverity("info");
+        }
+        else if (msg.success) {
+          console.log("Recommend success");
+          setAlertMessage("Recommend success");
+          setAlertSeverity("success");
+        }
+        else {
+          console.log("Recommend failed");
+          setAlertMessage("Recommend failed");
+          setAlertSeverity("error");
+        }
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('Socket closed');
+      wsRef.current = null;
+      setTimeout(() => {
+        setOpen(false);
+      }, 3000);
+      resolve();
+    };
+  })
 };

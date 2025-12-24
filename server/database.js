@@ -43,13 +43,17 @@ export async function get_jobs(search) {
   ON jobs.id = applications.job_id
   `;
 
-  query += "WHERE applications.job_id IS NULL"
+  query += "WHERE applications.job_id IS NULL";
+
+  if (search.date) {
+    query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
+  }
 
   if (conditions.length > 0) {
     query += ` AND ${conditions.join(" AND ")}`
   }
 
-  query += " ORDER BY ID"
+  query += " ORDER BY post_date IS NULL, post_date DESC"
 
   if (search.limit && search.limit > 0) {
     query += ` LIMIT $${idx++}`;
@@ -83,14 +87,6 @@ export async function update_job(updatedJob) {
     WHERE id = $7;
   `;
   await db.query(query, [updatedJob.title, updatedJob.company, updatedJob.description, updatedJob.url, updatedJob.location, updatedJob.post_date, updatedJob.id]);
-}
-
-export async function delete_job(search) {
-  let query = `
-    DELETE FROM jobs
-    WHERE id = $1
-  `;
-  await db.query(query, [search.id]);
 }
 
 /* 
@@ -131,7 +127,9 @@ export async function get_applications(search) {
   if (search.limit && search.limit > 0) {
     query += `LIMIT $${idx++}`;
     params.push(parseInt(search.limit));
-  }
+  } 
+
+  query += " ORDER BY applications.application_date DESC";
 
   const res = await db.query(query, params);
   return res.rows;
@@ -174,18 +172,34 @@ export async function get_recommendations(search) {
   if (search.score) {
     conditions.push(`score >= $${idx++}`)
     params.push(search.score)
-  }
-
+  } 
+ 
 
   let query = `
-  SELECT jobs.id, jobs.title, jobs.company, jobs.description_extracted, recommendations.score
-  FROM recommendations INNER JOIN jobs
-  ON recommendations.job_id = jobs.id
-  `;
+  WITH filtered_recommendations AS (
+    SELECT recommendations.job_id, recommendations.final_score
+    FROM recommendations
+    WHERE resume_id = ${search.resumeId}
+  )
+  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.url, jobs.description_extracted, fr.final_score
+  FROM filtered_recommendations fr
+  INNER JOIN jobs
+    ON fr.job_id = jobs.id
+  LEFT JOIN applications
+    ON jobs.id = applications.job_id
+  `; 
+
+  query += "WHERE applications.job_id IS NULL";
+
+  if (search.date) {
+    query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
+  }
 
   if (conditions.length > 0) {
     query += `WHERE ${conditions.join(" AND ")}`;
   }
+
+  query += " ORDER BY fr.final_score DESC, jobs.post_date IS NULL, jobs.post_date DESC"
   
   const res = await db.query(query, params);
   return res.rows;
@@ -193,7 +207,7 @@ export async function get_recommendations(search) {
 
 /* 
 ===============================================================================
-others
+user profile
 ===============================================================================
 */
 export async function get_user() {

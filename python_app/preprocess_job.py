@@ -62,7 +62,7 @@ def extract_post_date(text):
     today = datetime.today()
     
     # Extract the number and unit (day/week)
-    match = re.search(r'(\d+)\s+(hours|day|week)', text)
+    match = re.search(r'(\d+)\s+(minute|hour|day|week)', text)
     if not match:
         return None  # invalid format
     
@@ -70,7 +70,9 @@ def extract_post_date(text):
     unit = match.group(2)
 
     # Compute the timedelta 
-    if unit == 'hours':
+    if unit == 'minute':
+        delta = timedelta(minutes=value)
+    elif unit == 'hour':
         delta = timedelta(hours=value)
     elif unit == 'day':
         delta = timedelta(days=value)
@@ -80,3 +82,8 @@ def extract_post_date(text):
     # Subtract from today to get actual post date
     post_date = today - delta
     return post_date.strftime('%Y-%m-%d')
+
+def extract_source_from_url(url):
+    netloc = urlparse(url).netloc.lower()
+    netloc = netloc.replace("www.", "")
+    return netloc.split(".")[0]

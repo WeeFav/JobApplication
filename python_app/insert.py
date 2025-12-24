@@ -9,7 +9,7 @@ import uuid
 import sys
 from dotenv import load_dotenv
 from typing import List, Dict
-
+from datetime import datetime
 from preprocess_job import extract_description, canonicalize_url
 
 load_dotenv()
@@ -28,71 +28,81 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 def insert_jobs(jobs: List[Dict], job_site, q):
-    print(job_site)
-    df = pd.DataFrame(jobs) 
-    
-    for i in range(len(df)):
-        # canonicalize url
-        url_norm = canonicalize_url(df.iloc[i]['url'])
-          
-        # generate hash
-        title_norm = df.iloc[i]['title'].strip().lower()
-        company_norm = df.iloc[i]['company'].strip().lower()
-        combined = title_norm + company_norm + url_norm
-        hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
+    try:
+        print(job_site)
+        df = pd.DataFrame(jobs) 
+        
+        for i in range(len(df)):
+            q.put({"postgres": True})
+            
+            # canonicalize url
+            url_norm = canonicalize_url(df.iloc[i]['url'])
+            
+            # generate hash
+            title_norm = df.iloc[i]['title'].strip().lower()
+            company_norm = df.iloc[i]['company'].strip().lower()
+            combined = title_norm + company_norm + url_norm
+            hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
 
-        # check if job exist
-        cursor.execute("""
-            SELECT * FROM jobs
-            WHERE hash = %s
-            """, 
-            (hash,)
-        )
-        res = cursor.fetchall()
-        
-        if res:
-            print(f"[!] Duplicate hash detected: {hash}, nothing inserted.")
-            continue
-        
-        
-        # extract description
-        description = df.iloc[i]['description']
-        if job_site == "Jobright":
-            description_extracted = description
-        else:
-            description_extracted = extract_description(description)
+            # check if job exist
+            cursor.execute("""
+                SELECT * FROM jobs
+                WHERE hash = %s
+                """, 
+                (hash,)
+            )
+            res = cursor.fetchall()
+            
+            if res:
+                print(f"[!] Duplicate hash detected: {hash}, nothing inserted.")
+                continue
+            
+            
+            # extract description
+            description = df.iloc[i]['description']
+            if job_site == "Jobright":
+                description_extracted = description
+            else:
+                description_extracted = extract_description(description)
                         
-        # insert into postgres
-        cursor.execute("""
-            INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, scrape_date
-            """,
-            (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
-        )
-        conn.commit()
-        
-        id, scrape_date = cursor.fetchone()[0]
-          
-        # insert into qdrant
-        point = models.PointStruct(
-            id=id,
-            vector=models.Document(text=description_extracted, model=model_name),
-            payload={
-                "scrape_date": scrape_date
-            }
-        )
-                
-        client.upsert(
-            collection_name=collection_name,
-            points=[point]
-        )
-        
-        q.put({"id": id})
-        
-        print(f"processed job {i + 1}")
+            # insert into postgres
+            cursor.execute("""
+                INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, scrape_date
+                """,
+                (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
+            )
+            conn.commit()
+            
+            q.put({"qdrant": True})
+            
+            id, scrape_date = cursor.fetchone()
+            
+            # insert into qdrant  
+            point = models.PointStruct(
+                id=id,
+                vector=models.Document(text=description_extracted, model=model_name),
+                payload={
+                    "scrape_date": scrape_date.isoformat(),
+                    "applied": False,
+                }
+            )
+                    
+            client.upsert(
+                collection_name=collection_name,
+                points=[point]
+            )
+            
+            q.put({"id": id})
+            
+            print(f"processed job {i + 1}")
+            
+        q.put({"done": True})
+    except Exception as e:
+        print(e)
+        q.put({"done": False})
     
-    q.put({"done": True})
                        
 def insert_resumes(updatedResumes):
     update_name = []
@@ -109,7 +119,7 @@ def insert_resumes(updatedResumes):
     embedding_model = TextEmbedding(model_name=model_name)    
     embeddings = list(embedding_model.embed([r[2] for r in update_all]))
     for r, emb in zip(update_all, embeddings):
-        r.append(emb)
+        r.append(emb.tolist())
     
     # 1. Update name only
     if update_name:
@@ -128,14 +138,14 @@ def insert_resumes(updatedResumes):
         execute_batch(
             cursor,
             """
-            INSERT INTO resumes (id, name, content, isUpdated, embeddings)
+            INSERT INTO resumes (id, name, content, isUpdated, embedding)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (id)
             DO UPDATE SET
                 name = EXCLUDED.name,
                 content = EXCLUDED.content,
-                isUpdated = EXCLUDED.isUpdated
-                embeddings = EXCLUDED.embeddings
+                isUpdated = EXCLUDED.isUpdated,
+                embedding = EXCLUDED.embedding
             """,
             update_all
         )        
@@ -150,3 +160,55 @@ def insert_resumes(updatedResumes):
 
     cursor.execute(delete_query, (ids,))
     conn.commit()
+    
+    return [r[0] for r in update_all]
+
+def update_job(updatedJob, descriptionUpdated, q):
+    try:
+        q.put({"postgres": True})
+        
+        # canonicalize url
+        url_norm = canonicalize_url(updatedJob['url'])
+        
+        # generate hash
+        title_norm = updatedJob['title'].strip().lower()
+        company_norm = updatedJob['company'].strip().lower()
+        combined = title_norm + company_norm + url_norm
+        hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
+
+        # extract description
+        if descriptionUpdated:
+            description_extracted = extract_description(updatedJob['description'])
+        else:
+            description_extracted = updatedJob['description_extracted']
+                    
+        # insert into postgres
+        cursor.execute("""
+            UPDATE jobs
+            SET hash = %s, title = %s, company = %s, url = %s, location = %s, post_date = %s, description = %s, description_extracted = %s
+            WHERE id = %s
+            """,
+            (hash, updatedJob['title'], updatedJob['company'], url_norm, updatedJob['location'], updatedJob['post_date'], updatedJob['description'], description_extracted, updatedJob['id'])
+        )
+        conn.commit()
+        
+        if descriptionUpdated:
+            q.put({"qdrant": True})
+            point = models.PointStruct(
+                id=updatedJob['id'],
+                vector=models.Document(text=description_extracted, model=model_name),
+                payload={
+                    "scrape_date": datetime.strptime(updatedJob['scrape_date'], "%Y-%m-%dT%H:%M:%S.%fZ").date().isoformat()
+                }
+            )
+                    
+            client.upsert(
+                collection_name=collection_name,
+                points=[point]
+            )
+            q.put({"id": updatedJob['id']})
+        
+        q.put({"done": True})
+    except Exception as e:
+        print(e)
+        q.put({"done": False})

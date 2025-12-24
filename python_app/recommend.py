@@ -1,19 +1,21 @@
 import argparse
 from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
-from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range
+from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range, HasIdCondition, DatetimeRange, MatchValue
 from datetime import datetime, timedelta
 import os
 import math
 import psycopg2
-import psycopg2.extras
+from psycopg2.extras import execute_values
 import spacy
 from collections import defaultdict
 import string
+import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import json
 import numpy as np
+import ast
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -31,6 +33,7 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 ner_model = "ner_models/7_28"
+nltk.download('stopwords')
 stop_words = set(stopwords.words("english"))
 
 # with open("skills_abbreviations.json", "r", encoding="utf-8") as f:
@@ -86,7 +89,7 @@ def embed_skills(skills: dict) -> dict:
     cursor.execute(
         """
         SELECT skill, embedding
-        FROM embeddings
+        FROM embedding
         WHERE skill = ANY(%s)
         """,
         (skills_list,)
@@ -111,7 +114,7 @@ def embed_skills(skills: dict) -> dict:
                 
         # Insert new embeddings into Postgres
         insert_values = [(skill, emb.tolist()) for skill, emb in zip(missing_skills, new_embs)]
-        cursor.executemany(
+        execute_batch(
             """
             INSERT INTO embeddings (skill, embedding) 
             VALUES (%s, %s) 
@@ -233,36 +236,84 @@ def keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings):
     
     return freq_score, embed_score, edu_score, major_score
 
-def recommend_by_resume(updatedResumes, q):
-    """Recommend caused by update in resume"""
-    # get resumes
-    cursor.execute("""
-        SELECT * FROM resumes
-        """
-    )
-    res = cursor.fetchall()
-    
-    print(res)
-    
-    q.put({"done": True})
-    
-    return
-
 
 def recommend_by_job(new_ids, q):
     """Recommend caused by update in job"""
-    # get resumes
-    cursor.execute("""
-        SELECT * FROM resumes
-        """
-    )
-    res = cursor.fetchall()
-    
-    print(res)
-    
-    q.put({"done": True})
+    try:
+        cursor.execute(f"""
+            SELECT * FROM resumes
+            """
+        )
+        resumes = cursor.fetchall()  
+        
+        for resume in resumes:
+            results = client.query_points(
+                collection_name=collection_name,
+                query=ast.literal_eval(resume['embedding']),
+                query_filter=Filter(
+                    must=[
+                        HasIdCondition(has_id=new_ids)
+                    ]
+                ),
+                score_threshold=0.5,
+                limit=10_000_000,
+                with_payload=True
+            )
+            
+            recommended = {point.id: point.score for point in results.points}
+            upsert_params = []
+            delete_params = []
+            
+            # evaluate every add/edit job
+            for id in new_ids:
+                # if recommended
+                if id in recommended:
+                    upsert_params.append((id, resume['id'], 0, 0, 0, recommended[id]))
+                else:
+                    delete_params.append((id, resume['id']))
+            
+            # upsert recommended                        
+            execute_values(
+                cursor,
+                """
+                INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, final_score)
+                VALUES %s
+                ON CONFLICT (job_id, resume_id)
+                DO UPDATE SET 
+                    similarity_score = EXCLUDED.similarity_score,
+                    keyword_score = EXCLUDED.keyword_score,
+                    embeddings_score = EXCLUDED.embeddings_score,
+                    final_score = EXCLUDED.final_score
+                """,
+                upsert_params
+            )
+            
+            # delete non-recommended
+            execute_values(
+                cursor,
+                """
+                DELETE FROM recommendations AS r
+                USING (VALUES %s) AS v(job_id, resume_id)
+                WHERE r.job_id = v.job_id AND r.resume_id = v.resume_id
+                """,
+                delete_params
+            )                                  
+            conn.commit()
+                  
+        q.put({"done": True})
+    except Exception as e:
+        print(e)
+        q.put({"done": False})
     
     return
+    
+    # # get resumes
+    # cursor.execute("""
+    #     SELECT * FROM resumes
+    #     """
+    # )
+    # res = cursor.fetchall()
+
     
     # embed resume
     embedding_model = TextEmbedding(model_name=model_name)    
@@ -333,4 +384,102 @@ def recommend_by_job(new_ids, q):
     print(ranked)
     
     
+def recommend_by_resume(ids, q):
+    """Recommend caused by update in resume"""
     
+    # get resumes with updated embedding
+    placeholders = ",".join(["%s"] * len(ids))
+    try:
+        cursor.execute(f"""
+            SELECT * FROM resumes
+            WHERE id IN ({placeholders})
+            """,
+            ids
+        )
+        updatedResumes = cursor.fetchall()
+    except Exception as e:
+        conn.rollback()
+        print("SQL error:", e)
+        
+    # search for all jobs with score > 0.5 up to 30 days ago
+    thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat() # 30 days ago in Unix format
+    print(f"Recommend jobs up to {thirty_days_ago}")
+
+    for resume in updatedResumes:
+        results = client.query_points(
+            collection_name=collection_name,
+            query=ast.literal_eval(resume['embedding']),
+            query_filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="scrape_date",
+                        range=DatetimeRange(
+                            gt=None,
+                            gte=thirty_days_ago,
+                            lt=None,
+                            lte=None,
+                        ),
+                    ),
+                    FieldCondition(
+                        key="applied",
+                        match=MatchValue(value=False)
+                    )
+                ]
+            ),
+            score_threshold=0.5,
+            limit=10_000_000,
+            with_payload=True
+        )
+    
+        print(f"Resume ID {resume['id']}")
+        
+        recommended = {point.id: point.score for point in results.points}
+        upsert_params = []
+        delete_params = []
+        
+        cursor.execute(f"""
+            SELECT id FROM jobs
+            """,
+        )
+        res = cursor.fetchall()
+        ids = set([job['id'] for job in res])
+        
+        # evaluate every add/edit job
+        for id in ids:
+            # if recommended
+            if id in recommended:
+                upsert_params.append((id, resume['id'], 0, 0, 0, recommended[id]))
+            else:
+                delete_params.append((id, resume['id']))
+        
+        # upsert recommended                        
+        execute_values(
+            cursor,
+            """
+            INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, final_score)
+            VALUES %s
+            ON CONFLICT (job_id, resume_id)
+            DO UPDATE SET 
+                similarity_score = EXCLUDED.similarity_score,
+                keyword_score = EXCLUDED.keyword_score,
+                embeddings_score = EXCLUDED.embeddings_score,
+                final_score = EXCLUDED.final_score
+            """,
+            upsert_params
+        )
+        
+        # delete non-recommended
+        execute_values(
+            cursor,
+            """
+            DELETE FROM recommendations AS r
+            USING (VALUES %s) AS v(job_id, resume_id)
+            WHERE r.job_id = v.job_id AND r.resume_id = v.resume_id
+            """,
+            delete_params
+        )                                  
+        conn.commit()
+        
+    q.put({"done": True})
+    
+# [ScoredPoint(id=67, version=55, score=0.636933, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=65, version=53, score=0.62863946, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=66, version=54, score=0.6219132, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=68, version=56, score=0.5946771, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None)]

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import CircularProgress from '@mui/material/CircularProgress';
 
 const ScrapePage = () => {
   const [jobsite, setJobsite] = useState("linkedin");
@@ -7,6 +8,7 @@ const ScrapePage = () => {
   const [isScraping, setIsScraping] = useState(false);
   const [insertNum, setInsertNum] = useState(0);
   const [isInserting, setIsInserting] = useState(false);
+  const [isRecommending, setIsRecommending] = useState(false);
   const wsRef = useRef(null);
 
   const handleScrape = async () => {
@@ -14,10 +16,10 @@ const ScrapePage = () => {
 
     let scrapeInfo = {
       jobsite: jobsite,
-      numJobs: numJobs
+      numJobs: Number(numJobs)
     }
 
-    await scrapeHandler(scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting);
+    await scrapeHandler(scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting, setIsRecommending);
   };
 
   return (
@@ -47,28 +49,43 @@ const ScrapePage = () => {
           </label>
           <input
             type="number"
-            min="1"
             value={numJobs}
-            onChange={(e) => setNumJobs(Number(e.target.value))}
+            onChange={(e) => setNumJobs(e.target.value)}
             className="w-full p-2 rounded-lg  text-black focus:outline-none focus:ring-2"
           />
         </div>
 
         {/* Button */}
         <button
-          disabled={isScraping}
+          disabled={isScraping || isInserting || isRecommending}
           onClick={handleScrape}
-          className="w-full bg-website-gold text-white font-medium py-2 px-4 rounded-lg transition-all"
+          className="w-full bg-website-gold text-white font-medium py-2 px-4 rounded-lg transition-all flex items-center justify-center"
         >
-          {isScraping ? "Scraping..." : "Scrape"}
+          {isScraping || isInserting || isRecommending ? (
+            <div className="flex items-center gap-3">
+              <p>
+                {isScraping && "Scraping"}
+                {isInserting && "Inserting"}
+                {isRecommending && "Recommending"}
+              </p>
+              <CircularProgress size="20px" color="white" />
+            </div>
+          ) : (
+            "Scrape"
+          )}
         </button>
 
         {/* Scrape Progress Display */}
-        {isScraping || scrapeNum > 0 ?
+        {isScraping || isInserting || isRecommending ?
           <div className="mt-6 bg-gray-800 rounded-lg p-4">
             <p className="text-lg font-medium">
-              Scraped Jobs:{" "}
-              <span className="text-website-gold font-bold">{scrapeNum}</span>
+                {isScraping && "Scraped Jobs: "}
+                {isInserting && "Inserted Jobs: "}
+                {isRecommending && "Recommended Jobs: "}
+              <span className="text-website-gold font-bold">
+                {isScraping && scrapeNum}
+                {isInserting && insertNum}
+              </span>
             </p>
           </div>
           :
@@ -89,9 +106,9 @@ API
 ===============================================================================
 */
 
-const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting) => {
+const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, setInsertNum, setIsInserting, setIsRecommending) => {
   // Create socket
-  const ws = new WebSocket('ws://localhost:8000');
+  const ws = new WebSocket('/ws_api/scrape_jobsite');
   wsRef.current = ws;
   let scrapeNum = 0;
   let insertNum = 0;
@@ -105,36 +122,38 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, set
     const msg = JSON.parse(event.data);
     if (msg.type === "scrape") {
       if (msg.start) {
+        console.log("start scrape");
         setIsScraping(true);
       }
       else if (msg.update) {
         scrapeNum++;
         setScrapeNum(scrapeNum);
-        console.log(`Job ${scrapeNum} scraped`);
+        console.log(`${scrapeNum} jobs scraped`);
       }
       else if (msg.success) {
         console.log("Job scrape success");
         setIsScraping(false);
       }
-      else {
+      else if (msg.fail) {
         console.log("Job scrape failed");
         setIsScraping(false);
       }
     }
     else if (msg.type === "insert") {
       if (msg.start) {
+        console.log("start insert");
         setIsInserting(true);
-      }      
+      }
       else if (msg.update) {
         insertNum++;
         setInsertNum(insertNum);
-        console.log(`Job ${insertNum} inserted`);
+        console.log(`${insertNum} jobs inserted`);
       }
       else if (msg.success) {
         console.log("Job insert success");
         setIsInserting(false);
       }
-      else {
+      else if (msg.fail) {
         console.log("Job insert failed");
         setIsInserting(false);
       }
@@ -142,12 +161,15 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, set
     else if (msg.type === "recommend") {
       if (msg.start) {
         console.log("start recommend");
-      }      
+        setIsRecommending(true);
+      }
       else if (msg.success) {
         console.log("Recommend success");
+        setIsRecommending(false);
       }
-      else {
+      else if (msg.fail) {
         console.log("Recommend failed");
+        setIsRecommending(false);
       }
     }
   };
