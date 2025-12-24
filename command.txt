@@ -1,0 +1,5 @@
+docker logs -f jobapplication-client-1
+docker logs -f jobapplication-server-1
+docker logs -f jobapplication-python-1
+
+docker exec -it jobapplication-python-1 sh

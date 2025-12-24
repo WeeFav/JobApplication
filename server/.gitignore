@@ -29,3 +29,5 @@ uploads/
 images/
 __pycache__/
 chroma_db/
+
+*.pem

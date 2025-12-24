@@ -78,7 +78,7 @@ def scrape(jobs_to_scrape, q, type='recommend'):
             # open browser and navigate to jobright
             browser = playwright.chromium.launch(
                 channel="chrome",
-                headless=False,
+                headless=True,
             )
             context = browser.new_context(storage_state="auth/jobright_auth.json")
             page = context.new_page()
@@ -131,7 +131,7 @@ def scrape_from_url(url, q):
             # open browser and navigate to jobright
             browser = playwright.chromium.launch(
                 channel="chrome",
-                headless=False,
+                headless=True,
             )
             context = browser.new_context(storage_state="auth/jobright_auth.json")
             page = context.new_page()
