@@ -17,9 +17,6 @@ VM_NAME = "main-instance"
 SQL_INSTANCE = "main-db"
 SQL_PROJECT = PROJECT_ID
 
-# Vertex AI
-ENDPOINT = f"projects/{PROJECT_ID}/locations/{REGION}/indexEndpoints/2236725509268439040"
-DEPLOYED_INDEX = "jobapplication_deployed_index"
 # ------------------------------------------------
 
 @functions_framework.http
@@ -28,10 +25,8 @@ def main(request):
         stop_compute_engine(PROJECT_ID, ZONE, VM_NAME)
 
         stop_cloud_sql(PROJECT_ID, SQL_INSTANCE)
-
-        undeploy_index()
         
-        return "VM, Cloud SQL, and Vector Index successfully stopped."
+        return "VM, Cloud SQL successfully stopped."
 
     except Exception as e:
         full_trace = traceback.format_exc()
@@ -57,14 +52,3 @@ def stop_cloud_sql(project, instance):
     )
     response = request.execute()
     print(f"Cloud SQL instance '{instance}' deactivated/stopped.")
-
-def undeploy_index():
-    aiplatform.init(project=PROJECT_ID, location=REGION)
-
-    endpoint = aiplatform.MatchingEngineIndexEndpoint(index_endpoint_name=ENDPOINT)
-
-    # Optional: undeploy deployed indexes first
-    if endpoint.deployed_indexes:
-        for d in endpoint.deployed_indexes:
-            print(f"Undeploying index: {d.id}")
-            endpoint.undeploy_index(d.id).wait()

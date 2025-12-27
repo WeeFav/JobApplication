@@ -40,6 +40,7 @@ services:
       network: host
     ports:
       - "8080:8080"
+      - "5900:5900"
     volumes:
       - ./python_app:/app
       - ./python_app/model_cache:/tmp/fastembed_cache

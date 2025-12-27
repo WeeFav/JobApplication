@@ -203,7 +203,7 @@ export async function get_recommendations(search) {
   }
 
   if (conditions.length > 0) {
-    query += `WHERE ${conditions.join(" AND ")}`;
+    query += ` AND ${conditions.join(" AND ")}`;
   }
 
   query += " ORDER BY fr.final_score DESC, jobs.post_date IS NULL, jobs.post_date DESC"

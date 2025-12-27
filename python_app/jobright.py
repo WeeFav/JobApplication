@@ -152,4 +152,4 @@ def scrape_from_url(url, q):
 if __name__ == '__main__':
     # get_auth()
     q = Queue()
-    scrape_jobright(10, q)
+    scrape(10, q)

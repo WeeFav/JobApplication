@@ -18,12 +18,80 @@ app = flask.Flask(__name__)
 CORS(app)
 sock = Sock(app)
 
-def insert_jobs_ws(ws, jobs, source, isUpdate=False, data=None):
-    ws.send(json.dumps({"type": "insert", "start": True}))
-    new_ids = []
-    
+def scrape_jobs_ws(ws, num_jobs, source):
+    """websocket update/error handling wrapper around scrape job logic"""
     try:
+        ws.send(json.dumps({"type": "scrape", "start": True}))
+        
+        jobs = []
         q = Queue()
+
+        if source == 'linkedin':
+            t = threading.Thread(target=linkedin.scrape, args=(num_jobs, q))
+        elif source == 'jobright':
+            t = threading.Thread(target=jobright.scrape, args=(num_jobs, q))
+        else:
+            raise NotImplementedError
+        t.start()
+
+        while True:
+            update = q.get()
+            if "done" in update:
+                break
+
+            jobs.append(update)
+            ws.send(json.dumps({"type": "scrape", "update": True}))
+
+        if not update["done"]:
+            raise RuntimeError("Scrape failed")
+
+        ws.send(json.dumps({"type": "scrape", "success": True}))
+        return jobs
+    except Exception:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "scrape", "fail": True}))                
+        ws.close()    
+
+
+def scrape_url_ws(ws, url):
+    """websocket update/error handling wrapper around scrape url logic"""
+    try:
+        ws.send(json.dumps({"type": "scrape", "start": True}))
+        
+        source = extract_source_from_url(url)
+        q = Queue()
+            
+        if source == 'linkedin':
+            t = threading.Thread(target=linkedin.scrape_from_url, args=(url, q))
+        elif source == 'jobright': 
+            t = threading.Thread(target=jobright.scrape_from_url, args=(url, q)) 
+        else:
+            raise NotImplementedError  
+        t.start()
+        
+        # Stream updates from queue to WebSocket
+        update = q.get()  # blocking wait
+        
+        if "fail" in update:
+            raise RuntimeError
+        
+        job = update
+        ws.send(json.dumps({"type": "scrape", "success": True}))                
+        return job, source
+    except Exception as e:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "scrape", "fail": True}))                
+        ws.close()
+
+
+def insert_jobs_ws(ws, jobs, source, isUpdate=False, data=None):
+    """websocket update/error handling wrapper around insert job logic"""
+    try:
+        ws.send(json.dumps({"type": "insert", "start": True}))
+        
+        new_ids = []
+        q = Queue()
+    
         if isUpdate:
             t = threading.Thread(target=update_job, args=(data['updatedJob'], data['descriptionUpdated'], q))
         else:
@@ -37,7 +105,7 @@ def insert_jobs_ws(ws, jobs, source, isUpdate=False, data=None):
             if "done" in update: # either entire operation is successful or something fails
                 break 
             elif "id" in update: # one job is done
-                new_ids.append(update["id"]) 
+                new_ids.append(update["id"])
                 ws.send(json.dumps({"type": "insert", "update": True})) # for scrape page
             elif "postgres" in update:
                 ws.send(json.dumps({"type": "insert", "postgres": True})) # for add/edit job page
@@ -54,14 +122,15 @@ def insert_jobs_ws(ws, jobs, source, isUpdate=False, data=None):
         traceback.print_exc()
         ws.send(json.dumps({"type": "insert", "fail": True}))                
         ws.close()
-        
- 
+   
+
 def recommend_jobs_ws(ws, new_ids):
-    ### Recommend ###       
-    ws.send(json.dumps({"type": "recommend", "start": True}))
-    
+    """websocket update/error handling wrapper around recommend by job logic"""
     try:
+        ws.send(json.dumps({"type": "recommend", "start": True}))
+        
         q = Queue()
+        
         t = threading.Thread(target=recommend_by_job, args=(new_ids, q))
         t.start()
         
@@ -75,13 +144,49 @@ def recommend_jobs_ws(ws, new_ids):
         if not update["done"]:
             raise RuntimeError
         
+        print(1)
+        ws.send(json.dumps({"type": "recommend", "success": True}))                
+        print(2)
+    except Exception as e:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "recommend", "fail": True}))                
+        ws.close()
+            
+
+def insert_resumes_ws(ws, resumes):
+    """websocket update/error handling wrapper around insert resume logic"""
+    try:
+        ws.send(json.dumps({"type": "insert", "start": True}))
+        ids = insert_resumes(updatedResumes)        
+        ws.send(json.dumps({"type": "insert", "success": True}))                
+        return ids
+    except Exception as e:
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "insert", "fail": True}))                
+        ws.close()
+    
+    
+def recommend_resumes_ws(ws, ids):
+    """websocket update/error handling wrapper around recommend by resume logic"""
+    try:
+        ws.send(json.dumps({"type": "recommend", "start": True}))
+        q = Queue()
+        t = threading.Thread(target=recommend_by_resume, args=(ids, q))
+        t.start()
+        
+        # Stream updates from queue to WebSocket
+        while True:
+            update = q.get()  # blocking wait
+            if "done" in update:
+                break
+            ws.send(json.dumps({"type": "recommend", "update": True})) 
+        
         ws.send(json.dumps({"type": "recommend", "success": True}))                
     except Exception as e:
         traceback.print_exc()
         ws.send(json.dumps({"type": "recommend", "fail": True}))                
-        ws.close()    
- 
-
+    
+    
 @sock.route('/test')
 def test_ws(ws):
     raw = ws.receive()
@@ -109,95 +214,36 @@ def test_ws(ws):
     ws.send(json.dumps({"type": "recommend", "success": True}))                
     
     ws.close()
-  
+    
+    
 @sock.route('/scrape_jobsite')
 def ws_scrape_jobsite(ws):
     raw = ws.receive()
     data = json.loads(raw)
     
-    ### Scrape Jobsite ###
-    ws.send(json.dumps({"type": "scrape", "start": True}))
-    jobs = []
-    source = data['jobsite']
-    
-    try:
-        q = Queue()
-        if source == 'linkedin':
-            t = threading.Thread(target=linkedin.scrape, args=(data['numJobs'], q))
-        elif source == 'jobright': 
-            t = threading.Thread(target=jobright.scrape, args=(data['numJobs'], q)) 
-        else:
-            raise NotImplementedError  
-        t.start()
-        
-        # Stream updates from queue to WebSocket
-        while True:
-            update = q.get()  # blocking wait
-            if "done" in update:
-                break
-            jobs.append(update)
-            ws.send(json.dumps({"type": "scrape", "update": True})) 
-        
-        if not update["done"]:
-            raise RuntimeError
-        
-        ws.send(json.dumps({"type": "scrape", "success": True}))                
-    except Exception as e:
-        traceback.print_exc()
-        ws.send(json.dumps({"type": "scrape", "fail": True}))                
-        ws.close()    
+    jobs = scrape_jobs_ws(ws, data["numJobs"], data["jobsite"])
+    new_ids = insert_jobs_ws(ws, jobs, data["jobsite"])
+    recommend_jobs_ws(ws, new_ids)    
+    ws.close() # close if all operations are successful
 
-    ### Insert Jobs ###
-    new_ids = insert_jobs_ws(ws, jobs, source)
-        
-    ### Recommend Jobs ###
-    recommend_jobs_ws(ws, new_ids)
 
-          
 @sock.route('/scrape_url')
 def ws_scrape_url(ws):
     raw = ws.receive()
     data = json.loads(raw)
-    
     url = data['url']
-    source = extract_source_from_url(url)
     
-    ws.send(json.dumps({"type": "scrape", "start": True}))
-            
     ### Scrape URL ###
-    try:
-        q = Queue()
-        if source == 'linkedin':
-            t = threading.Thread(target=linkedin.scrape_from_url, args=(url, q))
-        elif source == 'jobright': 
-            t = threading.Thread(target=jobright.scrape_from_url, args=(url, q)) 
-        else:
-            raise NotImplementedError  
-        t.start()
-        
-        # Stream updates from queue to WebSocket
-        update = q.get()  # blocking wait
-        
-        if "fail" in update:
-            raise RuntimeError
-        
-        job = update
-        jobs = [job]
-        ws.send(json.dumps({"type": "scrape", "success": True}))                
-    except Exception as e:
-        traceback.print_exc()
-        ws.send(json.dumps({"type": "scrape", "fail": True}))                
-        ws.close()
-        
+    job, source = scrape_url_ws(ws, url)
     ### Insert Job ###
-    new_ids = insert_jobs_ws(ws, jobs, source)
-    
+    new_ids = insert_jobs_ws(ws, [job], source)
     ### Recommend Jobs ###
     recommend_jobs_ws(ws, new_ids)    
     
     add_application(new_ids[0])
-
-
+    ws.close() # close if all operations are successful
+   
+    
 @sock.route('/manual_job')
 def ws_manual_job(ws):
     raw = ws.receive()
@@ -208,11 +254,11 @@ def ws_manual_job(ws):
     
     ### Insert Job ###
     new_ids = insert_jobs_ws(ws, jobs, source)
-    
     ### Recommend Job ###
-    recommend_jobs_ws(ws, new_ids)
+    recommend_jobs_ws(ws, new_ids)  
+    ws.close() # close if all operations are successful
     
-    
+
 @sock.route('/update_job')
 def ws_update_job(ws):
     raw = ws.receive()
@@ -225,8 +271,9 @@ def ws_update_job(ws):
         ws.close()
     
     ### Recommend Job ###
-    recommend_jobs_ws(ws, new_ids)    
-
+    recommend_jobs_ws(ws, new_ids)
+    ws.close() # close if all operations are successful
+    
 
 @sock.route('/resumes')
 def ws_resumes(ws):
@@ -234,40 +281,13 @@ def ws_resumes(ws):
     updatedResumes = json.loads(raw)
     
     ### Insert Resume ###
-    ws.send(json.dumps({"type": "insert", "start": True}))
-    
-    try:
-        ids = insert_resumes(updatedResumes)        
-        ws.send(json.dumps({"type": "insert", "success": True}))                
-    except Exception as e:
-        traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "fail": True}))                
-        ws.close()
-        
+    ids = insert_resumes_ws(ws, updatedResumes)
     ### Recommend ###
     if len(ids) > 0:
-        ws.send(json.dumps({"type": "recommend", "start": True}))
-        
-        try:
-            q = Queue()
-            t = threading.Thread(target=recommend_by_resume, args=(ids, q))
-            t.start()
-            
-            # Stream updates from queue to WebSocket
-            while True:
-                update = q.get()  # blocking wait
-                if "done" in update:
-                    break
-                ws.send(json.dumps({"type": "recommend", "update": True})) 
-            
-            ws.send(json.dumps({"type": "recommend", "success": True}))                
-        except Exception as e:
-            traceback.print_exc()
-            ws.send(json.dumps({"type": "recommend", "fail": True}))                
-    
-    ws.close()
-   
-
+        recommend_resumes_ws(ws, ids)
+    ws.close() # close if all operations are successful
+             
+                            
 @app.route('/jobs', methods=['DELETE'])
 def app_delete_job():
     try:
@@ -312,6 +332,83 @@ def app_delete_application():
         traceback.print_exc()
         return "Delete application failed", 500
 
+
+@app.post("/daily-scrape")
+def daily_scrape():
+    data = flask.request.get_json()
+    num_jobs = data["numJobs"]
+    source = data["jobsite"]
+    q = Queue()
+    
+    ### Scrape ###
+    try:        
+        jobs = []
+
+        if source == 'linkedin':
+            t = threading.Thread(target=linkedin.scrape, args=(num_jobs, q))
+        elif source == 'jobright':
+            t = threading.Thread(target=jobright.scrape, args=(num_jobs, q))
+        else:
+            raise NotImplementedError
+        t.start()
+
+        while True:
+            update = q.get()
+            if "done" in update:
+                break
+
+            jobs.append(update)
+
+        if not update["done"]:
+            raise RuntimeError("Scrape failed")
+
+    except Exception:
+        traceback.print_exc()
+        return "Scrape failed", 500
+        
+    ### Insert ###
+    try:        
+        new_ids = []
+    
+        t = threading.Thread(target=insert_jobs, args=(jobs, source, q))   
+        t.start()
+        
+        # Stream updates from queue to WebSocket
+        while True:
+            update = q.get()  # blocking wait
+            
+            if "done" in update: # either entire operation is successful or something fails
+                break 
+            elif "id" in update: # one job is done
+                new_ids.append(update["id"])
+        
+        # check if operation is successful
+        if not update["done"]:
+            raise RuntimeError
+        
+    except Exception as e:
+        traceback.print_exc()
+        return "Insert failed", 500
+    
+    ### Recommend ###
+    try:
+        t = threading.Thread(target=recommend_by_job, args=(new_ids, q))
+        t.start()
+        
+        # Stream updates from queue to WebSocket
+        while True:
+            update = q.get()  # blocking wait
+            if "done" in update: # either entire operation is successful or something fails
+                break
+            
+        # check if operation is successful
+        if not update["done"]:
+            raise RuntimeError
+        
+    except Exception as e:
+        traceback.print_exc()
+        return "Recommend failed", 500
+    
 
 if __name__ == '__main__':
     print("Python backend started")

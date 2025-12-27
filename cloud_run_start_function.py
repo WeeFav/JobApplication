@@ -24,13 +24,6 @@ VM_NAME = "main-instance"
 SQL_INSTANCE = "main-db"
 SQL_PROJECT = PROJECT_ID
 
-# Vertex AI Vector Search
-VECTOR_INDEX = f"projects/{PROJECT_ID}/locations/{REGION}/indexes/6052074838116270080"
-ENDPOINT = f"projects/{PROJECT_ID}/locations/{REGION}/indexEndpoints/2236725509268439040"
-DEPLOYED_INDEX = "jobapplication_deployed_index"
-MACHINE_TYPE = "e2-standard-2"
-MIN_REPLICA_COUNT = 1
-MAX_REPLICA_COUNT = 1
 # ---------------------------------------
 
 @functions_framework.http
@@ -42,10 +35,7 @@ def main(request):
         # START CLOUD SQL INSTANCE
         start_cloud_sql_instance(SQL_PROJECT, SQL_INSTANCE)
 
-        # DEPLOY VECTOR SEARCH INDEX
-        deploy_vector_index()
-
-        return "VM, Cloud SQL, and Vector Index successfully started."
+        return "VM, Cloud SQL successfully started."
 
     except Exception as e:
         full_trace = traceback.format_exc()
@@ -74,28 +64,3 @@ def start_cloud_sql_instance(project, instance):
     )
     response = request.execute()
     print(f"Cloud SQL instance '{instance}' started/activated.")
-
-# DEPLOY VERTEX AI VECTOR SEARCH INDEX
-def deploy_vector_index():
-    aiplatform.init(project=PROJECT_ID, location=REGION)
-
-    # Use existing endpoint or create new one
-    if ENDPOINT:
-        endpoint = aiplatform.MatchingEngineIndexEndpoint(index_endpoint_name=ENDPOINT)
-    else:
-        endpoint = aiplatform.MatchingEngineIndexEndpoint.create(
-            display_name="vector-endpoint",
-            public_endpoint_enabled=True
-        )
-
-    # Deploy index
-    index = aiplatform.MatchingEngineIndex(index_name=VECTOR_INDEX)
-    endpoint.deploy_index(
-        index=index,
-        deployed_index_id=DEPLOYED_INDEX,
-        machine_type=MACHINE_TYPE,
-        min_replica_count=MIN_REPLICA_COUNT,
-        max_replica_count=MAX_REPLICA_COUNT,
-    )
-
-    print(f"Vector index deployed to endpoint: {endpoint.resource_name}")

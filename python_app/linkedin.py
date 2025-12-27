@@ -23,7 +23,7 @@ def get_auth():
         context.storage_state(path="./auth/linkedin_auth.json")
 
 def extract_page(page):
-    title = page.locator("div.job-details-jobs-unified-top-card__job-title").inner_text()
+    title = page.locator("div.job-details-jobs-unified-top-card__job-title").inner_text(timeout=600000)
     company = page.locator("div.job-details-jobs-unified-top-card__company-name").inner_text()
     
     details_locator = page.locator("xpath=//div[contains(@class, 'job-details-jobs-unified-top-card__tertiary-description-container')]/span")
@@ -74,9 +74,9 @@ def scrape(jobs_to_scrape, q):
             )
             context = browser.new_context(storage_state="auth/linkedin_auth.json")
             page = context.new_page()
-
-            page.goto("https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")
         
+            page.goto("https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true", timeout=0)
+                        
             for page_num in range(1, pages + 1):
                 scroll_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div")
                 ul_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div/ul")
@@ -90,7 +90,6 @@ def scrape(jobs_to_scrape, q):
                         break
                     li_locator = lis.nth(i) 
                     li_locator.click()
-                                    
                     job = extract_page(page)
                     q.put(job) 
                     
@@ -104,13 +103,13 @@ def scrape(jobs_to_scrape, q):
                 if page_num != pages:
                     pagination_locator = page.locator("ul.jobs-search-pagination__pages")
                     pagination_locator.get_by_text(f"{str(page_num + 1)}").click()    
-                                
+        
             context.close()
-            browser.close()
+            browser.close()                  
     except:
         traceback.print_exc()
         q.put({"done": False})
-        
+             
     q.put({"done": True}) 
     
 def scrape_from_url(url, q):
@@ -138,5 +137,6 @@ def scrape_from_url(url, q):
         q.put({"fail": True})
                     
 if __name__ == '__main__':
-    get_auth()
-    # scrape_linkedin(10)
+    # get_auth()
+    q = Queue()
+    scrape(10, q)
