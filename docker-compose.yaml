@@ -5,8 +5,8 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    ports:
-      - 8000:8000
+    expose:
+      - "8000"
     volumes:
       - ./server:/app # overrides /app from COPY in Dockerfile
       - jobapplication_server_node_modules:/app/node_modules # create docker volume
@@ -16,8 +16,8 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
-    ports:
-      - 5000:5000
+    expose:
+      - "5000"
     volumes:
       - ./client:/app
       - jobapplication_client_node_modules:/app/node_modules
@@ -26,9 +26,9 @@ services:
   qdrant:
     image: qdrant/qdrant
     container_name: qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
+    expose:
+      - "6333"
+      - "6334"
     volumes:
       - jobapplication_qdrant:/qdrant/storage
       
@@ -38,12 +38,24 @@ services:
       context: ./python_app
       dockerfile: Dockerfile
       network: host
-    ports:
-      - "8080:8080"
-      - "5900:5900"
+    expose:
+      - "8080"
+      - "5900"
     volumes:
       - ./python_app:/app
       - ./python_app/model_cache:/tmp/fastembed_cache
+
+  # nginx
+  nginx:
+    image: nginx
+    ports:
+      - "5000:5000"
+      - "6333:6333"
+      - "8080:8080"
+      - "5900:5900"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
     
 volumes:
   jobapplication_qdrant:
