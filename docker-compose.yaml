@@ -38,9 +38,9 @@ services:
       context: ./python_app
       dockerfile: Dockerfile
       network: host
-    expose:
-      - "8080"
-      - "5900"
+    ports:
+      - "8080:8080"
+      - "5900:5900"
     volumes:
       - ./python_app:/app
       - ./python_app/model_cache:/tmp/fastembed_cache
@@ -51,8 +51,6 @@ services:
     ports:
       - "5000:5000"
       - "6333:6333"
-      - "8080:8080"
-      - "5900:5900"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro

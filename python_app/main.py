@@ -409,6 +409,8 @@ def daily_scrape():
         traceback.print_exc()
         return "Recommend failed", 500
     
+    return "Recommend success", 200
+    
 
 if __name__ == '__main__':
     print("Python backend started")
