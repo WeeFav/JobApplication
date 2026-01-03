@@ -24,11 +24,24 @@ const getThirtyDaysAgo = () => {
 }
 
 // function to load company jobs
-const loadJobs = async (setJobs, setLoading) => {
+const loadJobs = async (loadingRef, hasMore, offset, LIMIT, setJobs, setLoading, setHasMore, setOffset) => {
+  if (loadingRef.current || !hasMore) return;
+
+  loadingRef.current = true; // lock
+  setLoading(true);
+
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}`);
+  const res = await fetch(`/server_api/jobs?date=${date}&limit=${LIMIT}&offset=${offset}`);
   const data = await res.json();
-  setJobs(data);
+
+  setJobs(prev => [...prev, ...data]);
+  setOffset(prev => prev + LIMIT);
+
+  if (data.length < LIMIT) {
+    setHasMore(false); // no more jobs in DB
+  }
+
+  loadingRef.current = false; // unlock
   setLoading(false);
 }
 

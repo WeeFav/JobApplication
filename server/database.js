@@ -53,18 +53,23 @@ export async function get_jobs(search) {
   query += "WHERE applications.job_id IS NULL";
 
   if (search.date) {
-    query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
+    query += ` AND scrape_date >= '${search.date}'`
   }
 
   if (conditions.length > 0) {
     query += ` AND ${conditions.join(" AND ")}`
   }
 
-  query += " ORDER BY post_date IS NULL, post_date DESC"
+  query += " ORDER BY scrape_date DESC, id DESC"
 
   if (search.limit && search.limit > 0) {
     query += ` LIMIT $${idx++}`;
     params.push(parseInt(search.limit));
+  }
+
+  if (search.offset && search.offset >= 0) {
+    query += ` OFFSET $${idx++}`;
+    params.push(parseInt(search.offset));
   }
 
   const res = await db.query(query, params);

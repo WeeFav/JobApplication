@@ -2,9 +2,11 @@ import React from "react";
 import Pagination from '@mui/material/Pagination';
 import { Gauge, gaugeClasses } from '@mui/x-charts/Gauge';
 
-const JobList = ({ jobs, onSelectJob, selectedJob }) => {
+const JobList = ({ jobs, hasMore, loaderRef, onSelectJob, selectedJob }) => {
   return (
     <div className="divide-y">
+      {jobs.length === 0 && (<div className="p-4 text-gray-500 text-center">No jobs found</div>)}
+      
       {jobs.map((job) => (
         <div
           key={job.id}
@@ -26,9 +28,7 @@ const JobList = ({ jobs, onSelectJob, selectedJob }) => {
         </div>
       ))}
 
-      {jobs.length === 0 && (
-        <div className="p-4 text-gray-500 text-center">No jobs found</div>
-      )}
+      {hasMore && <div ref={loaderRef}>Loading...</div>}
     </div>
   )
 }

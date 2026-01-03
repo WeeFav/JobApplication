@@ -5,10 +5,18 @@ import JobDetails from "./JobDetails";
 import ResumeToggle from "./ResumeToggle";
 
 const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=null}) => {
-  const [jobs, setJobs] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   const [selectedJob, setSelectedJob] = useState(null);
+  
+  const loadingRef = useRef(false);
   const containerRef = useRef(null);
+  const loaderRef = useRef(null);
+  const listContainerRef = useRef(null);
+
+  const LIMIT = 25;
 
   useEffect(() => {
     if (containerRef.current) {
@@ -17,21 +25,35 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
   }, [selectedJob]);
 
   useEffect(() => {
-      setLoading(true);
-      activeId !== null ? loadJobs(setJobs, setLoading, activeId) : loadJobs(setJobs, setLoading);
-  }, [activeId])
+      activeId !== null ? loadJobs(setJobs, setLoading, activeId) : loadJobs(loadingRef, hasMore, offset, LIMIT, setJobs, setLoading, setHasMore, setOffset);
+  }, [activeId]);
 
   useEffect (() => {
     if (jobs) { 
       setSelectedJob(jobs[0]);
     }
-  }, [jobs])
+  }, [jobs]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          loadJobs(loadingRef, hasMore, offset, LIMIT, setJobs, setLoading, setHasMore, setOffset);
+        }
+      },
+      { root: listContainerRef.current, threshold: 0.1 }
+    );
+  
+    observer.observe(loaderRef.current);
+  
+    return () => observer.disconnect();
+  }, [loadJobs, offset, hasMore]);
 
   const onSearchClick = async (jobTitle, company) => {
     setLoading(true);
     setJobs(await searchJobHandler(jobTitle, company, activeId));
     setLoading(false);
-  }; 
+  };
 
   const handleDelete = async () => {
     const confirm = window.confirm('Are you sure you want to delete this job?');
@@ -71,8 +93,8 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
         {/* Main Layout */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Job List */}
-          <div className="w-1/3 border-r overflow-y-auto bg-white">
-            <JobList jobs={jobs} onSelectJob={setSelectedJob} selectedJob={selectedJob} />
+          <div ref={listContainerRef} className="w-1/3 border-r overflow-y-auto bg-white">
+            <JobList jobs={jobs} hasMore={hasMore} loaderRef={loaderRef} onSelectJob={setSelectedJob} selectedJob={selectedJob} />
           </div>
 
           {/* Right Job Details */}
