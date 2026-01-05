@@ -1,6 +1,7 @@
 import React from "react";
 import Pagination from '@mui/material/Pagination';
 import { Gauge, gaugeClasses } from '@mui/x-charts/Gauge';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const JobList = ({ jobs, hasMore, loaderRef, onSelectJob, selectedJob }) => {
   return (
@@ -28,7 +29,11 @@ const JobList = ({ jobs, hasMore, loaderRef, onSelectJob, selectedJob }) => {
         </div>
       ))}
 
-      {hasMore && <div ref={loaderRef}>Loading...</div>}
+      {hasMore && 
+      <div ref={loaderRef} className='flex justify-center item-center py-5'>
+        <CircularProgress size="20px" color="white"/>
+      </div>
+      }
     </div>
   )
 }

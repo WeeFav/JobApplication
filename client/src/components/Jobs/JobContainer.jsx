@@ -4,17 +4,18 @@ import JobList from "./JobList";
 import JobDetails from "./JobDetails";
 import ResumeToggle from "./ResumeToggle";
 
-const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=null}) => {
+const JobContainer = ({ loadJobs, activeId = null, setActiveId = null }) => {
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
   const [selectedJob, setSelectedJob] = useState(null);
-  
-  const loadingRef = useRef(false);
+
+  const loadingRef = useRef(false); // reference for loadJobs() call
   const containerRef = useRef(null);
   const loaderRef = useRef(null);
   const listContainerRef = useRef(null);
+
+  const hasMoreRef = useRef(true);
+  const offsetRef = useRef(0);
+  const searchFilterRef = useRef({ title: "", company: "" });
 
   const LIMIT = 25;
 
@@ -25,11 +26,12 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
   }, [selectedJob]);
 
   useEffect(() => {
-      activeId !== null ? loadJobs(setJobs, setLoading, activeId) : loadJobs(loadingRef, hasMore, offset, LIMIT, setJobs, setLoading, setHasMore, setOffset);
+    activeId !== null ? loadJobs(setJobs, setLoading, activeId) 
+      : loadJobs(loadingRef, hasMoreRef, offsetRef, LIMIT, setJobs, searchFilterRef.current);
   }, [activeId]);
 
-  useEffect (() => {
-    if (jobs) { 
+  useEffect(() => {
+    if (jobs) {
       setSelectedJob(jobs[0]);
     }
   }, [jobs]);
@@ -38,21 +40,28 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
     const observer = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
-          loadJobs(loadingRef, hasMore, offset, LIMIT, setJobs, setLoading, setHasMore, setOffset);
+          loadJobs(loadingRef, hasMoreRef, offsetRef, LIMIT, setJobs, searchFilterRef.current);
         }
       },
       { root: listContainerRef.current, threshold: 0.1 }
     );
-  
-    observer.observe(loaderRef.current);
-  
-    return () => observer.disconnect();
-  }, [loadJobs, offset, hasMore]);
+    
+    if (!loaderRef.current) return;
 
-  const onSearchClick = async (jobTitle, company) => {
-    setLoading(true);
-    setJobs(await searchJobHandler(jobTitle, company, activeId));
-    setLoading(false);
+    observer.observe(loaderRef.current);
+
+    return () => observer.disconnect();
+  }, [jobs]);
+
+  const onSearchClick = async (title, company) => {
+    setJobs([]);
+
+    // reset search
+    hasMoreRef.current = true;
+    offsetRef.current = 0;
+    searchFilterRef.current = { title, company };
+
+    await loadJobs(loadingRef, hasMoreRef, offsetRef, LIMIT, setJobs, searchFilterRef.current);
   };
 
   const handleDelete = async () => {
@@ -61,57 +70,53 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
       await deleteJobHandler(selectedJob.id);
       setJobs((prevJobs) => {
         // 1. Find index of deleted job
-        const index = prevJobs.findIndex((job) => job.id === selectedJob.id); 
+        const index = prevJobs.findIndex((job) => job.id === selectedJob.id);
         // 2. Create new job list
         const updated = prevJobs.filter((job) => job.id !== selectedJob.id);
         // 3. Pick new selected job (previous job or next job)
-        let newSelected = updated[index - 1] || updated[index]; 
+        let newSelected = updated[index - 1] || updated[index];
         // 4. Update selectedJob
         setSelectedJob(newSelected || null);
-        return updated;        
+        return updated;
       });
     }
   }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      {loading ? <h2>Loading...</h2> :
-        <>
-        {/* Top Search Bar */}
-        <div className="px-7 my-6">
-          <JobSearchBar onSearchClick={onSearchClick} tab="all" />
-        </div>
+      {/* Top Search Bar */}
+      <div className="px-7 my-6">
+        <JobSearchBar onSearchClick={onSearchClick}/>
+      </div>
 
-        {(activeId !== null && setActiveId) ? 
+      {(activeId !== null && setActiveId) ?
         <div className="flex items-center justify-center mb-3">
-          <ResumeToggle activeId={activeId} setActiveId={setActiveId}/>
+          <ResumeToggle activeId={activeId} setActiveId={setActiveId} />
         </div>
         :
         <></>
-        }
-
-        {/* Main Layout */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left Job List */}
-          <div ref={listContainerRef} className="w-1/3 border-r overflow-y-auto bg-white">
-            <JobList jobs={jobs} hasMore={hasMore} loaderRef={loaderRef} onSelectJob={setSelectedJob} selectedJob={selectedJob} />
-          </div>
-
-          {/* Right Job Details */}
-          <div ref={containerRef} className="flex-1 overflow-y-auto bg-gray-100">
-            {selectedJob ? (
-              <JobDetails job={selectedJob} handleDelete={handleDelete} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                Select a job to view details
-              </div>
-            )}
-          </div>
-        </div>
-        </>
       }
+
+      {/* Main Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Job List */}
+        <div ref={listContainerRef} className="w-1/3 border-r overflow-y-auto bg-white">
+          <JobList jobs={jobs} hasMore={hasMoreRef.current} loaderRef={loaderRef} onSelectJob={setSelectedJob} selectedJob={selectedJob} />
+        </div>
+
+        {/* Right Job Details */}
+        <div ref={containerRef} className="flex-1 overflow-y-auto bg-gray-100">
+          {selectedJob ? (
+            <JobDetails job={selectedJob} handleDelete={handleDelete} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Select a job to view details
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  )  
+  )
 }
 
 export default JobContainer

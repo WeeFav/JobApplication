@@ -26,51 +26,25 @@ job
 */
 
 export async function get_jobs(search) {
-  let conditions = [];
   let params = [];
-  let idx = 1;
-
-  if (search.job_id) {
-    conditions.push(`id = $${idx++}`)
-    params.push(search.job_id)
-  }
-  if (search.company) {
-    conditions.push(`company ILIKE $${idx++}`)
-    params.push(`%${search.company}%`)
-  }
-  if (search.jobTitle) {
-    conditions.push(`title ILIKE $${idx++}`)
-    params.push(`%${search.jobTitle}%`)
-  }
 
   let query = `
   SELECT jobs.*
   FROM jobs
   LEFT JOIN applications
   ON jobs.id = applications.job_id
+  WHERE applications.job_id IS NULL
+    AND scrape_date >= $1
+    AND title ILIKE $2
+    AND company ILIKE $3
+  ORDER BY scrape_date DESC, id DESC
+  LIMIT $4
+  OFFSET $5
   `;
 
-  query += "WHERE applications.job_id IS NULL";
-
-  if (search.date) {
-    query += ` AND scrape_date >= '${search.date}'`
-  }
-
-  if (conditions.length > 0) {
-    query += ` AND ${conditions.join(" AND ")}`
-  }
-
-  query += " ORDER BY scrape_date DESC, id DESC"
-
-  if (search.limit && search.limit > 0) {
-    query += ` LIMIT $${idx++}`;
-    params.push(parseInt(search.limit));
-  }
-
-  if (search.offset && search.offset >= 0) {
-    query += ` OFFSET $${idx++}`;
-    params.push(parseInt(search.offset));
-  }
+  params = [search.date, `%${search.title}%`, `%${search.company}%`, Number(search.limit), Number(search.offset)];
+  
+  console.log(params)
 
   const res = await db.query(query, params);
   return res.rows;

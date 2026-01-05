@@ -3,7 +3,7 @@ import JobContainer from "../components/Jobs/JobContainer";
 
 const JobsPage = () => {
   return (
-    <JobContainer loadJobs={loadJobs} searchJobHandler={searchJobHandler}/>
+    <JobContainer loadJobs={loadJobs}/>
   )
 }
 
@@ -24,31 +24,29 @@ const getThirtyDaysAgo = () => {
 }
 
 // function to load company jobs
-const loadJobs = async (loadingRef, hasMore, offset, LIMIT, setJobs, setLoading, setHasMore, setOffset) => {
-  if (loadingRef.current || !hasMore) return;
-
+const loadJobs = async (loadingRef, hasMoreRef, offsetRef, LIMIT, setJobs, searchFilter) => {
+  if (loadingRef.current || !hasMoreRef.current) return;
+  
   loadingRef.current = true; // lock
-  setLoading(true);
 
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}&limit=${LIMIT}&offset=${offset}`);
+  const params = new URLSearchParams({
+    date: date,
+    limit: LIMIT,
+    offset: offsetRef.current,
+    title: searchFilter.title,
+    company: searchFilter.company  
+  });
+
+  const res = await fetch(`/server_api/jobs?${params.toString()}`);
   const data = await res.json();
 
   setJobs(prev => [...prev, ...data]);
-  setOffset(prev => prev + LIMIT);
+  offsetRef.current = offsetRef.current + LIMIT;
 
   if (data.length < LIMIT) {
-    setHasMore(false); // no more jobs in DB
+    hasMoreRef.current = false; // no more jobs in DB
   }
 
   loadingRef.current = false; // unlock
-  setLoading(false);
-}
-
-// function to search job
-const searchJobHandler = async (jobTitle, company) => {
-  const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}&jobTitle=${jobTitle}&company=${company}`);
-  const data = await res.json();
-  return data;
 }

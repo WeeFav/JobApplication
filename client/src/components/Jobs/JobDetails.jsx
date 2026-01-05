@@ -23,74 +23,79 @@ const JobDetails = ({ job, handleDelete }) => {
 
   return (
     <div className="p-6">
-      {/* Header Section */}
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h2 className="text-2xl font-semibold mb-1">{job.title}</h2>
-          <p className="text-gray-700">{job.company}</p>
+      {job ?
+      <div>
+        {/* Header Section */}
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h2 className="text-2xl font-semibold mb-1">{job.title}</h2>
+            <p className="text-gray-700">{job.company}</p>
+          </div>
+
+          <div className="flex flex-col items-end gap-2">
+            {/* Apply Button */}
+            {job.url && (
+              <button
+                onClick={() => window.open(job.url, "_blank")}
+                className="bg-website-blue text-white px-4 py-2 rounded-lg"
+              >
+                Apply Now
+              </button>
+            )}
+
+            {/* Toggle Applied Button */}
+            <button
+              onClick={() =>
+                applied
+                  ? removeAppliedJobHandler()
+                  : addAppliedJobHandler()
+              }
+              className={`px-4 py-2 rounded-lg transition ${
+                applied
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "bg-green-500 text-white hover:bg-green-600"
+              }`}
+            >
+              {applied ? "Remove from Applied" : "Mark as Applied"}
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          {/* Apply Button */}
-          {job.url && (
-            <button
-              onClick={() => window.open(job.url, "_blank")}
-              className="bg-website-blue text-white px-4 py-2 rounded-lg"
-            >
-              Apply Now
-            </button>
-          )}
+        {/* Location + Dates */}
+        <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-4">
+          <p>{job.location}</p>
+          <p> Posted: {formatDate(job.post_date)}</p>
+          <p> Scraped: {formatDate(job.scrape_date)}</p>
+          <p> Applied: {formatDate(job.application_date)}</p>
+        </div>
 
-          {/* Toggle Applied Button */}
-          <button
-            onClick={() =>
-              applied
-                ? removeAppliedJobHandler()
-                : addAppliedJobHandler()
-            }
-            className={`px-4 py-2 rounded-lg transition ${
-              applied
-                ? "bg-red-500 text-white hover:bg-red-600"
-                : "bg-green-500 text-white hover:bg-green-600"
-            }`}
+        <hr className="mb-4" />
+
+        {/* Description */}
+        <p className="text-gray-800 leading-relaxed mb-6 whitespace-pre-line">
+          {job.description_extracted || "No description available."}
+        </p>
+
+        {/* Edit + Delete Buttons */}
+        <div className="flex justify-end gap-3">
+          <NavLink
+            to={`/jobs/edit/${job.id}`}
+            className="bg-website-blue text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
           >
-            {applied ? "Remove from Applied" : "Mark as Applied"}
+            Edit
+          </NavLink>
+
+          <button
+            onClick={handleDelete}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+          >
+            Delete
           </button>
         </div>
       </div>
-
-      {/* Location + Dates */}
-      <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-4">
-        <p>{job.location}</p>
-        <p> Posted: {formatDate(job.post_date)}</p>
-        <p> Scraped: {formatDate(job.scrape_date)}</p>
-        <p> Applied: {formatDate(job.application_date)}</p>
-      </div>
-
-      <hr className="mb-4" />
-
-      {/* Description */}
-      <p className="text-gray-800 leading-relaxed mb-6 whitespace-pre-line">
-        {job.description_extracted || "No description available."}
-      </p>
-
-      {/* Edit + Delete Buttons */}
-      <div className="flex justify-end gap-3">
-        <NavLink
-          to={`/jobs/edit/${job.id}`}
-          className="bg-website-blue text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
-        >
-          Edit
-        </NavLink>
-
-        <button
-          onClick={handleDelete}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-        >
-          Delete
-        </button>
-      </div>
-      
+      :
+      <></>
+      }
     </div>
   );
 }
