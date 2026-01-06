@@ -115,7 +115,7 @@ API
 
 const loadApplication = async (id, setApplied, setLoading) => {
   const res = await fetch(`/server_api/applications?job_id=${id}`);
-  const data = await res.json();
+  const data = await res.json();d
   if (!data || data.length === 0) {
     setApplied(false);
   }

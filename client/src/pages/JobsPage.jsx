@@ -3,7 +3,7 @@ import JobContainer from "../components/Jobs/JobContainer";
 
 const JobsPage = () => {
   return (
-    <JobContainer loadJobs={loadJobs} searchJobHandler={searchJobHandler}/>
+    <JobContainer loadJobs={loadJobs}/>
   )
 }
 
@@ -24,18 +24,16 @@ const getThirtyDaysAgo = () => {
 }
 
 // function to load company jobs
-const loadJobs = async (setJobs, setLoading) => {
+const loadJobs = async (offset, limit, title, company) => {
+  console.log(1)
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}`);
-  const data = await res.json();
-  setJobs(data);
-  setLoading(false);
-}
-
-// function to search job
-const searchJobHandler = async (jobTitle, company) => {
-  const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}&jobTitle=${jobTitle}&company=${company}`);
-  const data = await res.json();
-  return data;
+  const params = new URLSearchParams({
+    date: date,
+    offset: offset,
+    limit: limit,
+    title: title,
+    company: company  
+  });
+  const res = await fetch(`/server_api/jobs?${params.toString()}`);
+  return await res.json();
 }

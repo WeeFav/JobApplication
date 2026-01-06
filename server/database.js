@@ -26,46 +26,28 @@ job
 */
 
 export async function get_jobs(search) {
-  let conditions = [];
   let params = [];
-  let idx = 1;
 
-  if (search.job_id) {
-    conditions.push(`id = $${idx++}`)
-    params.push(search.job_id)
-  }
-  if (search.company) {
-    conditions.push(`company ILIKE $${idx++}`)
-    params.push(`%${search.company}%`)
-  }
-  if (search.jobTitle) {
-    conditions.push(`title ILIKE $${idx++}`)
-    params.push(`%${search.jobTitle}%`)
-  }
+  const dateParam = search.date ? search.date : null;
 
   let query = `
   SELECT jobs.*
   FROM jobs
   LEFT JOIN applications
   ON jobs.id = applications.job_id
-  `;
+  WHERE applications.job_id IS NULL
+    AND ($1::date IS NULL OR scrape_date >= $1::date)
+    AND title ILIKE $2
+    AND company ILIKE $3
+  ORDER BY scrape_date DESC, id DESC
+  LIMIT $4
+  OFFSET $5
+  `; 
 
-  query += "WHERE applications.job_id IS NULL";
-
-  if (search.date) {
-    query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
-  }
-
-  if (conditions.length > 0) {
-    query += ` AND ${conditions.join(" AND ")}`
-  }
-
-  query += " ORDER BY post_date IS NULL, post_date DESC"
-
-  if (search.limit && search.limit > 0) {
-    query += ` LIMIT $${idx++}`;
-    params.push(parseInt(search.limit));
-  }
+  params = [dateParam, `%${search.title}%`, `%${search.company}%`, Number(search.limit), Number(search.offset)];
+  
+  console.log("get_jobs")
+  console.log(params)
 
   const res = await db.query(query, params);
   return res.rows;
@@ -74,7 +56,7 @@ export async function get_jobs(search) {
 export async function get_job(id) {
   let query = `
     SELECT *
-    FROM jobs
+    FROM jobs 
     WHERE id = $1;
   `;
 
@@ -103,43 +85,31 @@ application
 */
 
 export async function get_applications(search) {
-  let conditions = [];
   let params = [];
-  let idx = 1;
 
-  if (search.job_id) {
-    conditions.push(`jobs.id = $${idx++}`)
-    params.push(search.job_id)
-  }
-  if (search.jobTitle) {
-    conditions.push(`jobs.title ILIKE $${idx++}`)
-    params.push(`%${search.jobTitle}%`)
-  }
-  if (search.company) {
-    conditions.push(`jobs.company ILIKE $${idx++}`)
-    params.push(`%${search.company}%`)
-  }
+  const dateParam = search.date ? search.date : null;
 
   let query = `
-    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, application_date 
-    FROM applications
-    INNER JOIN jobs
-    ON applications.job_id = jobs.id
-  `;
+  SELECT jobs.*, application_date
+  FROM applications
+  INNER JOIN jobs
+  ON applications.job_id = jobs.id
+  WHERE applications.job_id IS NULL
+    AND ($1::date IS NULL OR scrape_date >= $1::date)
+    AND title ILIKE $2 
+    AND company ILIKE $3
+  ORDER BY applications.application_date DESC, id DESC
+  LIMIT $4
+  OFFSET $5
+  `; 
 
-  if (conditions.length > 0) {
-    query += `WHERE ${conditions.join(" AND ")}`
-  }
-
-  if (search.limit && search.limit > 0) {
-    query += `LIMIT $${idx++}`;
-    params.push(parseInt(search.limit));
-  } 
-
-  query += " ORDER BY applications.application_date DESC";
+  params = [dateParam, `%${search.title}%`, `%${search.company}%`, Number(search.limit), Number(search.offset)];
+  
+  console.log("get_applications")
+  console.log(params)
 
   const res = await db.query(query, params);
-  return res.rows;
+  return res.rows; 
 }
 
 export async function add_application(job_id) {

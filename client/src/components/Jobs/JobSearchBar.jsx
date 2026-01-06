@@ -66,7 +66,7 @@ const JobSearchBar = ({ onSearchClick, tab }) => {
       {/* Search Button */}
       <button
         className="bg-website-gold hover:bg-website-darkGold text-white rounded mt-6 px-4"
-        onClick={() => onSearchClick(jobTitle, company, score)}
+        onClick={() => onSearchClick(jobTitle, company)}
       >
         Search
       </button>

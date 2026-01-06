@@ -3,7 +3,7 @@ import JobContainer from "../components/Jobs/JobContainer";
 
 const AppliedJobsPage = () => {
   return (
-    <JobContainer loadJobs={loadJobs} searchJobHandler={searchJobHandler}/>
+    <JobContainer loadJobs={loadJobs}/>
   )
 }
 
@@ -16,16 +16,14 @@ API
 */
 
 // function to load company jobs
-const loadJobs = async (setJobs, setLoading) => {
-    const res = await fetch(`/server_api/applications`);
-    const data = await res.json();
-    setJobs(data);
-    setLoading(false);
-}
-
-// function to search job
-const searchJobHandler = async (jobTitle, company) => {
-  const res = await fetch(`/server_api/applications?jobTitle=${jobTitle}&company=${company}`);
-  const data = await res.json();
-  return data;
+const loadJobs = async (offset, limit, title, company) => {
+  console.log(2)
+  const params = new URLSearchParams({
+    offset: offset,
+    limit: limit,
+    title: title,
+    company: company
+  });
+  // const res = await fetch(`/server_api/applications?${params.toString()}`);
+  // return await res.json();
 }

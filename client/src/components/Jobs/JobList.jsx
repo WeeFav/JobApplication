@@ -1,10 +1,32 @@
-import React from "react";
 import Pagination from '@mui/material/Pagination';
 import { Gauge, gaugeClasses } from '@mui/x-charts/Gauge';
+import React, { useState, useEffect, useRef } from "react";
+import CircularProgress from '@mui/material/CircularProgress';
 
-const JobList = ({ jobs, onSelectJob, selectedJob }) => {
+const JobList = ({ jobs, onSelectJob, selectedJob, onLoadMore, hasMore }) => {
+  const observerTarget = useRef(null);
+
+  useEffect(() => {
+    if (!observerTarget.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(observerTarget.current);
+
+    return () => observer.disconnect();    
+  }, [onLoadMore]); // when offset and hasMore change in onLoadMore(), recreate the observer
+
   return (
     <div className="divide-y">
+      {jobs.length === 0 && (<div className="p-4 text-gray-500 text-center">No jobs found</div>)}
+      
       {jobs.map((job) => (
         <div
           key={job.id}
@@ -26,9 +48,11 @@ const JobList = ({ jobs, onSelectJob, selectedJob }) => {
         </div>
       ))}
 
-      {jobs.length === 0 && (
-        <div className="p-4 text-gray-500 text-center">No jobs found</div>
-      )}
+      {hasMore && 
+      <div ref={observerTarget} className='flex justify-center item-center py-5'>
+        <CircularProgress size="20px" color="white"/>
+      </div>
+      }
     </div>
   )
 }

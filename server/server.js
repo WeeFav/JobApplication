@@ -38,6 +38,7 @@ job
 */
 
 app.get('/jobs', async (req, res) => {
+  console.log('a')
   const jobs = await db.get_jobs(req.query);
   res.json(jobs);
 });
@@ -71,10 +72,11 @@ application
 ===============================================================================
 */
 
-app.get('/applications', async (req, res) => {
-  const applications = await db.get_applications(req.query);
-  res.json(applications);
-});
+// app.get('/applications', async (req, res) => {
+//   console.log('b')  
+//   const applications = await db.get_applications(req.query);
+//   res.json(applications);
+// });
 
 app.post('/applications', async (req, res) => {
   const { job_id } = req.body;
