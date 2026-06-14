@@ -237,7 +237,7 @@ def keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings):
     return freq_score, embed_score, edu_score, major_score
 
 
-def recommend_by_job(new_ids, q):
+def recommend_by_job(new_ids):
     """Recommend caused by update in job"""
     try:
         cursor.execute(f"""
@@ -300,88 +300,80 @@ def recommend_by_job(new_ids, q):
             )                                  
             conn.commit()
                   
-        q.put({"done": True})
     except Exception as e:
         print(e)
-        q.put({"done": False})
+        raise e
     
-    return
-    
-    # # get resumes
-    # cursor.execute("""
-    #     SELECT * FROM resumes
-    #     """
-    # )
-    # res = cursor.fetchall()
+    # get resumes
+    cursor.execute("""
+        SELECT * FROM resumes
+        """
+    )
+    res = cursor.fetchall()
 
-    
-    # embed resume
-    embedding_model = TextEmbedding(model_name=model_name)    
-    embeddings = list(embedding_model.embed())
-    
-    search_queries = [
-        SearchRequest(
-            vector=emb,
+    if res:
+        # embed resume
+        embedding_model = TextEmbedding(model_name=model_name)    
+        embeddings = list(embedding_model.embed([r['content'] for r in res]))
+        
+        search_queries = [
+            SearchRequest(
+                vector=emb,
+                limit=100,
+                with_payload=True
+            )
+            for emb in embeddings
+        ]
+        
+        # extract keyword
+        r_educations, r_majors, r_skills = extract_keyword(res[0]['content'])
+        r_embeddings = embed_skills(r_skills)
+        
+        # --- 2. Query top jobs ---
+        
+        # compute scores for top 100 jobs within the time range
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).timestamp() # 30 days ago in Unix format
+        print(f"Recommend jobs up to {datetime.fromtimestamp(thirty_days_ago).isoformat()}")
+        
+        # embed resume
+        embedding_model = TextEmbedding(model_name=model_name)
+        embeddings_generator = embedding_model.embed([res[0]['content']])
+        embeddings_list = list(embeddings_generator)
+        resume_embeddings = embeddings_list[0]
+        
+        # query vector db
+        results = client.search(
+            collection_name=collection_name,
+            query_vector=resume_embeddings,
+            # query_filter=Filter(
+            #     must=[
+            #         FieldCondition(
+            #             key="timestamp",
+            #             range=Range(gte=thirty_days_ago)
+            #         )
+            #     ]
+            # ),
             limit=100,
             with_payload=True
         )
-        for emb in embeddings
-    ]
-    
-    
-    
-            
-    # extract keyword
-    r_educations, r_majors, r_skills = extract_keyword()
-    r_embeddings = embed_skills(r_skills)
-    
-    
-    # --- 2. Query top jobs ---
-    
-    # compute scores for top 100 jobs within the time range
-    thirty_days_ago = (datetime.now() - timedelta(days=30)).timestamp() # 30 days ago in Unix format
-    print(f"Recommend jobs up to {datetime.fromtimestamp(thirty_days_ago).isoformat()}")
-    
-    # embed resume
-    embedding_model = TextEmbedding(model_name=model_name)
-    embeddings_generator = embedding_model.embed()
-    embeddings_list = list(embeddings_generator)
-    resume_embeddings = embeddings_list[0]
-    
-    # query vector db
-    results = client.search(
-        collection_name=collection_name,
-        query_vector=resume_embeddings,
-        # query_filter=Filter(
-        #     must=[
-        #         FieldCondition(
-        #             key="timestamp",
-        #             range=Range(gte=thirty_days_ago)
-        #         )
-        #     ]
-        # ),
-        limit=100,
-        with_payload=True
-    )
-    
-    # --- 3. Score top jobs ---
-    
-    print(f"Scoring top {len(results)} jobs within the time range...")
-    scores = {}
-    
-    
-    for point in results:
-        # Layered NER scoring
-        job_hash = point.payload['hash']
-        freq_score, embed_score, edu_score, major_score = keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings)
-        # final score from [description embedding score, keyword frequency score, keyword embedding score, education match score, major match score]
-        score = (0.4 * point.score) + (0.2 * freq_score) + (0.3 * embed_score) + (0.05 * edu_score) + (0.05 * major_score) 
-        scores[job_hash] = score
-        print(f"{job_hash} {score:.4f} {point.score:.4f} {freq_score:.4f} {embed_score:.4f} {edu_score:.4f} {major_score:.4f}")
-    
-    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)    
-    
-    print(ranked)
+        
+        # --- 3. Score top jobs ---
+        
+        print(f"Scoring top {len(results)} jobs within the time range...")
+        scores = {}
+        
+        for point in results:
+            # Layered NER scoring
+            job_hash = point.payload['hash']
+            freq_score, embed_score, edu_score, major_score = keyword_scoring(job_hash, r_educations, r_majors, r_skills, r_embeddings)
+            # final score from [description embedding score, keyword frequency score, keyword embedding score, education match score, major match score]
+            score = (0.4 * point.score) + (0.2 * freq_score) + (0.3 * embed_score) + (0.05 * edu_score) + (0.05 * major_score) 
+            scores[job_hash] = score
+            print(f"{job_hash} {score:.4f} {point.score:.4f} {freq_score:.4f} {embed_score:.4f} {edu_score:.4f} {major_score:.4f}")
+        
+        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)    
+        
+        print(ranked)
     
     
 def recommend_by_resume(ids, q):

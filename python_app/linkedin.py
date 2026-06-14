@@ -4,6 +4,7 @@ import math
 import traceback
 from queue import Queue
 from preprocess_job import extract_post_date
+import json
 
 def get_auth():
     """Only need when need to sign into LinkedIn"""
@@ -60,17 +61,18 @@ def extract_page(page):
         "post_date": post_date
     }
     
-def scrape(jobs_to_scrape, q):
+def scrape(jobs_to_scrape, ws):
     print("Start LinkedIn scrape")
     jobs_per_page = 25
     pages = math.ceil(jobs_to_scrape / jobs_per_page)
+    jobs = []
     
     try:
         with sync_playwright() as playwright:     
             # open browser and navigate to jobright
             browser = playwright.chromium.launch(
                 channel="chrome",
-                headless=False,
+                headless=True,
             )
             context = browser.new_context(storage_state="auth/linkedin_auth.json")
             page = context.new_page()
@@ -92,7 +94,8 @@ def scrape(jobs_to_scrape, q):
                     li_locator.click()
                                     
                     job = extract_page(page)
-                    q.put(job) 
+                    jobs.append(job)
+                    ws.send(json.dumps({"type": "scrape", "update": True})) 
                     
                     jobs_to_scrape -= 1
                     print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
@@ -107,19 +110,19 @@ def scrape(jobs_to_scrape, q):
                                 
             context.close()
             browser.close()
-    except:
+        return jobs
+    except Exception as e:
         traceback.print_exc()
-        q.put({"done": False})
-        
-    q.put({"done": True}) 
+        raise e 
     
-def scrape_from_url(url, q):
+def scrape_from_url(url):
+    print(f"scraping {url}")
     try:
         with sync_playwright() as playwright:     
             # open browser and navigate to jobright
             browser = playwright.chromium.launch(
                 channel="chrome",
-                headless=False,
+                headless=True,
             )
             context = browser.new_context(storage_state="auth/linkedin_auth.json")
             page = context.new_page()
@@ -127,15 +130,15 @@ def scrape_from_url(url, q):
             page.goto(url)
         
             job = extract_page(page)
-            q.put(job) 
             
             print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
                                 
             context.close()
             browser.close()
-    except:
+        return job
+    except Exception as e:
         traceback.print_exc()
-        q.put({"fail": True})
+        raise e
                     
 if __name__ == '__main__':
     get_auth()

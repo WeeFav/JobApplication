@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from typing import List, Dict
 from datetime import datetime
 from preprocess_job import extract_description, canonicalize_url
+import json
 
 load_dotenv()
 
@@ -27,13 +28,17 @@ client = QdrantClient("http://qdrant:6333")
 collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
-def insert_jobs(jobs: List[Dict], job_site, q):
+def insert_jobs(jobs: List[Dict], job_site, ws):
+    new_ids = []
+
+    print(f"got {len(jobs)} jobs from {job_site}")
+
     try:
         print(job_site)
         df = pd.DataFrame(jobs) 
         
         for i in range(len(df)):
-            q.put({"postgres": True})
+            ws.send(json.dumps({"type": "insert", "postgres": True}))
             
             # canonicalize url
             url_norm = canonicalize_url(df.iloc[i]['url'])
@@ -57,13 +62,13 @@ def insert_jobs(jobs: List[Dict], job_site, q):
                 print(f"[!] Duplicate hash detected: {hash}, nothing inserted.")
                 continue
             
-            
             # extract description
             description = df.iloc[i]['description']
             if job_site == "Jobright":
                 description_extracted = description
             else:
                 description_extracted = extract_description(description)
+            print(f"description extracted, got {len(description_extracted)} characters")
                         
             # insert into postgres
             cursor.execute("""
@@ -74,8 +79,9 @@ def insert_jobs(jobs: List[Dict], job_site, q):
                 (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
             )
             conn.commit()
+            print(f"inserted into postgres")
             
-            q.put({"qdrant": True})
+            ws.send(json.dumps({"type": "insert", "qdrant": True}))
             
             id, scrape_date = cursor.fetchone()
             
@@ -93,15 +99,17 @@ def insert_jobs(jobs: List[Dict], job_site, q):
                 collection_name=collection_name,
                 points=[point]
             )
+            print(f"inserted into qdrant")
             
-            q.put({"id": id})
+            new_ids.append(id)
+            ws.send(json.dumps({"type": "insert", "update": True}))
             
             print(f"processed job {i + 1}")
             
-        q.put({"done": True})
+        return new_ids
     except Exception as e:
         print(e)
-        q.put({"done": False})
+        raise e
     
                        
 def insert_resumes(updatedResumes):
@@ -163,9 +171,10 @@ def insert_resumes(updatedResumes):
     
     return [r[0] for r in update_all]
 
-def update_job(updatedJob, descriptionUpdated, q):
+def update_job(updatedJob, descriptionUpdated, ws):
+    new_ids = []
     try:
-        q.put({"postgres": True})
+        ws.send(json.dumps({"type": "insert", "postgres": True}))
         
         # canonicalize url
         url_norm = canonicalize_url(updatedJob['url'])
@@ -193,7 +202,7 @@ def update_job(updatedJob, descriptionUpdated, q):
         conn.commit()
         
         if descriptionUpdated:
-            q.put({"qdrant": True})
+            ws.send(json.dumps({"type": "insert", "qdrant": True}))
             point = models.PointStruct(
                 id=updatedJob['id'],
                 vector=models.Document(text=description_extracted, model=model_name),
@@ -206,9 +215,10 @@ def update_job(updatedJob, descriptionUpdated, q):
                 collection_name=collection_name,
                 points=[point]
             )
-            q.put({"id": updatedJob['id']})
+            new_ids.append(updatedJob['id'])
+            ws.send(json.dumps({"type": "insert", "update": True}))
         
-        q.put({"done": True})
+        return new_ids
     except Exception as e:
         print(e)
-        q.put({"done": False})
+        raise e

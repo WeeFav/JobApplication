@@ -5,6 +5,7 @@ import pandas as pd
 import traceback
 from queue import Queue
 from preprocess_job import extract_post_date
+import json
 
 def get_auth():
     """Only need when need to sign into google"""
@@ -65,13 +66,14 @@ def extract_page(page):
         "post_date": post_date
     }
     
-def scrape(jobs_to_scrape, q, type='recommend'):
+def scrape(jobs_to_scrape, ws, type='recommend'):
     # if type == 'recommend':
     #     jobs_per_page = 10
     # elif type == 'applied':
     #     jobs_per_page = 20
         
     # pages = math.ceil(jobs_to_scrape / jobs_per_page)
+    jobs = []
     
     try:
         with sync_playwright() as playwright:
@@ -112,20 +114,20 @@ def scrape(jobs_to_scrape, q, type='recommend'):
                     break
                 page.goto(f"https://jobright.ai/jobs/info/{job_id}")   
                 job = extract_page(page)
-                q.put(job) 
+                jobs.append(job)
+                ws.send(json.dumps({"type": "scrape", "update": True}))
                 
                 jobs_to_scrape -= 1
                 print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
             
             context.close()
             browser.close()     
-    except:
+        return jobs
+    except Exception as e:
         traceback.print_exc()
-        q.put({"done": False})
-        
-    q.put({"done": True}) 
+        raise e 
     
-def scrape_from_url(url, q):
+def scrape_from_url(url):
     try:
         with sync_playwright() as playwright:     
             # open browser and navigate to jobright
@@ -139,15 +141,15 @@ def scrape_from_url(url, q):
             page.goto(url)
         
             job = extract_page(page)
-            q.put(job) 
             
             print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
                                 
             context.close()
             browser.close()
-    except:
+        return job
+    except Exception as e:
         traceback.print_exc()
-        q.put({"fail": True})
+        raise e
 
 if __name__ == '__main__':
     # get_auth()

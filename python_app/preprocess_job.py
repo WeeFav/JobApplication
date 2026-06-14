@@ -11,29 +11,73 @@ import re
 load_dotenv()
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
+    model="gemini-3.1-flash-lite",
     temperature=0,
 )
 
-prompt = """
-Here's a job description. Please extract only the subtitles and paragraphs that describe what the role is about, responsibilities, required skills, or who they are looking for. 
-Do not include paragraphs that only describe the company, values, benefits. 
-Do not summarize, only remove irrelevant text.
-Do not add any markdown formatting, only keep plain text.
+PROMPT = """
+You are an information extraction system.
+
+Task:
+Extract only the sections of the job description that help determine whether a candidate is qualified for the role.
+
+Keep:
+- Job title
+- Role overview / position summary
+- Responsibilities
+- Duties
+- Required qualifications
+- Preferred qualifications
+- Required skills
+- Technical skills
+- Education requirements
+- Experience requirements
+- Certifications
+- "Who we are looking for" sections
+- Any paragraph that describes what the employee will do or what qualifications they need
+
+Remove:
+- Company descriptions
+- Company history
+- Mission statements
+- Vision statements
+- Culture descriptions
+- Diversity, equity, and inclusion statements
+- Benefits and perks
+- Compensation and salary information
+- Equal opportunity employer statements
+- Recruiting process descriptions
+- Legal disclaimers
+- Office amenities
+- Generic marketing content
+
+Rules:
+- Do NOT summarize.
+- Preserve the original wording exactly.
+- Keep original section titles/subtitles when relevant.
+- Remove only irrelevant sections.
+- Maintain the original order of the remaining content.
+- Output plain text only.
+- Do not use markdown.
+- Do not add explanations, comments, or notes.
+- If a section contains both relevant and irrelevant content, keep only the relevant paragraphs.
+
+Job Description:
+
+{job_description}
 """
 
 def extract_description(description):
     """extract job description"""
     messages = [
-        ("system", prompt),
-        ("human", description)
+        ("human", PROMPT.format(job_description=description))
     ]
     
     while True:
         try:
             ai_msg = llm.invoke(messages)
             description_extracted = ai_msg.content
-            return description_extracted
+            return description_extracted[0]['text']
         except ResourceExhausted as e:
             print(f"Retrying in 60 seconds...")
             time.sleep(60)
