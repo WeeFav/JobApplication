@@ -7,6 +7,7 @@ import hashlib
 from qdrant_client import QdrantClient, models
 import uuid
 import sys
+import traceback
 from dotenv import load_dotenv
 from typing import List, Dict
 from datetime import datetime
@@ -29,7 +30,8 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 def insert_jobs(jobs: List[Dict], job_site, ws):
-    new_ids = []
+    ws.send(json.dumps({"type": "insert", "start": True}))
+    new_jobs = []
 
     print(f"got {len(jobs)} jobs from {job_site}")
 
@@ -101,14 +103,17 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
             )
             print(f"inserted into qdrant")
             
-            new_ids.append(id)
+            new_jobs.append({"id": id, "description_extracted": description_extracted})
             ws.send(json.dumps({"type": "insert", "update": True}))
             
             print(f"processed job {i + 1}")
             
-        return new_ids
+        ws.send(json.dumps({"type": "insert", "success": True}))
+        return new_jobs
     except Exception as e:
-        print(e)
+        traceback.print_exc()
+        ws.send(json.dumps({"type": "insert", "fail": True}))
+        ws.close()
         raise e
     
                        
@@ -121,6 +126,7 @@ def insert_resumes(updatedResumes):
         if r["isUpdated"] == False:
             update_name.append((r["name"], r["id"]))
         else:
+            # resume with content updated or new resume will have isUpdated = True
             update_all.append([r["id"], r["name"], r["content"], False])
 
     # compute embedding for full update
@@ -169,6 +175,7 @@ def insert_resumes(updatedResumes):
     cursor.execute(delete_query, (ids,))
     conn.commit()
     
+    # return resumes that have full update
     return [r[0] for r in update_all]
 
 def update_job(updatedJob, descriptionUpdated, ws):

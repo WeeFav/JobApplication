@@ -5,8 +5,6 @@ import json
 import traceback
 import time
 import requests
-import threading
-from queue import Queue
 from insert import insert_jobs, insert_resumes, update_job
 import linkedin
 import jobright
@@ -18,35 +16,6 @@ app = flask.Flask(__name__)
 CORS(app)
 sock = Sock(app)
 
-def insert_jobs_ws(ws, jobs, source, isUpdate=False, data=None):
-    ws.send(json.dumps({"type": "insert", "start": True}))
-    
-    try:
-        if isUpdate:
-            new_ids = update_job(data['updatedJob'], data['descriptionUpdated'], ws)
-        else:
-            new_ids = insert_jobs(jobs, source, ws)
-        
-        ws.send(json.dumps({"type": "insert", "success": True}))                
-        return new_ids   
-    except Exception as e:
-        traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "fail": True}))                
-        ws.close()
-        
- 
-def recommend_jobs_ws(ws, new_ids):
-    ### Recommend ###       
-    ws.send(json.dumps({"type": "recommend", "start": True}))
-    
-    try:
-        recommend_by_job(new_ids)
-        ws.send(json.dumps({"type": "recommend", "success": True}))                
-    except Exception as e:
-        traceback.print_exc()
-        ws.send(json.dumps({"type": "recommend", "fail": True}))                
-        ws.close()    
- 
 
 @sock.route('/test')
 def test_ws(ws):
@@ -101,10 +70,10 @@ def ws_scrape_jobsite(ws):
         return
 
     ### Insert Jobs ###
-    new_ids = insert_jobs_ws(ws, jobs, source)
+    new_ids = insert_jobs(jobs, source, ws)
         
     ### Recommend Jobs ###
-    recommend_jobs_ws(ws, new_ids)
+    recommend_by_job(new_ids, ws)
 
           
 @sock.route('/scrape_url')
@@ -135,10 +104,10 @@ def ws_scrape_url(ws):
         return
         
     ### Insert Job ###
-    new_ids = insert_jobs_ws(ws, jobs, source)
+    new_ids = insert_jobs(jobs, source, ws)
     
     ### Recommend Jobs ###
-    recommend_jobs_ws(ws, new_ids)    
+    recommend_by_job(new_ids, ws)
     
     # add_application(new_ids[0])
 
@@ -152,10 +121,10 @@ def ws_manual_job(ws):
     source = data['type']
     
     ### Insert Job ###
-    new_ids = insert_jobs_ws(ws, jobs, source)
+    new_jobs = insert_jobs(jobs, source, ws)
     
     ### Recommend Job ###
-    recommend_jobs_ws(ws, new_ids)
+    recommend_by_job(new_jobs, ws)
     
     
 @sock.route('/update_job')
@@ -191,24 +160,7 @@ def ws_resumes(ws):
         
     ### Recommend ###
     if len(ids) > 0:
-        ws.send(json.dumps({"type": "recommend", "start": True}))
-        
-        try:
-            q = Queue()
-            t = threading.Thread(target=recommend_by_resume, args=(ids, q))
-            t.start()
-            
-            # Stream updates from queue to WebSocket
-            while True:
-                update = q.get()  # blocking wait
-                if "done" in update:
-                    break
-                ws.send(json.dumps({"type": "recommend", "update": True})) 
-            
-            ws.send(json.dumps({"type": "recommend", "success": True}))                
-        except Exception as e:
-            traceback.print_exc()
-            ws.send(json.dumps({"type": "recommend", "fail": True}))                
+        recommend_by_resume(ids, ws)
     
     ws.close()
    
