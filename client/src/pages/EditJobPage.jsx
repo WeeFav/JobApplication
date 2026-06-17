@@ -208,41 +208,41 @@ const updateJobHandler = async (updatedJob, prev_description, wsRef, setOpen, se
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "insert") {
-        if (msg.start) {
+        if (msg.action === "start") {
           console.log("start edit");
         }
-        else if (msg.postgres) {
+        else if (msg.action === "postgres") {
           setAlertMessage("Editing database");
           setAlertSeverity("info");
           setOpen(true);
         }
-        else if (msg.qdrant) {
+        else if (msg.action === "qdrant") {
           setAlertMessage("Editing qdrant");
           setAlertSeverity("info");
         }
-        else if (msg.success) {
+        else if (msg.action === "success") {
           console.log("Job edit success");
           setAlertMessage("Job edit success");
           setAlertSeverity("success");
         }
-        else if (msg.fail) {
+        else if (msg.action === "fail") {
           console.log("Job edit failed");
           setAlertMessage("Job edit failed");
           setAlertSeverity("error");
         }
       }
       else if (msg.type === "recommend") {
-        if (msg.start) {
+        if (msg.action === "start") {
           console.log("start recommend");
           setAlertMessage("Start recommend");
           setAlertSeverity("info");
         }
-        else if (msg.success) {
+        else if (msg.action === "success") {
           console.log("Recommend success");
           setAlertMessage("Recommend success");
           setAlertSeverity("success");
         }
-        else {
+        else if (msg.action === "fail") {
           console.log("Recommend failed");
           setAlertMessage("Recommend failed");
           setAlertSeverity("error");

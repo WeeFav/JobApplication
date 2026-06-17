@@ -99,6 +99,8 @@ def extract_keyword(description_extracted):
     if not description_extracted:
         return set(), set(), {}
         
+    print("extracting keyword")
+    
     structured_llm = llm.with_structured_output(JobKeywords)
     result = structured_llm.invoke(EXTRACTION_PROMPT.format(description=description_extracted))
     
@@ -109,12 +111,14 @@ def extract_keyword(description_extracted):
     return educations, majors, skills
 
 def embed_skills(skills: dict) -> dict:
+    print("embedding skills")
+
     skills_list = list(skills.keys())
     
     cursor.execute(
         """
         SELECT skill, embedding
-        FROM embedding
+        FROM embeddings
         WHERE skill = ANY(%s)
         """,
         (skills_list,)
@@ -140,6 +144,7 @@ def embed_skills(skills: dict) -> dict:
         # Insert new embeddings into Postgres
         insert_values = [(skill, emb.tolist()) for skill, emb in zip(missing_skills, new_embs)]
         execute_batch(
+            cursor,
             """
             INSERT INTO embeddings (skill, embedding) 
             VALUES (%s, %s) 
@@ -204,8 +209,9 @@ def compute_skill_embeddings_similarity(r_embeddings: dict, j_embeddings: dict, 
     
     
 def keyword_scoring(r_educations, r_majors, r_skills, r_embeddings, j_educations, j_majors, j_skills, j_embeddings):        
+    print("calculating keyword scores")
+    
     # Normalized keyword match
-    j_embeddings = embed_skills(j_skills)
     cosine_score = cosine_similarity_freq(r_skills, j_skills)
     jaccard_score = adjusted_jaccard(r_skills, j_skills)
     freq_score = (0.5 * cosine_score) + (0.5 * jaccard_score)    
@@ -230,7 +236,9 @@ def keyword_scoring(r_educations, r_majors, r_skills, r_embeddings, j_educations
 
 def recommend_by_job(new_jobs, ws):
     """Recommend caused by update in job"""
-    ws.send(json.dumps({"type": "recommend", "start": True}))
+    ws.send(json.dumps({"type": "recommend", "action": "start"}))
+    print(f"got {len(new_jobs)} to recommend")
+
     try:
         cursor.execute(f"""
             SELECT * FROM resumes
@@ -245,7 +253,7 @@ def recommend_by_job(new_jobs, ws):
             # query new jobs by resume embedding and filter by score
             results = client.query_points(
                 collection_name=collection_name,
-                query=ast.literal_eval(resume['embedding']),
+                query=ast.literal_eval(resume['embedding']) if isinstance(resume['embedding'], str) else resume['embedding'],
                 query_filter=Filter(
                     must=[
                         HasIdCondition(has_id=job_ids)
@@ -260,6 +268,8 @@ def recommend_by_job(new_jobs, ws):
             upsert_params = []
             delete_params = []
 
+            print(f"{resume['name']} have {len(recommended)} recommended jobs")
+
             if len(recommended) > 0:
                 r_embeddings = embed_skills(resume['skills'])
             
@@ -271,6 +281,12 @@ def recommend_by_job(new_jobs, ws):
                 # if recommended
                 if id in recommended:
                     j_educations, j_majors, j_skills = extract_keyword(description_extracted)
+                    cursor.execute("""
+                        UPDATE jobs
+                        SET educations = %s, majors = %s, skills = %s
+                        WHERE id = %s
+                    """, (list(j_educations), list(j_majors), json.dumps(j_skills), id))
+
                     j_embeddings = embed_skills(j_skills)
                     
                     freq_score, embed_score, edu_score, major_score = keyword_scoring(resume["educations"], resume["majors"], resume["skills"], r_embeddings, j_educations, j_majors, j_skills, j_embeddings)
@@ -304,39 +320,32 @@ def recommend_by_job(new_jobs, ws):
                 )                                  
             conn.commit()
             
-        ws.send(json.dumps({"type": "recommend", "success": True}))
+        ws.send(json.dumps({"type": "recommend", "action": "success"}))
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "recommend", "fail": True}))
+        ws.send(json.dumps({"type": "recommend", "action": "fail"}))
         ws.close()
         raise e
     
-def recommend_by_resume(ids, ws):
+def recommend_by_resume(resumes, ws):
     """Recommend caused by update in resume"""
-    ws.send(json.dumps({"type": "recommend", "start": True}))
+    ws.send(json.dumps({"type": "recommend", "action": "start"}))
+    print(f"got {len(resumes)} to recommend")
+
     try:
-        # get resumes with updated embedding
-        placeholders = ",".join(["%s"] * len(ids))
-        try:
-            cursor.execute(f"""
-                SELECT * FROM resumes
-                WHERE id IN ({placeholders})
-                """,
-                ids
-            )
-            updatedResumes = cursor.fetchall()
-        except Exception as e:
-            conn.rollback()
-            raise e
-            
-        # search for all jobs with score > 0.5 up to 30 days ago
-        thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat() # 30 days ago in Unix format
-        print(f"Recommend jobs up to {thirty_days_ago}")
+        cursor.execute(f"""
+            SELECT id, educations, majors, skills FROM jobs
+            """)
+        jobs = cursor.fetchall()
+
+        for resume in resumes:
+            # search for all jobs with score > 0.5 up to 30 days ago
+            thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat() # 30 days ago in Unix format
+            print(f"Recommend jobs up to {thirty_days_ago}")
     
-        for resume in updatedResumes:
             results = client.query_points(
                 collection_name=collection_name,
-                query=ast.literal_eval(resume['embedding']),
+                query=ast.literal_eval(resume['embedding']) if isinstance(resume['embedding'], str) else resume['embedding'],
                 query_filter=Filter(
                     must=[
                         FieldCondition(
@@ -359,44 +368,48 @@ def recommend_by_resume(ids, ws):
                 with_payload=True
             )
         
-            print(f"Resume ID {resume['id']}")
             
             recommended = {point.id: point.score for point in results.points}
             upsert_params = []
             delete_params = []
             
-            cursor.execute(f"""
-                SELECT id FROM jobs
-                """,
-            )
-            res = cursor.fetchall()
-            
-            ids = set([job['id'] for job in res])
-            
-            # evaluate every add/edit job
-            for job_id in ids:
+            print(f"{resume['name']} have {len(recommended)} recommended jobs")
+                        
+            # evaluate every job
+            for job in jobs:
+                id = job['id']
+
                 # if recommended
-                if job_id in recommended:
-                    upsert_params.append((job_id, resume['id'], 0, 0, 0, 0, recommended[job_id]))
+                if id in recommended:
+                    r_educations, r_majors, r_skills = extract_keyword(resume['content'])
+                    cursor.execute("""
+                        UPDATE resumes
+                        SET educations = %s, majors = %s, skills = %s
+                        WHERE id = %s
+                    """, (list(r_educations), list(r_majors), json.dumps(r_skills), resume['id']))
+                    
+                    r_embeddings = embed_skills(r_skills)
+                    freq_score, embed_score, edu_score, major_score = keyword_scoring(resume["educations"], resume["majors"], resume["skills"], r_embeddings, j_educations, j_majors, j_skills, j_embeddings)
+                    final_score = (0.4 *recommended[id]) + (0.2 * freq_score) + (0.3 * embed_score) + (0.05 * edu_score) + (0.05 * major_score)
+                    upsert_params.append((id, resume['id'], freq_score, embed_score, edu_score, major_score, final_score))
                 else:
-                    delete_params.append((job_id, resume['id']))
-            
-            # Stream updates to WebSocket
-            ws.send(json.dumps({"type": "recommend", "update": True}))
-            
+                    # this delete is for when a job is edited and no longer meets the score threshold
+                    delete_params.append((id, resume['id']))
+                        
             # upsert recommended                        
             if upsert_params:
                 execute_values(
                     cursor,
                     """
-                INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, final_score)
-                    VALUES %s
-                ON CONFLICT (job_id, resume_id)
-                DO UPDATE SET 
-                    similarity_score = EXCLUDED.similarity_score,
-                    keyword_score = EXCLUDED.keyword_score,
-                    embeddings_score = EXCLUDED.embeddings_score,
-                    final_score = EXCLUDED.final_score
+                    INSERT INTO recommendations (job_id, resume_id, keyword_score, embeddings_score, education_score, major_score, final_score)
+                        VALUES %s
+                    ON CONFLICT (job_id, resume_id)
+                    DO UPDATE SET 
+                        keyword_score = EXCLUDED.keyword_score,
+                        embeddings_score = EXCLUDED.embeddings_score,
+                        education_score = EXCLUDED.education_score,
+                        major_score = EXCLUDED.major_score,
+                        final_score = EXCLUDED.final_score
                     """,
                     upsert_params
                 )
@@ -414,11 +427,9 @@ def recommend_by_resume(ids, ws):
                 )                                  
             conn.commit()
             
-        ws.send(json.dumps({"type": "recommend", "success": True}))
+        ws.send(json.dumps({"type": "recommend", "action": "success"}))
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "recommend", "fail": True}))
+        ws.send(json.dumps({"type": "recommend", "action": "fail"}))
         ws.close()
         raise e
-    
-# [ScoredPoint(id=67, version=55, score=0.636933, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=65, version=53, score=0.62863946, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=66, version=54, score=0.6219132, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None), ScoredPoint(id=68, version=56, score=0.5946771, payload={'scrape_date': 1764892800}, vector=None, shard_key=None, order_value=None)]

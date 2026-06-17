@@ -75,81 +75,73 @@ def scrape(jobs_to_scrape, ws, type='recommend'):
     # pages = math.ceil(jobs_to_scrape / jobs_per_page)
     jobs = []
     
-    try:
-        with sync_playwright() as playwright:
-            # open browser and navigate to jobright
-            browser = playwright.chromium.launch(
-                channel="chrome",
-                headless=False,
-            )
-            context = browser.new_context(storage_state="auth/jobright_auth.json")
-            page = context.new_page()
+    with sync_playwright() as playwright:
+        # open browser and navigate to jobright
+        browser = playwright.chromium.launch(
+            channel="chrome",
+            headless=False,
+        )
+        context = browser.new_context(storage_state="auth/jobright_auth.json")
+        page = context.new_page()
 
-            page.goto(f"https://jobright.ai/jobs/{type}")
+        page.goto(f"https://jobright.ai/jobs/{type}")
+        
+        # scroll until all jobs are visible
+        scroll_locator = page.locator("div#scrollableDiv")
+        scroll_locator.wait_for()
+        job_list_locator = scroll_locator.locator("xpath=/div")
+        divs = job_list_locator.locator("xpath=/div")
+        
+        prev_index = -1
+        job_ids = []
+        
+        while prev_index + 1 < jobs_to_scrape:
+            time.sleep(2) # wait for jobs to load
+            for i in range(divs.count()):
+                div = divs.nth(i)
+                data_index = div.get_attribute("data-index")
+                if data_index and int(data_index) > prev_index and int(data_index) < jobs_to_scrape:
+                    job_id = div.locator("xpath=/div").get_attribute("id")
+                    print(data_index, job_id)
+                    job_ids.append(job_id)
+                    prev_index = int(data_index)                    
+            scroll_locator.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
+                    
+        # scape each job
+        for job_id in job_ids:
+            if jobs_to_scrape == 0:
+                break
+            page.goto(f"https://jobright.ai/jobs/info/{job_id}")   
+            job = extract_page(page)
+            jobs.append(job)
+            ws.send(json.dumps({"type": "scrape", "action": "update"}))
             
-            # scroll until all jobs are visible
-            scroll_locator = page.locator("div#scrollableDiv")
-            scroll_locator.wait_for()
-            job_list_locator = scroll_locator.locator("xpath=/div")
-            divs = job_list_locator.locator("xpath=/div")
-            
-            prev_index = -1
-            job_ids = []
-            
-            while prev_index + 1 < jobs_to_scrape:
-                time.sleep(2) # wait for jobs to load
-                for i in range(divs.count()):
-                    div = divs.nth(i)
-                    data_index = div.get_attribute("data-index")
-                    if data_index and int(data_index) > prev_index and int(data_index) < jobs_to_scrape:
-                        job_id = div.locator("xpath=/div").get_attribute("id")
-                        print(data_index, job_id)
-                        job_ids.append(job_id)
-                        prev_index = int(data_index)                    
-                scroll_locator.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
-                        
-            # scape each job
-            for job_id in job_ids:
-                if jobs_to_scrape == 0:
-                    break
-                page.goto(f"https://jobright.ai/jobs/info/{job_id}")   
-                job = extract_page(page)
-                jobs.append(job)
-                ws.send(json.dumps({"type": "scrape", "update": True}))
-                
-                jobs_to_scrape -= 1
-                print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
-            
-            context.close()
-            browser.close()     
-        return jobs
-    except Exception as e:
-        traceback.print_exc()
-        raise e 
+            jobs_to_scrape -= 1
+            print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
+        
+        context.close()
+        browser.close()     
+    return jobs
     
 def scrape_from_url(url):
-    try:
-        with sync_playwright() as playwright:     
-            # open browser and navigate to jobright
-            browser = playwright.chromium.launch(
-                channel="chrome",
-                headless=False,
-            )
-            context = browser.new_context(storage_state="auth/jobright_auth.json")
-            page = context.new_page()
+    with sync_playwright() as playwright:     
+        # open browser and navigate to jobright
+        browser = playwright.chromium.launch(
+            channel="chrome",
+            headless=False,
+        )
+        context = browser.new_context(storage_state="auth/jobright_auth.json")
+        page = context.new_page()
 
-            page.goto(url)
+        page.goto(url)
+    
+        job = extract_page(page)
         
-            job = extract_page(page)
-            
-            print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
-                                
-            context.close()
-            browser.close()
-        return job
-    except Exception as e:
-        traceback.print_exc()
-        raise e
+        print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
+                            
+        context.close()
+        browser.close()
+    return job
 
 if __name__ == '__main__':
     # get_auth()

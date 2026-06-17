@@ -94,59 +94,59 @@ const addJobHandler = async (url, wsRef, setOpen, setAlertMessage, setAlertSever
       const msg = JSON.parse(event.data);
 
       if (msg.type === "scrape") {
-        if (msg.start) {
+        if (msg.action === "start") {
           console.log("start scrape");
           setAlertMessage("Start scrape");
           setAlertSeverity("info");
           setOpen(true);
         }
-        else if (msg.success) {
+        else if (msg.action === "success") {
           console.log("Scrape success");
           setAlertMessage("Scrape success");
           setAlertSeverity("success");
         }
-        else if (msg.fail) {
+        else if (msg.action === "fail") {
           console.log("Scrape failed");
           setAlertMessage("Scrape failed");
           setAlertSeverity("error");
         }
       }
       else if (msg.type === "insert") {
-        if (msg.start) {
+        if (msg.action === "start") {
           console.log("start insert");
         }
-        else if (msg.postgres) {
+        else if (msg.action === "postgres") {
           setAlertMessage("Inserting into database");
           setAlertSeverity("info");
           setOpen(true);
         }
-        else if (msg.qdrant) {
+        else if (msg.action === "qdrant") {
           setAlertMessage("Inserting into qdrant");
           setAlertSeverity("info");
         }
-        else if (msg.success) {
+        else if (msg.action === "success") {
           console.log("Job insert success");
           setAlertMessage("Job insert success");
           setAlertSeverity("success");
         }
-        else if (msg.fail) {
+        else if (msg.action === "fail") {
           console.log("Job insert failed");
           setAlertMessage("Job insert failed");
           setAlertSeverity("error");
         }
       }
       else if (msg.type === "recommend") {
-        if (msg.start) {
+        if (msg.action === "start") {
           console.log("start recommend");
           setAlertMessage("Start recommend");
           setAlertSeverity("info");
         }
-        else if (msg.success) {
+        else if (msg.action === "success") {
           console.log("Recommend success");
           setAlertMessage("Recommend success");
           setAlertSeverity("success");
         }
-        else if (msg.fail) {
+        else if (msg.action === "fail") {
           console.log("Recommend failed");
           setAlertMessage("Recommend failed");
           setAlertSeverity("error");

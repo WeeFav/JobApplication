@@ -30,17 +30,15 @@ collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
 def insert_jobs(jobs: List[Dict], job_site, ws):
-    ws.send(json.dumps({"type": "insert", "start": True}))
+    ws.send(json.dumps({"type": "insert", "action": "start"}))
+    print(f"got {len(jobs)} jobs from {job_site}")
     new_jobs = []
 
-    print(f"got {len(jobs)} jobs from {job_site}")
-
     try:
-        print(job_site)
         df = pd.DataFrame(jobs) 
         
         for i in range(len(df)):
-            ws.send(json.dumps({"type": "insert", "postgres": True}))
+            ws.send(json.dumps({"type": "insert", "action": "postgres"}))
             
             # canonicalize url
             url_norm = canonicalize_url(df.iloc[i]['url'])
@@ -83,7 +81,7 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
             conn.commit()
             print(f"inserted into postgres")
             
-            ws.send(json.dumps({"type": "insert", "qdrant": True}))
+            ws.send(json.dumps({"type": "insert", "action": "qdrant"}))
             
             id, scrape_date = cursor.fetchone()
             
@@ -104,18 +102,16 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
             print(f"inserted into qdrant")
             
             new_jobs.append({"id": id, "description_extracted": description_extracted})
-            ws.send(json.dumps({"type": "insert", "update": True}))
-            
+            ws.send(json.dumps({"type": "insert", "action": "completed"}))
             print(f"processed job {i + 1}")
             
-        ws.send(json.dumps({"type": "insert", "success": True}))
+        ws.send(json.dumps({"type": "insert", "action": "success"}))
         return new_jobs
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "fail": True}))
+        ws.send(json.dumps({"type": "insert", "action": "fail"}))
         ws.close()
         raise e
-    
                        
 def insert_resumes(updatedResumes):
     update_name = []
@@ -128,6 +124,9 @@ def insert_resumes(updatedResumes):
         else:
             # resume with content updated or new resume will have isUpdated = True
             update_all.append([r["id"], r["name"], r["content"], False])
+
+    print(f"got {len(update_name)} name only updates")
+    print(f"got {len(update_all)} full updates")
 
     # compute embedding for full update
     embedding_model = TextEmbedding(model_name=model_name)    
@@ -175,13 +174,15 @@ def insert_resumes(updatedResumes):
     cursor.execute(delete_query, (ids,))
     conn.commit()
     
+    print(f"inserted into postgres")
+
     # return resumes that have full update
-    return [r[0] for r in update_all]
+    return [{"id": r[0], "name": r[1], "content": r[2], "embedding": r[4]} for r in update_all]
 
 def update_job(updatedJob, descriptionUpdated, ws):
     new_ids = []
     try:
-        ws.send(json.dumps({"type": "insert", "postgres": True}))
+        ws.send(json.dumps({"type": "insert", "action": "postgres"}))
         
         # canonicalize url
         url_norm = canonicalize_url(updatedJob['url'])
@@ -209,7 +210,7 @@ def update_job(updatedJob, descriptionUpdated, ws):
         conn.commit()
         
         if descriptionUpdated:
-            ws.send(json.dumps({"type": "insert", "qdrant": True}))
+            ws.send(json.dumps({"type": "insert", "action": "qdrant"}))
             point = models.PointStruct(
                 id=updatedJob['id'],
                 vector=models.Document(text=description_extracted, model=model_name),
@@ -223,7 +224,7 @@ def update_job(updatedJob, descriptionUpdated, ws):
                 points=[point]
             )
             new_ids.append(updatedJob['id'])
-            ws.send(json.dumps({"type": "insert", "update": True}))
+            ws.send(json.dumps({"type": "insert", "action": "update"}))
         
         return new_ids
     except Exception as e:

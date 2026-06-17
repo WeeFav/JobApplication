@@ -9,6 +9,9 @@ CREATE TABLE jobs (
     url TEXT NOT NULL,
     description TEXT,
     description_extracted TEXT,
+    educations TEXT[],
+    majors TEXT[],
+    skills JSONB;
 );
 
 CREATE TABLE applications (
@@ -44,7 +47,15 @@ CREATE TABLE resumes (
   name VARCHAR(150) NOT NULL,
   content TEXT NOT NULL,
   isUpdated BOOLEAN NOT NULL DEFAULT true,
-  embedding vector(768) NOT NULL
+  embedding vector(768) NOT NULL,
+  educations TEXT[],
+  majors TEXT[],
+  skills JSONB
+);
+
+CREATE TABLE embeddings (
+  skill TEXT PRIMARY KEY,
+  embedding TEXT NOT NULL
 );
 
 

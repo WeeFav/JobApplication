@@ -121,53 +121,53 @@ const scrapeHandler = async (scrapeInfo, wsRef, setScrapeNum, setIsScraping, set
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
     if (msg.type === "scrape") {
-      if (msg.start) {
+      if (msg.action === "start") {
         console.log("start scrape");
         setIsScraping(true);
       }
-      else if (msg.update) {
+      else if (msg.action === "update") {
         scrapeNum++;
         setScrapeNum(scrapeNum);
         console.log(`${scrapeNum} jobs scraped`);
       }
-      else if (msg.success) {
+      else if (msg.action === "success") {
         console.log("Job scrape success");
         setIsScraping(false);
       }
-      else if (msg.fail) {
+      else if (msg.action === "fail") {
         console.log("Job scrape failed");
         setIsScraping(false);
       }
     }
     else if (msg.type === "insert") {
-      if (msg.start) {
+      if (msg.action === "start") {
         console.log("start insert");
         setIsInserting(true);
       }
-      else if (msg.update) {
+      else if (msg.action === "update" || msg.action === "completed") {
         insertNum++;
         setInsertNum(insertNum);
         console.log(`${insertNum} jobs inserted`);
       }
-      else if (msg.success) {
+      else if (msg.action === "success") {
         console.log("Job insert success");
         setIsInserting(false);
       }
-      else if (msg.fail) {
+      else if (msg.action === "fail") {
         console.log("Job insert failed");
         setIsInserting(false);
       }
     }
     else if (msg.type === "recommend") {
-      if (msg.start) {
+      if (msg.action === "start") {
         console.log("start recommend");
         setIsRecommending(true);
       }
-      else if (msg.success) {
+      else if (msg.action === "success") {
         console.log("Recommend success");
         setIsRecommending(false);
       }
-      else if (msg.fail) {
+      else if (msg.action === "fail") {
         console.log("Recommend failed");
         setIsRecommending(false);
       }

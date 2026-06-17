@@ -16,34 +16,6 @@ app = flask.Flask(__name__)
 CORS(app)
 sock = Sock(app)
 
-
-@sock.route('/test')
-def test_ws(ws):
-    raw = ws.receive()
-    data = json.loads(raw)
-    
-    ws.send(json.dumps({"type": "scrape", "start": True}))
-    time.sleep(1)
-    for i in range(5):
-        ws.send(json.dumps({"type": "scrape", "update": True}))
-        time.sleep(1) 
-    ws.send(json.dumps({"type": "scrape", "success": True}))                
-    
-    ws.send(json.dumps({"type": "insert", "start": True}))
-    time.sleep(1)
-    for i in range(5):
-        ws.send(json.dumps({"type": "insert", "update": True}))
-        time.sleep(1) 
-    ws.send(json.dumps({"type": "insert", "success": True}))                
-     
-    ws.send(json.dumps({"type": "recommend", "start": True}))
-    time.sleep(1)
-    for i in range(5):
-        ws.send(json.dumps({"type": "recommend", "update": True}))
-        time.sleep(1) 
-    ws.send(json.dumps({"type": "recommend", "success": True}))                
-    
-    ws.close()
   
 @sock.route('/scrape_jobsite')
 def ws_scrape_jobsite(ws):
@@ -51,7 +23,7 @@ def ws_scrape_jobsite(ws):
     data = json.loads(raw)
     
     ### Scrape Jobsite ###
-    ws.send(json.dumps({"type": "scrape", "start": True}))
+    ws.send(json.dumps({"type": "scrape", "action": "start"}))
     source = data['jobsite']
     
     try:
@@ -62,11 +34,12 @@ def ws_scrape_jobsite(ws):
         else:
             raise NotImplementedError  
         
-        ws.send(json.dumps({"type": "scrape", "success": True}))                
+        ws.send(json.dumps({"type": "scrape", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "scrape", "fail": True}))                
+        ws.send(json.dumps({"type": "scrape", "action": "fail"}))                
         ws.close()    
+        raise e
         return
 
     ### Insert Jobs ###
@@ -84,7 +57,7 @@ def ws_scrape_url(ws):
     url = data['url']
     source = extract_source_from_url(url)
     
-    ws.send(json.dumps({"type": "scrape", "start": True}))
+    ws.send(json.dumps({"type": "scrape", "action": "start"}))
             
     ### Scrape URL ###
     try:
@@ -96,11 +69,12 @@ def ws_scrape_url(ws):
             raise NotImplementedError  
         
         jobs = [job]
-        ws.send(json.dumps({"type": "scrape", "success": True}))                
+        ws.send(json.dumps({"type": "scrape", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "scrape", "fail": True}))                
+        ws.send(json.dumps({"type": "scrape", "action": "fail"}))                
         ws.close()
+        raise e
         return
         
     ### Insert Job ###
@@ -108,9 +82,8 @@ def ws_scrape_url(ws):
     
     ### Recommend Jobs ###
     recommend_by_job(new_ids, ws)
-    
-    # add_application(new_ids[0])
 
+    ws.close()
 
 @sock.route('/manual_job')
 def ws_manual_job(ws):
@@ -127,19 +100,19 @@ def ws_manual_job(ws):
     recommend_by_job(new_jobs, ws)
     
     
-@sock.route('/update_job')
-def ws_update_job(ws):
-    raw = ws.receive()
-    data = json.loads(raw)
+# @sock.route('/update_job')
+# def ws_update_job(ws):
+#     raw = ws.receive()
+#     data = json.loads(raw)
         
-    ### Update Job ###
-    new_ids = insert_jobs_ws(ws, None, None, isUpdate=True, data=data)
+#     ### Update Job ###
+#     new_ids = insert_jobs_ws(ws, None, None, isUpdate=True, data=data)
     
-    if not data['descriptionUpdated']:
-        ws.close()
+#     if not data['descriptionUpdated']:
+#         ws.close()
     
-    ### Recommend Job ###
-    recommend_jobs_ws(ws, new_ids)    
+#     ### Recommend Job ###
+#     recommend_jobs_ws(ws, new_ids)    
 
 
 @sock.route('/resumes')
@@ -148,19 +121,21 @@ def ws_resumes(ws):
     updatedResumes = json.loads(raw)
     
     ### Insert Resume ###
-    ws.send(json.dumps({"type": "insert", "start": True}))
+    ws.send(json.dumps({"type": "insert", "action": "start"}))
     
     try:
-        ids = insert_resumes(updatedResumes)        
-        ws.send(json.dumps({"type": "insert", "success": True}))                
+        resumes = insert_resumes(updatedResumes)        
+        ws.send(json.dumps({"type": "insert", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "fail": True}))                
+        ws.send(json.dumps({"type": "insert", "action": "fail"}))                
         ws.close()
+        raise e
+        return
         
     ### Recommend ###
-    if len(ids) > 0:
-        recommend_by_resume(ids, ws)
+    if len(resumes) > 0:
+        recommend_by_resume(resumes, ws)
     
     ws.close()
    

@@ -215,35 +215,35 @@ const updateResumes = (updatedResumes, wsRef, setOpen, setAlertMessage, setAlert
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "insert") {
-        if (msg.start) {
+        if (msg.action === "start") {
           console.log("start insert");
           setAlertMessage("Inserting resume");
           setAlertSeverity("info");
           setOpen(true);
         }
-        else if (msg.success) {
+        else if (msg.action === "success") {
           console.log("insert success");
           setAlertMessage("Resume insert success");
           setAlertSeverity("success");
         }
-        else {
+        else if (msg.action === "fail") {
           console.log("insert failed");
           setAlertMessage("Resume insert fail");
           setAlertSeverity("error");
         }
       }
       else if (msg.type === "recommend") {
-        if (msg.start) {
+        if (msg.action === "start") {
           console.log("start recommend");
           setAlertMessage("Start recommend");
           setAlertSeverity("info");
         }
-        else if (msg.success) {
+        else if (msg.action === "success") {
           console.log("recommend success");
           setAlertMessage("Recommend success");
           setAlertSeverity("success");
         }
-        else {
+        else if (msg.action === "fail") {
           console.log("recommend failed");
           setAlertMessage("Recommend fail");
           setAlertSeverity("error");
