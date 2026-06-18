@@ -134,8 +134,8 @@ def ws_resumes(ws):
         return
         
     ### Recommend ###
-    if len(resumes) > 0:
-        recommend_by_resume(resumes, ws)
+    # if len(resumes) > 0:
+    #     recommend_by_resume(resumes, ws)
     
     ws.close()
    

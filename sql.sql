@@ -11,7 +11,8 @@ CREATE TABLE jobs (
     description_extracted TEXT,
     educations TEXT[],
     majors TEXT[],
-    skills JSONB;
+    skills JSONB,
+    raw_skills TEXT[]
 );
 
 CREATE TABLE applications (
@@ -50,7 +51,8 @@ CREATE TABLE resumes (
   embedding vector(768) NOT NULL,
   educations TEXT[],
   majors TEXT[],
-  skills JSONB
+  skills JSONB,
+  raw_skills TEXT[]
 );
 
 CREATE TABLE embeddings (

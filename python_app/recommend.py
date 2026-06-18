@@ -23,6 +23,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 from typing import List
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.util import cos_sim
 load_dotenv()
 
 llm = ChatGoogleGenerativeAI(
@@ -65,18 +66,20 @@ client = QdrantClient("http://qdrant:6333")
 collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
-ner_model = "ner_models/7_28"
 nltk.download('stopwords')
+nltk.download('punkt_tab')
 stop_words = set(stopwords.words("english"))
 
-# with open("skills_abbreviations.json", "r", encoding="utf-8") as f:
-#     skills_abbreviations = json.load(f)
-# with open("education_abbreviations.json", "r", encoding="utf-8") as f:
-#     education_abbreviations = json.load(f)
+with open("skills_abbreviations.json", "r", encoding="utf-8") as f:
+    skills_abbreviations = json.load(f)
+with open("education_abbreviations.json", "r", encoding="utf-8") as f:
+    education_abbreviations = json.load(f)
     
 def normalize(text: str, abbr):
     # lowercase
     text = text.lower()
+    # protect c++ and c#
+    text = text.replace("c++", "cplusplus").replace("c#", "csharp")
     # remove punctuation
     text = text.translate(str.maketrans('', '', string.punctuation))
     
@@ -92,23 +95,55 @@ def normalize(text: str, abbr):
             continue
         nomralized_tokens.append(token)
     
-    
     return " ".join(nomralized_tokens)    
 
 def extract_keyword(description_extracted):
     if not description_extracted:
-        return set(), set(), {}
+        return set(), set(), {}, set()
         
     print("extracting keyword")
     
     structured_llm = llm.with_structured_output(JobKeywords)
     result = structured_llm.invoke(EXTRACTION_PROMPT.format(description=description_extracted))
     
-    educations = set(result.educations)
-    majors = set(result.majors)
-    skills = {skill: 1 for skill in result.skills}
+    # Merge abbreviations
+    abbr = {**skills_abbreviations, **education_abbreviations}
     
-    return educations, majors, skills
+    # Normalize description
+    normalized_desc = normalize(description_extracted, abbr)
+    desc_tokens = normalized_desc.split()
+    
+    # Normalize educations and majors
+    educations = set()
+    for edu in result.educations:
+        norm_edu = normalize(edu, abbr)
+        if norm_edu:
+            educations.add(norm_edu)
+            
+    majors = set()
+    for major in result.majors:
+        norm_major = normalize(major, abbr)
+        if norm_major:
+            majors.add(norm_major)
+            
+    # Normalize and count skills in description_extracted
+    skills = {}
+    for skill in result.skills:
+        normalized_skill = normalize(skill, abbr)
+        if not normalized_skill:
+            continue
+        
+        skill_tokens = normalized_skill.split()
+        count = 0
+        n = len(skill_tokens)
+        if n > 0:
+            for i in range(len(desc_tokens) - n + 1):
+                if desc_tokens[i:i+n] == skill_tokens:
+                    count += 1
+        
+        skills[normalized_skill] = max(count, 1)
+        
+    return educations, majors, skills, set(result.skills)
 
 def embed_skills(skills: dict) -> dict:
     print("embedding skills")
@@ -129,7 +164,11 @@ def embed_skills(skills: dict) -> dict:
     
     # cached skill embeddings
     for skill, embedding in rows:
-        embeddings[skill] = np.array(json.loads(embedding), dtype=float)
+        if embedding.startswith('{') and embedding.endswith('}'):
+            emb_list = [float(x) for x in embedding[1:-1].split(',')]
+        else:
+            emb_list = json.loads(embedding)
+        embeddings[skill] = np.array(emb_list, dtype=float)
         
     # compute missing skill embeddings
     missing_skills = [skill for skill in skills_list if skill not in embeddings]
@@ -142,7 +181,7 @@ def embed_skills(skills: dict) -> dict:
             embeddings[skill] = emb
                 
         # Insert new embeddings into Postgres
-        insert_values = [(skill, emb.tolist()) for skill, emb in zip(missing_skills, new_embs)]
+        insert_values = [(skill, json.dumps(emb.tolist())) for skill, emb in zip(missing_skills, new_embs)]
         execute_batch(
             cursor,
             """
@@ -280,12 +319,12 @@ def recommend_by_job(new_jobs, ws):
                 
                 # if recommended
                 if id in recommended:
-                    j_educations, j_majors, j_skills = extract_keyword(description_extracted)
+                    j_educations, j_majors, j_skills, j_raw_skills = extract_keyword(description_extracted)
                     cursor.execute("""
                         UPDATE jobs
-                        SET educations = %s, majors = %s, skills = %s
+                        SET educations = %s, majors = %s, skills = %s, raw_skills = %s
                         WHERE id = %s
-                    """, (list(j_educations), list(j_majors), json.dumps(j_skills), id))
+                    """, (list(j_educations), list(j_majors), json.dumps(j_skills), list(j_raw_skills), id))
 
                     j_embeddings = embed_skills(j_skills)
                     
@@ -375,20 +414,22 @@ def recommend_by_resume(resumes, ws):
             
             print(f"{resume['name']} have {len(recommended)} recommended jobs")
                         
+            r_educations, r_majors, r_skills, r_raw_skills = extract_keyword(resume['content'])
+            cursor.execute("""
+                UPDATE resumes
+                SET educations = %s, majors = %s, skills = %s, raw_skills = %s
+                WHERE id = %s
+            """, (list(r_educations), list(r_majors), json.dumps(r_skills), list(r_raw_skills), resume['id']))
+            print(f"Updated resume {resume['name']} with educations: {r_educations}, majors: {r_majors}, skills: {r_skills}")
+            
+            r_embeddings = embed_skills(r_skills)
+
             # evaluate every job
             for job in jobs:
                 id = job['id']
 
                 # if recommended
                 if id in recommended:
-                    r_educations, r_majors, r_skills = extract_keyword(resume['content'])
-                    cursor.execute("""
-                        UPDATE resumes
-                        SET educations = %s, majors = %s, skills = %s
-                        WHERE id = %s
-                    """, (list(r_educations), list(r_majors), json.dumps(r_skills), resume['id']))
-                    
-                    r_embeddings = embed_skills(r_skills)
                     freq_score, embed_score, edu_score, major_score = keyword_scoring(resume["educations"], resume["majors"], resume["skills"], r_embeddings, j_educations, j_majors, j_skills, j_embeddings)
                     final_score = (0.4 *recommended[id]) + (0.2 * freq_score) + (0.3 * embed_score) + (0.05 * edu_score) + (0.05 * major_score)
                     upsert_params.append((id, resume['id'], freq_score, embed_score, edu_score, major_score, final_score))

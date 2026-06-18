@@ -64,6 +64,11 @@ const ResumeTab = () => {
     );
   };
 
+  const normalizeNewlines = (str) => {
+    if (typeof str !== 'string') return '';
+    return str.replace(/\r\n/g, '\n');
+  };
+
   const detectUpdatedResumes = (current, snapshot) => {
     return current.map(r => {
       const old = snapshot.find(s => s.id === r.id);
@@ -74,11 +79,11 @@ const ResumeTab = () => {
       }
 
       // Content changed → mark as updated
-      if (old.content !== r.content) {
+      if (normalizeNewlines(old.content) !== normalizeNewlines(r.content)) {
         return { ...r, isUpdated: true };
       }
 
-      // No change → keep isUpdate as false
+      // No change → keep isUpdated as false
       return { ...r, isUpdated: false };
     });
   };
@@ -86,6 +91,8 @@ const ResumeTab = () => {
   const onSaveClick = async () => {
     const updatedResumes = detectUpdatedResumes(resumes, savedSnapshot);
     await updateResumes(updatedResumes, wsRef, setOpen, setAlertMessage, setAlertSeverity);
+    // Sync the snapshot with the saved state
+    setSavedSnapshot(resumes.map(r => ({ ...r, isUpdated: false })));
   }
 
   const activeResume = resumes.find((r) => r.id === activeId);
@@ -195,9 +202,20 @@ API
 const loadResumes = async (setResumes, setLoading, setSavedSnapshot, setActiveId) => {
   const res = await fetch('/server_api/resumes');
   const data = await res.json();
-  setResumes(data);
-  setActiveId(data[0].id);
-  setSavedSnapshot(data);
+  
+  // Normalize keys to camelCase
+  const normalizedData = data.map(r => ({
+    id: r.id,
+    name: r.name,
+    content: r.content,
+    isUpdated: r.isupdated !== undefined ? r.isupdated : r.isUpdated
+  }));
+  
+  setResumes(normalizedData);
+  if (normalizedData.length > 0) {
+    setActiveId(normalizedData[0].id);
+  }
+  setSavedSnapshot(JSON.parse(JSON.stringify(normalizedData)));
   setLoading(false);
 };
 
