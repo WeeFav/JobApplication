@@ -34,16 +34,14 @@ llm = ChatGoogleGenerativeAI(
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 class JobKeywords(BaseModel):
-    educations: List[str] = Field(description="Education levels required or preferred. E.g., Bachelor’s Degree, Master’s, PhD")
     majors: List[str] = Field(description="Academic majors or fields of study required or preferred. E.g., Computer Engineering, Computer Science")
     skills: List[str] = Field(description="Technical skills, technologies, concepts, tools, and methodologies required or preferred. E.g., python, c, c++, Generative AI, llm, machine learning, pytorch, deep learning, real time operating systems (RTOS), UART, I2C")
 
 EXTRACTION_PROMPT = """You are an expert recruiter and technical analyst.
-Analyze the following job description and extract the requirements into three categories:
+Analyze the following job description and extract the requirements into two categories:
 
-1. Educations: The level of education required or preferred. Examples include: Bachelor’s Degree, Master’s, PhD.
-2. Majors: Academic fields of study or majors required or preferred. Examples include: Computer Engineering, Computer Science, Electrical Engineering, etc.
-3. Skills: Technical skills, programming languages, technologies, concepts, tools, and methodologies. Examples include: python, c, c++, Generative AI, llm, machine learning, pytorch, deep learning, real time operating systems (RTOS), UART, I2C, etc.
+1. Majors: Academic fields of study or majors required or preferred. Examples include: Computer Engineering, Computer Science, Electrical Engineering, etc.
+2. Skills: Technical skills, programming languages, technologies, concepts, tools, and methodologies. Examples include: python, c, c++, Generative AI, llm, machine learning, pytorch, deep learning, real time operating systems (RTOS), UART, I2C, etc.
 
 Rules:
 - Do NOT modify the original wording, only extract.
@@ -99,7 +97,7 @@ def normalize(text: str, abbr):
 
 def extract_keyword(description_extracted):
     if not description_extracted:
-        return set(), set(), {}, set()
+        return set(), {}, set()
         
     print("extracting keyword")
     
@@ -112,14 +110,8 @@ def extract_keyword(description_extracted):
     # Normalize description
     normalized_desc = normalize(description_extracted, abbr)
     desc_tokens = normalized_desc.split()
-    
-    # Normalize educations and majors
-    educations = set()
-    for edu in result.educations:
-        norm_edu = normalize(edu, abbr)
-        if norm_edu:
-            educations.add(norm_edu)
-            
+
+    # Normalize majors
     majors = set()
     for major in result.majors:
         norm_major = normalize(major, abbr)
@@ -143,7 +135,7 @@ def extract_keyword(description_extracted):
         
         skills[normalized_skill] = max(count, 1)
         
-    return educations, majors, skills, set(result.skills)
+    return majors, skills, set(result.skills)
 
 def embed_skills(skills: dict) -> dict:
     print("embedding skills")
@@ -247,7 +239,7 @@ def compute_skill_embeddings_similarity(r_embeddings: dict, j_embeddings: dict, 
     return final_score.item()             
     
     
-def keyword_scoring(r_educations, r_majors, r_skills, r_embeddings, j_educations, j_majors, j_skills, j_embeddings):        
+def keyword_scoring(r_majors, r_skills, r_embeddings, j_majors, j_skills, j_embeddings):        
     print("calculating keyword scores")
     
     # Normalized keyword match
@@ -257,12 +249,6 @@ def keyword_scoring(r_educations, r_majors, r_skills, r_embeddings, j_educations
 
     # Embedding similarity (pairwise similarity matrix using sentence_transformers.util.cos_sim)
     embed_score = compute_skill_embeddings_similarity(r_embeddings, j_embeddings, r_skills, j_skills)
-    
-    # Education match
-    if len(j_educations) > 0 and len(j_educations.intersection(r_educations)) == 0:
-        edu_score = 0
-    else:
-        edu_score = 1
         
     # Major match
     if len(j_majors) > 0 and len(j_majors.intersection(r_majors)) == 0:
@@ -270,7 +256,7 @@ def keyword_scoring(r_educations, r_majors, r_skills, r_embeddings, j_educations
     else:
         major_score = 1
     
-    return freq_score, embed_score, edu_score, major_score
+    return freq_score, embed_score, major_score
 
 
 def recommend_by_job(new_jobs, ws):
@@ -319,18 +305,24 @@ def recommend_by_job(new_jobs, ws):
                 
                 # if recommended
                 if id in recommended:
-                    j_educations, j_majors, j_skills, j_raw_skills = extract_keyword(description_extracted)
+                    j_majors, j_skills, j_raw_skills = extract_keyword(description_extracted)
                     cursor.execute("""
                         UPDATE jobs
-                        SET educations = %s, majors = %s, skills = %s, raw_skills = %s
+                        SET majors = %s, skills = %s, raw_skills = %s
                         WHERE id = %s
-                    """, (list(j_educations), list(j_majors), json.dumps(j_skills), list(j_raw_skills), id))
+                    """, (list(j_majors), json.dumps(j_skills), list(j_raw_skills), id))
 
                     j_embeddings = embed_skills(j_skills)
                     
-                    freq_score, embed_score, edu_score, major_score = keyword_scoring(resume["educations"], resume["majors"], resume["skills"], r_embeddings, j_educations, j_majors, j_skills, j_embeddings)
-                    final_score = (0.4 *recommended[id]) + (0.2 * freq_score) + (0.3 * embed_score) + (0.05 * edu_score) + (0.05 * major_score)
-                    upsert_params.append((id, resume['id'], freq_score, embed_score, edu_score, major_score, final_score))
+                    r_majors = set(resume["majors"]) if resume["majors"] else set()
+                    r_skills = resume["skills"] if resume["skills"] else {}
+                    
+                    freq_score, embed_score, major_score = keyword_scoring(
+                        r_majors, r_skills, r_embeddings,
+                        j_majors, j_skills, j_embeddings
+                    )
+                    final_score = (0.4 * recommended[id]) + (0.2 * freq_score) + (0.3 * embed_score) + (0.1 * major_score)
+                    upsert_params.append((id, resume['id'], recommended[id], freq_score, embed_score, major_score, final_score))
                 else:
                     # this delete is for when a job is edited and no longer meets the score threshold
                     delete_params.append((id, resume['id']))
@@ -340,7 +332,7 @@ def recommend_by_job(new_jobs, ws):
                 execute_values(
                     cursor,
                     """
-                    INSERT INTO recommendations (job_id, resume_id, keyword_score, embeddings_score, education_score, major_score, final_score)
+                    INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, major_score, final_score)
                     VALUES %s
                     """,
                     upsert_params
@@ -373,7 +365,7 @@ def recommend_by_resume(resumes, ws):
 
     try:
         cursor.execute(f"""
-            SELECT id, educations, majors, skills FROM jobs
+            SELECT id, majors, skills FROM jobs
             """)
         jobs = cursor.fetchall()
 
@@ -394,7 +386,7 @@ def recommend_by_resume(resumes, ws):
                                 gte=thirty_days_ago,
                                 lt=None,
                                 lte=None,
-                            ),
+                             ),
                         ),
                         FieldCondition(
                             key="applied",
@@ -414,13 +406,13 @@ def recommend_by_resume(resumes, ws):
             
             print(f"{resume['name']} have {len(recommended)} recommended jobs")
                         
-            r_educations, r_majors, r_skills, r_raw_skills = extract_keyword(resume['content'])
+            r_majors, r_skills, r_raw_skills = extract_keyword(resume['content'])
             cursor.execute("""
                 UPDATE resumes
-                SET educations = %s, majors = %s, skills = %s, raw_skills = %s
+                SET majors = %s, skills = %s, raw_skills = %s
                 WHERE id = %s
-            """, (list(r_educations), list(r_majors), json.dumps(r_skills), list(r_raw_skills), resume['id']))
-            print(f"Updated resume {resume['name']} with educations: {r_educations}, majors: {r_majors}, skills: {r_skills}")
+            """, (list(r_majors), json.dumps(r_skills), list(r_raw_skills), resume['id']))
+            print(f"Updated resume {resume['name']} with majors: {r_majors}, skills: {r_skills}")
             
             r_embeddings = embed_skills(r_skills)
 
@@ -430,9 +422,16 @@ def recommend_by_resume(resumes, ws):
 
                 # if recommended
                 if id in recommended:
-                    freq_score, embed_score, edu_score, major_score = keyword_scoring(resume["educations"], resume["majors"], resume["skills"], r_embeddings, j_educations, j_majors, j_skills, j_embeddings)
-                    final_score = (0.4 *recommended[id]) + (0.2 * freq_score) + (0.3 * embed_score) + (0.05 * edu_score) + (0.05 * major_score)
-                    upsert_params.append((id, resume['id'], freq_score, embed_score, edu_score, major_score, final_score))
+                    j_majors = set(job['majors']) if job['majors'] else set()
+                    j_skills = job['skills'] if job['skills'] else {}
+                    j_embeddings = embed_skills(j_skills)
+                    
+                    freq_score, embed_score, major_score = keyword_scoring(
+                        r_majors, r_skills, r_embeddings,
+                        j_majors, j_skills, j_embeddings
+                    )
+                    final_score = (0.4 * recommended[id]) + (0.2 * freq_score) + (0.3 * embed_score) + (0.1 * major_score)
+                    upsert_params.append((id, resume['id'], recommended[id], freq_score, embed_score, major_score, final_score))
                 else:
                     # this delete is for when a job is edited and no longer meets the score threshold
                     delete_params.append((id, resume['id']))
@@ -442,13 +441,13 @@ def recommend_by_resume(resumes, ws):
                 execute_values(
                     cursor,
                     """
-                    INSERT INTO recommendations (job_id, resume_id, keyword_score, embeddings_score, education_score, major_score, final_score)
+                    INSERT INTO recommendations (job_id, resume_id, similarity_score, keyword_score, embeddings_score, major_score, final_score)
                         VALUES %s
                     ON CONFLICT (job_id, resume_id)
                     DO UPDATE SET 
+                        similarity_score = EXCLUDED.similarity_score,
                         keyword_score = EXCLUDED.keyword_score,
                         embeddings_score = EXCLUDED.embeddings_score,
-                        education_score = EXCLUDED.education_score,
                         major_score = EXCLUDED.major_score,
                         final_score = EXCLUDED.final_score
                     """,

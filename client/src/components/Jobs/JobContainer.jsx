@@ -29,7 +29,7 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
 
   const onSearchClick = async (jobTitle, company) => {
     setLoading(true);
-    setJobs(await searchJobHandler(jobTitle, company));
+    setJobs(await searchJobHandler(jobTitle, company, activeId));
     setLoading(false);
   }; 
 

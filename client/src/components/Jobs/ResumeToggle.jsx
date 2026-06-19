@@ -10,6 +10,12 @@ const ResumeToggle = ({activeId, setActiveId}) => {
     loadResumes(setResumes, setLoading);
   }, []);
 
+  useEffect(() => {
+    if (resumes.length > 0 && (activeId === 0 || !resumes.some(r => r.id === activeId))) {
+      setActiveId(resumes[0].id);
+    }
+  }, [resumes, activeId, setActiveId]);
+
   return (
     <>
       {loading ? <></> :

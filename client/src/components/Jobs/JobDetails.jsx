@@ -2,6 +2,92 @@ import React, { useState, useEffect } from "react";
 import ScrollToTop from "../ScrollToTop";
 import { NavLink, useNavigate } from "react-router-dom";
 
+const findSkillMatches = (text, skills) => {
+  if (!text || !skills || skills.length === 0) return [];
+  
+  // Sort skills by length descending to match longest first
+  const sortedSkills = [...skills]
+    .filter(s => s && s.trim().length > 0)
+    .sort((a, b) => b.length - a.length);
+    
+  const matches = [];
+  const lowerText = text.toLowerCase();
+  
+  for (const skill of sortedSkills) {
+    const lowerSkill = skill.toLowerCase();
+    let index = lowerText.indexOf(lowerSkill);
+    
+    while (index !== -1) {
+      const end = index + skill.length;
+      
+      // Boundary check: preceding and following characters should not be alphanumeric
+      const precedingChar = index > 0 ? text[index - 1] : '';
+      const followingChar = end < text.length ? text[end] : '';
+      
+      const isPrecedingBoundary = !/[a-zA-Z0-9]/.test(precedingChar);
+      const isFollowingBoundary = !/[a-zA-Z0-9]/.test(followingChar);
+      
+      if (isPrecedingBoundary && isFollowingBoundary) {
+        // Check overlap with existing matches
+        const hasOverlap = matches.some(m => 
+          (index >= m.start && index < m.end) || 
+          (end > m.start && end <= m.end) || 
+          (index <= m.start && end >= m.end)
+        );
+        
+        if (!hasOverlap) {
+          matches.push({
+            start: index,
+            end: end,
+            skill: skill,
+            matchedText: text.substring(index, end)
+          });
+        }
+      }
+      
+      index = lowerText.indexOf(lowerSkill, index + 1);
+    }
+  }
+  
+  // Sort matches by start index ascending
+  return matches.sort((a, b) => a.start - b.start);
+};
+
+const renderHighlightedContent = (text, matches) => {
+  if (!text) return "";
+  if (!matches || matches.length === 0) return text;
+  
+  const elements = [];
+  let lastIndex = 0;
+  
+  matches.forEach((match, idx) => {
+    // Add text before the match
+    if (match.start > lastIndex) {
+      elements.push(text.substring(lastIndex, match.start));
+    }
+    
+    // Add the highlighted match
+    elements.push(
+      <span
+        key={`match-${idx}`}
+        className="inline-block border border-website-gold bg-amber-50 text-website-darkGold px-1 rounded mx-0.5 font-semibold shadow-sm hover:bg-amber-100 transition-colors"
+        title={`Skill: ${match.skill}`}
+      >
+        {match.matchedText}
+      </span>
+    );
+    
+    lastIndex = match.end;
+  });
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    elements.push(text.substring(lastIndex));
+  }
+  
+  return elements;
+};
+
 const JobDetails = ({ job, handleDelete }) => {
   const [applied, setApplied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,7 +157,14 @@ const JobDetails = ({ job, handleDelete }) => {
 
       {/* Description */}
       <p className="text-gray-800 leading-relaxed mb-6 whitespace-pre-line">
-        {job.description_extracted || "No description available."}
+        {job.description_extracted ? (
+          renderHighlightedContent(
+            job.description_extracted,
+            findSkillMatches(job.description_extracted, job.raw_skills || [])
+          )
+        ) : (
+          "No description available."
+        )}
       </p>
 
       {/* Edit + Delete Buttons */}

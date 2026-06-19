@@ -114,7 +114,7 @@ export async function get_applications(search) {
   }
 
   let query = `
-    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, application_date 
+    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, jobs.raw_skills, application_date 
     FROM applications
     INNER JOIN jobs
     ON applications.job_id = jobs.id
@@ -157,6 +157,11 @@ recommendations
 ===============================================================================
 */
 export async function get_recommendations(search) {
+  const resumeId = parseInt(search.resumeId);
+  if (isNaN(resumeId)) {
+    return [];
+  }
+
   let conditions = [];
   let params = [];
   let idx = 1;
@@ -179,9 +184,9 @@ export async function get_recommendations(search) {
   WITH filtered_recommendations AS (
     SELECT recommendations.job_id, recommendations.final_score
     FROM recommendations
-    WHERE resume_id = ${search.resumeId}
+    WHERE resume_id = ${resumeId}
   )
-  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.url, jobs.description_extracted, fr.final_score
+  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.url, jobs.description_extracted, jobs.raw_skills, fr.final_score
   FROM filtered_recommendations fr
   INNER JOIN jobs
     ON fr.job_id = jobs.id
@@ -196,7 +201,7 @@ export async function get_recommendations(search) {
   }
 
   if (conditions.length > 0) {
-    query += `WHERE ${conditions.join(" AND ")}`;
+    query += ` AND ${conditions.join(" AND ")}`;
   }
 
   query += " ORDER BY fr.final_score DESC, jobs.post_date IS NULL, jobs.post_date DESC"
@@ -233,7 +238,7 @@ export async function update_user(updatedUser) {
 
 export async function get_resumes() {
   const query = `
-    SELECT id, name, content, isUpdated
+    SELECT id, name, content, isUpdated, raw_skills
     FROM resumes
     ORDER BY id
   `;
