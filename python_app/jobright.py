@@ -25,15 +25,15 @@ def get_auth():
         context.storage_state(path="auth/jobright_auth.json")
   
 def extract_page(page):
-    company = page.locator("h2.index_company-row__vOzgg").inner_text().split("\n")[0]
-    post_time = page.locator("h2.index_company-row__vOzgg").inner_text().split("\n")[1][2:]
+    company = page.locator('h2[class*="index_company-row"]').inner_text().split("\n")[0]
+    post_time = page.locator('h2[class*="index_company-row"]').inner_text().split("\n")[1][2:]
     post_date = extract_post_date(post_time)
-    title = page.locator("h1.index_job-title__sStdA").text_content()
-    location = page.locator("div.index_job-metadata-row__jNc9H > div").first.inner_text()
-    url = page.locator("a.index_origin__7NnDG").get_attribute("href")
+    title = page.locator('h1[class*="index_job-title"]').text_content()
+    location = page.locator('div[class*="index_job-metadata-row"]').first.inner_text()
+    url = page.locator("a[class*='index_origin']").get_attribute("href")
 
     description = ""
-    summary = page.locator("p.index_company-summary__8nWbU").inner_text()            
+    summary = page.locator("div[class*='index_company-summary']").inner_text()            
     description += "Summary: \n" + summary + "\n\n"
     
     # Responsibilities
@@ -47,9 +47,9 @@ def extract_page(page):
     try: 
         description += "Qualification: \n"
         
-        qualification_locator = page.locator("xpath=//section[@id='skills-section']//div[@class='index_flex-col__Y_QL8']")
+        qualification_locator = page.locator("xpath=//section[@id='skills-section']//div[contains(@class, 'index_flex-col')]")
         for i in range(qualification_locator.count()):
-            sub_title = qualification_locator.nth(i).locator("h4.index_qualifications-sub-title__IA6rq").inner_text()
+            sub_title = qualification_locator.nth(i).locator("h4[class*='index_qualifications-sub-title']").inner_text()
             list_divs = qualification_locator.nth(i).locator('xpath=/div')
             required_qualification = "\n".join(["  -" + list_divs.nth(i).inner_text() for i in range(list_divs.count())])
             description += sub_title + "\n"
@@ -66,7 +66,7 @@ def extract_page(page):
         "post_date": post_date
     }
     
-def scrape(jobs_to_scrape, ws, type='recommend'):
+def scrape(jobs_to_scrape, ws=None, type='recommend'):
     # if type == 'recommend':
     #     jobs_per_page = 10
     # elif type == 'applied':
@@ -79,7 +79,7 @@ def scrape(jobs_to_scrape, ws, type='recommend'):
         # open browser and navigate to jobright
         browser = playwright.chromium.launch(
             channel="chrome",
-            headless=False,
+            headless=True,
         )
         context = browser.new_context(storage_state="auth/jobright_auth.json")
         page = context.new_page()
@@ -87,7 +87,7 @@ def scrape(jobs_to_scrape, ws, type='recommend'):
         page.goto(f"https://jobright.ai/jobs/{type}")
         
         # scroll until all jobs are visible
-        scroll_locator = page.locator("div#scrollableDiv")
+        scroll_locator = page.locator('div[class*="index_jobs-list-scrollable"]')
         scroll_locator.wait_for()
         job_list_locator = scroll_locator.locator("xpath=/div")
         divs = job_list_locator.locator("xpath=/div")
@@ -104,8 +104,11 @@ def scrape(jobs_to_scrape, ws, type='recommend'):
                     job_id = div.locator("xpath=/div").get_attribute("id")
                     print(data_index, job_id)
                     job_ids.append(job_id)
-                    prev_index = int(data_index)                    
-            scroll_locator.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
+                    prev_index = int(data_index)
+            if divs.count() > 0:
+                divs.last.scroll_into_view_if_needed()
+            else:
+                scroll_locator.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
                     
         # scape each job
         for job_id in job_ids:
@@ -114,7 +117,8 @@ def scrape(jobs_to_scrape, ws, type='recommend'):
             page.goto(f"https://jobright.ai/jobs/info/{job_id}")   
             job = extract_page(page)
             jobs.append(job)
-            ws.send(json.dumps({"type": "scrape", "action": "update"}))
+            if ws is not None:
+                ws.send(json.dumps({"type": "scrape", "action": "update"}))
             
             jobs_to_scrape -= 1
             print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
@@ -128,7 +132,7 @@ def scrape_from_url(url):
         # open browser and navigate to jobright
         browser = playwright.chromium.launch(
             channel="chrome",
-            headless=False,
+            headless=True,
         )
         context = browser.new_context(storage_state="auth/jobright_auth.json")
         page = context.new_page()
@@ -138,12 +142,12 @@ def scrape_from_url(url):
         job = extract_page(page)
         
         print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
-                            
+
         context.close()
         browser.close()
     return job
 
 if __name__ == '__main__':
     # get_auth()
-    q = Queue()
-    scrape_jobright(10, q)
+    scrape_from_url("https://jobright.ai/jobs/info/6a39b631649fdf1629302921")
+    # scrape(10)
