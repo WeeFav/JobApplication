@@ -61,23 +61,25 @@ def extract_page(page):
         "post_date": post_date
     }
     
-def scrape(jobs_to_scrape, ws):
+def scrape(jobs_to_scrape, ws=None):
     print("Start LinkedIn scrape")
     jobs_per_page = 25
     pages = math.ceil(jobs_to_scrape / jobs_per_page)
     jobs = []
     
     with sync_playwright() as playwright:     
-        # open browser and navigate to jobright
-        browser = playwright.chromium.launch(
+        context = playwright.chromium.launch_persistent_context(
+            user_data_dir="./user-data",
             channel="chrome",
             headless=True,
+            no_viewport=True,
+            args=["--disable-blink-features=AutomationControlled"]
         )
-        context = browser.new_context(storage_state="auth/linkedin_auth.json")
-        page = context.new_page()
+        page = context.pages[0] if context.pages else context.new_page()
 
-        page.goto("https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")
-    
+        page.goto("https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true", wait_until="domcontentloaded")
+        page.wait_for_timeout(2000)
+
         for page_num in range(1, pages + 1):
             scroll_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div")
             ul_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div/ul")
@@ -85,6 +87,8 @@ def scrape(jobs_to_scrape, ws):
             
             # get job list
             lis = ul_locator.locator("xpath=/li")
+
+            print(f"number of job on this page: {lis.count()}")
             
             for i in range(lis.count()):
                 if jobs_to_scrape == 0:
@@ -94,7 +98,8 @@ def scrape(jobs_to_scrape, ws):
                                 
                 job = extract_page(page)
                 jobs.append(job)
-                ws.send(json.dumps({"type": "scrape", "action": "update"})) 
+                if ws is not None:
+                    ws.send(json.dumps({"type": "scrape", "action": "update"})) 
                 
                 jobs_to_scrape -= 1
                 print(f"{i} | {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
@@ -108,30 +113,30 @@ def scrape(jobs_to_scrape, ws):
                 pagination_locator.get_by_text(f"{str(page_num + 1)}").click()    
                             
         context.close()
-        browser.close()
     return jobs
     
 def scrape_from_url(url):
     print(f"scraping {url}")
     with sync_playwright() as playwright:     
-        # open browser and navigate to jobright
-        browser = playwright.chromium.launch(
+        context = playwright.chromium.launch_persistent_context(
+            user_data_dir="./user-data",
             channel="chrome",
             headless=True,
+            no_viewport=True,
+            args=["--disable-blink-features=AutomationControlled"]
         )
-        context = browser.new_context(storage_state="auth/linkedin_auth.json")
-        page = context.new_page()
+        page = context.pages[0] if context.pages else context.new_page()
 
-        page.goto(url)
+        page.goto(url, wait_until="domcontentloaded")
     
         job = extract_page(page)
         
         print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
                             
         context.close()
-        browser.close()
     return job
                     
 if __name__ == '__main__':
-    get_auth()
-    # scrape_linkedin(10)
+    # get_auth()
+    scrape(10)
+    # scrape_from_url("https://www.linkedin.com/jobs/search/?currentJobId=4410507422&f_TPR=r604800&geoId=103644278&keywords=software%20engineer%20intern&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")

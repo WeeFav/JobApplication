@@ -327,6 +327,9 @@ def recommend_by_job(new_jobs, ws):
                     # this delete is for when a job is edited and no longer meets the score threshold
                     delete_params.append((id, resume['id']))
             
+            print(f"upsert {len(upsert_params)} recommended jobs")
+            print(f"delete {len(delete_params)} non-recommended jobs")
+            
             # upsert recommended
             if upsert_params:
                 execute_values(
