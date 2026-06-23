@@ -5,23 +5,56 @@ import traceback
 from queue import Queue
 from preprocess_job import extract_post_date
 import json
+import os
+from dotenv import load_dotenv
+
+# Ensure the persistent user data directory path is absolute
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+USER_DATA_DIR = os.path.join(BASE_DIR, "user-data")
+
+# Load environment variables from .env
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+def sign_in(page):
+    """Automate signing into LinkedIn using credentials from .env"""
+    print("Signing into LinkedIn")
+    
+    email = os.getenv("LINKEDIN_EMAIL")
+    password = os.getenv("LINKEDIN_PASSWORD")
+    
+    if not email or not password:
+        raise ValueError("LINKEDIN_EMAIL and LINKEDIN_PASSWORD must be set in your .env file")
+        
+    sign_in_btn = page.get_by_role("button", name="Sign in with Email")
+    try:
+        # Wait up to 3 seconds for the sign-in button to be visible
+        sign_in_btn.wait_for(state="visible", timeout=3000)
+    except Exception:
+        print("Sign-in button not found. Already signed in or on an authenticated page.")
+        return
+        
+    sign_in_btn.click()
+    page.locator("#csm-v2_session_key").filter(visible=True).fill(email)
+    page.locator("#csm-v2_session_password").filter(visible=True).fill(password)
+    page.locator(".sign-in-form__submit-btn--full-width").filter(visible=True).click()
 
 def get_auth():
     """Only need when need to sign into LinkedIn"""
     with sync_playwright() as playwright:
         context = playwright.chromium.launch_persistent_context(
-            user_data_dir="./user-data",
+            user_data_dir=USER_DATA_DIR,
             channel="chrome",
             headless=False,
             no_viewport=True,
             args=["--disable-blink-features=AutomationControlled"]
         )
-        page = context.new_page()
+        page = context.pages[0] if context.pages else context.new_page()
         page.goto("https://www.linkedin.com/")
         
         page.pause()
         
-        context.storage_state(path="./auth/linkedin_auth.json")
+        context.storage_state(path=os.path.join(BASE_DIR, "auth", "linkedin_auth.json"))
+        context.close()
 
 def extract_page(page):
     title = page.locator("div.job-details-jobs-unified-top-card__job-title").inner_text()
@@ -68,14 +101,16 @@ def scrape(jobs_to_scrape, ws=None):
     jobs = []
     
     with sync_playwright() as playwright:     
-        context = playwright.chromium.launch_persistent_context(
-            user_data_dir="./user-data",
+        browser = playwright.chromium.launch(
             channel="chrome",
             headless=True,
-            no_viewport=True,
             args=["--disable-blink-features=AutomationControlled"]
         )
-        page = context.pages[0] if context.pages else context.new_page()
+        context = browser.new_context(
+            storage_state=os.path.join(BASE_DIR, "auth", "linkedin_auth.json"),
+            no_viewport=True
+        )
+        page = context.new_page()
 
         page.goto("https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true", wait_until="domcontentloaded")
         page.wait_for_timeout(2000)
@@ -113,30 +148,36 @@ def scrape(jobs_to_scrape, ws=None):
                 pagination_locator.get_by_text(f"{str(page_num + 1)}").click()    
                             
         context.close()
+        browser.close()
     return jobs
     
 def scrape_from_url(url):
     print(f"scraping {url}")
     with sync_playwright() as playwright:     
-        context = playwright.chromium.launch_persistent_context(
-            user_data_dir="./user-data",
+        browser = playwright.chromium.launch(
             channel="chrome",
             headless=True,
-            no_viewport=True,
             args=["--disable-blink-features=AutomationControlled"]
         )
-        page = context.pages[0] if context.pages else context.new_page()
+        context = browser.new_context(
+            storage_state=os.path.join(BASE_DIR, "auth", "linkedin_auth.json"),
+            no_viewport=True
+        )
+        page = context.new_page()
 
         page.goto(url, wait_until="domcontentloaded")
     
+        sign_in(page)
+
         job = extract_page(page)
         
         print(f"{job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
                             
         context.close()
+        browser.close()
     return job
                     
 if __name__ == '__main__':
     # get_auth()
-    scrape(10)
-    # scrape_from_url("https://www.linkedin.com/jobs/search/?currentJobId=4410507422&f_TPR=r604800&geoId=103644278&keywords=software%20engineer%20intern&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")
+    # scrape(10)
+    scrape_from_url("https://www.linkedin.com/jobs/search/?currentJobId=4370317193&f_TPR=r604800&geoId=103644278&keywords=software%20engineer%20intern&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")
