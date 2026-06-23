@@ -1,27 +1,19 @@
-import { useState, useEffect, useRef } from "react"
-import Alert from '@mui/material/Alert';
-import Snackbar from '@mui/material/Snackbar';
-import CircularProgress from '@mui/material/CircularProgress';
+import { useState, useContext } from "react"
+import { useNavigate } from "react-router-dom"
+import { ProgressContext } from "../../context/ProgressContext"
 
 const UrlForm = () => {
   const [url, setUrl] = useState('');
-  const wsRef = useRef(null);
+  const { addJobByUrl } = useContext(ProgressContext);
+  const navigate = useNavigate();
 
-  // alert popup
-  const [open, setOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState('success');
-  const handleClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-
-    setOpen(false);
-  };
-
-  const onSubmitFormClick = async (e) => {
+  const onSubmitFormClick = (e) => {
     e.preventDefault();
-    await addJobHandler(url, wsRef, setOpen, setAlertMessage, setAlertSeverity);
+    if (url.trim()) {
+      addJobByUrl(url.trim());
+      setUrl('');
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -36,7 +28,7 @@ const UrlForm = () => {
             id="url"
             name="url"
             className="border rounded w-full py-2 px-3 mb-2"
-            placeholder="eg. Beautiful Apartment In Miami"
+            placeholder="e.g. https://www.linkedin.com/jobs/view/..."
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -51,19 +43,6 @@ const UrlForm = () => {
           >
             Add Job
           </button>
-          <Snackbar open={open} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-            <Alert
-              onClose={handleClose}
-              severity={alertSeverity}
-              variant="filled"
-              sx={{ flex: 1 }}
-            >
-              <div className="flex items-center gap-3 overflow-hidden">
-                {alertMessage}
-                {alertSeverity === "success" ? <></> : <CircularProgress size="20px" color="white" />}
-              </div>
-            </Alert>
-          </Snackbar>
         </div>
       </form>
     </>
@@ -71,96 +50,3 @@ const UrlForm = () => {
 }
 
 export default UrlForm
-
-/* 
-===============================================================================
-API
-===============================================================================
-*/
-
-// function to add job
-const addJobHandler = async (url, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
-  return new Promise((resolve, reject) => {
-    // Create socket
-    const ws = new WebSocket('/ws_api/scrape_url');
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('Connected to WebSocket');
-      ws.send(JSON.stringify({ url: url }));
-    };
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-
-      if (msg.type === "scrape") {
-        if (msg.action === "start") {
-          console.log("start scrape");
-          setAlertMessage("Start scrape");
-          setAlertSeverity("info");
-          setOpen(true);
-        }
-        else if (msg.action === "success") {
-          console.log("Scrape success");
-          setAlertMessage("Scrape success");
-          setAlertSeverity("success");
-        }
-        else if (msg.action === "fail") {
-          console.log("Scrape failed");
-          setAlertMessage("Scrape failed");
-          setAlertSeverity("error");
-        }
-      }
-      else if (msg.type === "insert") {
-        if (msg.action === "start") {
-          console.log("start insert");
-        }
-        else if (msg.action === "postgres") {
-          setAlertMessage("Inserting into database");
-          setAlertSeverity("info");
-          setOpen(true);
-        }
-        else if (msg.action === "qdrant") {
-          setAlertMessage("Inserting into qdrant");
-          setAlertSeverity("info");
-        }
-        else if (msg.action === "success") {
-          console.log("Job insert success");
-          setAlertMessage("Job insert success");
-          setAlertSeverity("success");
-        }
-        else if (msg.action === "fail") {
-          console.log("Job insert failed");
-          setAlertMessage("Job insert failed");
-          setAlertSeverity("error");
-        }
-      }
-      else if (msg.type === "recommend") {
-        if (msg.action === "start") {
-          console.log("start recommend");
-          setAlertMessage("Start recommend");
-          setAlertSeverity("info");
-        }
-        else if (msg.action === "success") {
-          console.log("Recommend success");
-          setAlertMessage("Recommend success");
-          setAlertSeverity("success");
-        }
-        else if (msg.action === "fail") {
-          console.log("Recommend failed");
-          setAlertMessage("Recommend failed");
-          setAlertSeverity("error");
-        }
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('Socket closed');
-      wsRef.current = null;
-      setTimeout(() => {
-        setOpen(false);
-      }, 3000);
-      resolve();
-    };
-  })
-}

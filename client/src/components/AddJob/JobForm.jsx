@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react"
-import Alert from '@mui/material/Alert';
-import Snackbar from '@mui/material/Snackbar';
-import CircularProgress from '@mui/material/CircularProgress';
+import { useState, useContext } from "react"
+import { useNavigate } from "react-router-dom"
+import { ProgressContext } from "../../context/ProgressContext"
 
 const JobForm = () => {
   const [title, setTitle] = useState('');
@@ -10,40 +9,32 @@ const JobForm = () => {
   const [url, setUrl] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
-  const wsRef = useRef(null);
-
-  // alert popup
-  const [open, setOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState('success');
-  const handleClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-
-    setOpen(false);
-  };
+  const { addJobManually } = useContext(ProgressContext);
+  const navigate = useNavigate();
   
-  const onSubmitFormClick = async (e) => {
+  const onSubmitFormClick = (e) => {
     e.preventDefault();
 
-    let newJob = {
-      title: title,
-      company: company,
-      description: description,
-      url: url,
-      location: location,
+    const newJob = {
+      title,
+      company,
+      description,
+      url,
+      location,
       post_date: date
-    }
+    };
 
-    await addJobHandler(newJob, wsRef, setOpen, setAlertMessage, setAlertSeverity);
+    addJobManually(newJob);
 
+    // Reset fields
     setTitle('');
     setDescription('');
     setCompany('');
     setUrl('');
     setLocation('');
     setDate('');
+
+    navigate('/dashboard');
   };
 
   return (
@@ -58,7 +49,7 @@ const JobForm = () => {
             id="title"
             name="title"
             className="border rounded w-full py-2 px-3 mb-2"
-            placeholder="eg. Beautiful Apartment In Miami"
+            placeholder="eg. Software Engineer"
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -74,7 +65,7 @@ const JobForm = () => {
             id="company"
             name="company"
             className="border rounded w-full py-2 px-3 mb-2"
-            placeholder="eg. Beautiful Apartment In Miami"
+            placeholder="eg. Google"
             required
             value={company}
             onChange={(e) => setCompany(e.target.value)}
@@ -90,7 +81,7 @@ const JobForm = () => {
             id="location"
             name="location"
             className="border rounded w-full py-2 px-3 mb-2"
-            placeholder="eg. Beautiful Apartment In Miami"
+            placeholder="eg. Mountain View, CA"
             required
             value={location}
             onChange={(e) => setLocation(e.target.value)}
@@ -106,7 +97,7 @@ const JobForm = () => {
             id="url"
             name="url"
             className="border rounded w-full py-2 px-3 mb-2"
-            placeholder="eg. Beautiful Apartment In Miami"
+            placeholder="eg. https://www.google.com/careers/..."
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -152,19 +143,6 @@ const JobForm = () => {
           >
             Add Job
           </button>
-          <Snackbar open={open} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-            <Alert
-              onClose={handleClose}
-              severity={alertSeverity}
-              variant="filled"
-              sx={{ flex: 1 }}
-            >
-              <div className="flex items-center gap-3 overflow-hidden">
-                {alertMessage}
-                {alertSeverity === "success" ? <></> : <CircularProgress size="20px" color="white"/>}
-              </div>
-            </Alert>
-          </Snackbar>
         </div>
       </form>
     </>
@@ -172,77 +150,3 @@ const JobForm = () => {
 }
 
 export default JobForm
-
-/* 
-===============================================================================
-API
-===============================================================================
-*/
-
-// function to add job
-const addJobHandler = async (newJob, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
-  return new Promise((resolve, reject) => {
-    // Create socket
-    const ws = new WebSocket('/ws_api/manual_job');
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('Connected to WebSocket');
-      ws.send(JSON.stringify({ newJobs: [newJob], type: "manual" }));
-    };
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "insert") {
-        if (msg.action === "start") {
-          console.log("start insert");
-        }
-        else if (msg.action === "postgres") {
-          setAlertMessage("Inserting into database");
-          setAlertSeverity("info");
-          setOpen(true);
-        }
-        else if (msg.action === "qdrant") {
-          setAlertMessage("Inserting into qdrant");
-          setAlertSeverity("info");
-        }
-        else if (msg.action === "success") {
-          console.log("Job insert success");
-          setAlertMessage("Job insert success");
-          setAlertSeverity("success");
-        }
-        else if (msg.action === "fail") {
-          console.log("Job insert failed");
-          setAlertMessage("Job insert failed");
-          setAlertSeverity("error");
-        }
-      }
-      else if (msg.type === "recommend") {
-        if (msg.action === "start") {
-          console.log("start recommend");
-          setAlertMessage("Start recommend");
-          setAlertSeverity("info");
-        }
-        else if (msg.action === "success") {
-          console.log("Recommend success");
-          setAlertMessage("Recommend success");
-          setAlertSeverity("success");
-        }
-        else if (msg.action === "fail") {
-          console.log("Recommend failed");
-          setAlertMessage("Recommend failed");
-          setAlertSeverity("error");
-        }
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('Socket closed');
-      wsRef.current = null;
-      setTimeout(() => {
-        setOpen(false);
-      }, 3000);
-      resolve();
-    };
-  })
-};

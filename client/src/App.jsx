@@ -10,6 +10,7 @@ import AppliedJobsPage from "./pages/AppliedJobsPage";
 import ScrapePage from "./pages/ScrapePage";
 import RecommendedJobsPage from "./pages/RecommendedJobsPage";
 import { useState, useEffect, createContext } from "react";
+import { ProgressProvider } from "./context/ProgressContext";
 
 export const CompanysContext = createContext();
 export const AccountContext = createContext();
@@ -37,7 +38,9 @@ function App() {
   );
 
   return (
-    <RouterProvider router={router} />
+    <ProgressProvider>
+      <RouterProvider router={router} />
+    </ProgressProvider>
   )
 };
 
