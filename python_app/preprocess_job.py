@@ -106,7 +106,7 @@ def extract_post_date(text):
     today = datetime.today()
     
     # Extract the number and unit (day/week)
-    match = re.search(r'(\d+)\s+(minute|hour|day|week)', text)
+    match = re.search(r'(\d+)\+?\s+(minute|hour|day|week)s?', text)
     if not match:
         return None  # invalid format
     
@@ -129,5 +129,17 @@ def extract_post_date(text):
 
 def extract_source_from_url(url):
     netloc = urlparse(url).netloc.lower()
+    if "myworkdayjobs.com" in netloc:
+        return "workday"
+    if "greenhouse.io" in netloc:
+        return "greenhouse"
+    if "lever.co" in netloc:
+        return "lever"
+    if "ashbyhq.com" in netloc:
+        return "ashby"
+    if "linkedin.com" in netloc:
+        return "linkedin"
+    if "jobright.ai" in netloc:
+        return "jobright"
     netloc = netloc.replace("www.", "")
     return netloc.split(".")[0]

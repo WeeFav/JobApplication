@@ -8,6 +8,10 @@ import requests
 from insert import insert_jobs, insert_resumes, update_job
 import linkedin
 import jobright
+import workday
+import greenhouse
+import lever
+import ashby
 from recommend import recommend_by_job, recommend_by_resume
 from misc import delete_job, add_application, delete_application, system_check
 from preprocess_job import extract_source_from_url
@@ -27,19 +31,27 @@ def ws_scrape_jobsite(ws):
     source = data['jobsite']
     
     try:
-        if source == 'linkedin':
+        if source in workday.COMPANY_TO_URL:
+            jobs = workday.scrape(source, ws)
+        elif source in greenhouse.COMPANY_TO_BOARD:
+            jobs = greenhouse.scrape(source, ws)
+        elif source in lever.COMPANY_TO_BOARD:
+            jobs = lever.scrape(source, ws)
+        elif source in ashby.COMPANY_TO_BOARD:
+            jobs = ashby.scrape(source, ws)
+        elif source == 'linkedin':
             jobs = linkedin.scrape(data['numJobs'], ws)
         elif source == 'jobright': 
             jobs = jobright.scrape(data['numJobs'], ws) 
         else:
-            raise NotImplementedError  
+            raise NotImplementedError(f"Scraping source/company '{source}' is not supported.")
         
         ws.send(json.dumps({"type": "scrape", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "scrape", "action": "fail"}))                
+        ws.send(json.dumps({"type": "scrape", "action": "fail", "error": str(e)}))                
+        time.sleep(0.1)
         ws.close()    
-        raise e
         return
 
     ### Insert Jobs ###
@@ -65,16 +77,24 @@ def ws_scrape_url(ws):
             job = linkedin.scrape_from_url(url)
         elif source == 'jobright': 
             job = jobright.scrape_from_url(url) 
+        elif source == 'workday':
+            job = workday.scrape_from_url(url)
+        elif source == 'greenhouse':
+            job = greenhouse.scrape_from_url(url)
+        elif source == 'lever':
+            job = lever.scrape_from_url(url)
+        elif source == 'ashby':
+            job = ashby.scrape_from_url(url)
         else:
-            raise NotImplementedError  
+            raise NotImplementedError(f"Scraping source '{source}' is not supported.")
         
         jobs = [job]
         ws.send(json.dumps({"type": "scrape", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "scrape", "action": "fail"}))                
+        ws.send(json.dumps({"type": "scrape", "action": "fail", "error": str(e)}))                
+        time.sleep(0.1)
         ws.close()
-        raise e
         return
         
     ### Insert Job ###
@@ -128,9 +148,9 @@ def ws_resumes(ws):
         ws.send(json.dumps({"type": "insert", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "action": "fail"}))                
+        ws.send(json.dumps({"type": "insert", "action": "fail", "error": str(e)}))                
+        time.sleep(0.1)
         ws.close()
-        raise e
         return
         
     ## Recommend ###
@@ -183,6 +203,21 @@ def app_delete_application():
     except:
         traceback.print_exc()
         return "Delete application failed", 500
+
+
+@app.route('/companies', methods=['GET'])
+def app_get_companies():
+    try:
+        companies = []
+        companies.extend(workday.COMPANY_TO_URL.keys())
+        companies.extend(greenhouse.COMPANY_TO_BOARD.keys())
+        companies.extend(lever.COMPANY_TO_BOARD.keys())
+        companies.extend(ashby.COMPANY_TO_BOARD.keys())
+        companies.sort()
+        return flask.jsonify(companies), 200
+    except Exception as e:
+        traceback.print_exc()
+        return str(e), 500
 
 
 if __name__ == '__main__':

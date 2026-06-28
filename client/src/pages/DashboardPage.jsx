@@ -239,6 +239,7 @@ const DashboardPage = () => {
                           item.stages.scraping === 'failed' ? 'text-red-500' : 'text-gray-400'
                         }`}>
                           {item.type === 'manual' ? 'Scraping (Skipped)' : 'Scraping'}
+                          {item.scrapedCount > 0 && ` (${item.scrapedCount} done)`}
                         </span>
                       </div>
 
@@ -251,6 +252,7 @@ const DashboardPage = () => {
                           item.stages.postgres === 'failed' ? 'text-red-500' : 'text-gray-400'
                         }`}>
                           PostgreSQL Insert
+                          {item.insertedCount > 0 && ` (${item.insertedCount} inserted)`}
                         </span>
                       </div>
 
@@ -263,6 +265,7 @@ const DashboardPage = () => {
                           item.stages.qdrant === 'failed' ? 'text-red-500' : 'text-gray-400'
                         }`}>
                           Qdrant Insert
+                          {item.insertedCount > 0 && ` (${item.insertedCount} inserted)`}
                         </span>
                       </div>
 
@@ -279,6 +282,24 @@ const DashboardPage = () => {
                       </div>
 
                     </div>
+
+                    {/* Ingestion counts details */}
+                    {item.type !== 'manual' && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-500 font-medium">
+                        <div>
+                          <span className="text-gray-400">Scraped jobs:</span>{' '}
+                          <span className="text-gray-700 font-bold">{item.scrapedCount || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Inserted jobs:</span>{' '}
+                          <span className="text-green-600 font-bold">{item.insertedCount || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Skipped jobs:</span>{' '}
+                          <span className="text-amber-600 font-bold">{item.skippedCount || 0}</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Error Banner */}
                     {item.status === 'failed' && (

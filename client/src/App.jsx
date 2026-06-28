@@ -7,7 +7,6 @@ import JobsPage from "./pages/JobsPage";
 import ProfilePage from "./pages/ProfilePage";
 import AddJobPage from "./pages/AddJobPage";
 import AppliedJobsPage from "./pages/AppliedJobsPage";
-import ScrapePage from "./pages/ScrapePage";
 import RecommendedJobsPage from "./pages/RecommendedJobsPage";
 import { useState, useEffect, createContext } from "react";
 import { ProgressProvider } from "./context/ProgressContext";
@@ -30,7 +29,6 @@ function App() {
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/applied-jobs" element={<AppliedJobsPage />} />
           <Route path="/recommended-jobs" element={<RecommendedJobsPage />} />
-          <Route path="/scrape" element={<ScrapePage />} />
           <Route path="/*" element={<NotFoundPage />} />
         </Route>
       </>

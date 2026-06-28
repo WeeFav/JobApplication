@@ -37,8 +37,16 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
     try:
         df = pd.DataFrame(jobs) 
         
+        inserted_count = 0
+        skipped_count = 0
+        
         for i in range(len(df)):
-            ws.send(json.dumps({"type": "insert", "action": "postgres"}))
+            ws.send(json.dumps({
+                "type": "insert", 
+                "action": "postgres",
+                "inserted_count": inserted_count,
+                "skipped_count": skipped_count
+            }))
             
             # canonicalize url
             url_norm = canonicalize_url(df.iloc[i]['url'])
@@ -60,6 +68,13 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
             
             if res:
                 print(f"[!] Duplicate hash detected: {hash}, nothing inserted.")
+                skipped_count += 1
+                ws.send(json.dumps({
+                    "type": "insert", 
+                    "action": "skipped",
+                    "inserted_count": inserted_count,
+                    "skipped_count": skipped_count
+                }))
                 continue
             
             # extract description
@@ -81,7 +96,12 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
             conn.commit()
             print(f"inserted into postgres")
             
-            ws.send(json.dumps({"type": "insert", "action": "qdrant"}))
+            ws.send(json.dumps({
+                "type": "insert", 
+                "action": "qdrant",
+                "inserted_count": inserted_count,
+                "skipped_count": skipped_count
+            }))
             
             id, scrape_date = cursor.fetchone()
             
@@ -102,7 +122,13 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
             print(f"inserted into qdrant")
             
             new_jobs.append({"id": id, "description_extracted": description_extracted})
-            ws.send(json.dumps({"type": "insert", "action": "completed"}))
+            inserted_count += 1
+            ws.send(json.dumps({
+                "type": "insert", 
+                "action": "completed",
+                "inserted_count": inserted_count,
+                "skipped_count": skipped_count
+            }))
             print(f"processed job {i + 1}")
             
         ws.send(json.dumps({"type": "insert", "action": "success"}))

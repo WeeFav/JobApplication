@@ -22,11 +22,8 @@ const Navbar = () => {
                 <NavLink to="/applied-jobs" className={linkClass}>
                 Applied
                 </NavLink>
-                <NavLink to="/scrape" className={linkClass}>
-                Scrape Jobs
-                </NavLink>
                 <NavLink to="/add-job" className={linkClass}>
-                Add Custom Job
+                Add Job
                 </NavLink>
                 <NavLink to="/dashboard" className={linkClass}>
                 Dashboard
