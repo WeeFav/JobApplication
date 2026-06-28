@@ -86,12 +86,12 @@ def extract_page(page):
     description = page.locator("xpath=//div[@id='job-details']/div[@class='mt4']").inner_text()
     
     return {
-        "title": title,
-        "company": company,
-        "description": description,
-        "url": url,
-        "location": location,
-        "post_date": post_date
+            "title": title,
+            "company": company,
+            "description": description,
+            "url": url,
+            "location": location,
+            "post_date": post_date
     }
     
 def scrape(jobs_to_scrape, ws=None):
