@@ -15,7 +15,7 @@ USER_DATA_DIR = os.path.join(BASE_DIR, "user-data")
 # Load environment variables from .env
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-def sign_in(page):
+def sign_in(page, url):
     """Automate signing into LinkedIn using credentials from .env"""
     print("Signing into LinkedIn")
     
@@ -37,6 +37,7 @@ def sign_in(page):
     page.locator("#csm-v2_session_key").filter(visible=True).fill(email)
     page.locator("#csm-v2_session_password").filter(visible=True).fill(password)
     page.locator(".sign-in-form__submit-btn--full-width").filter(visible=True).click()
+    page.goto(url, wait_until="domcontentloaded")
 
 def get_auth():
     """Only need when need to sign into LinkedIn"""
@@ -113,7 +114,8 @@ def scrape(jobs_to_scrape, ws=None):
         page = context.new_page()
 
         page.goto("https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true", wait_until="domcontentloaded")
-        page.wait_for_timeout(2000)
+        
+        sign_in(page, "https://www.linkedin.com/jobs/search/?f_TPR=r604800&geoId=103644278&keywords=software%20internship&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")
 
         for page_num in range(1, pages + 1):
             scroll_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div")
@@ -167,7 +169,7 @@ def scrape_from_url(url):
 
         page.goto(url, wait_until="domcontentloaded")
     
-        sign_in(page)
+        sign_in(page, url)
 
         job = extract_page(page)
         
@@ -179,5 +181,5 @@ def scrape_from_url(url):
                     
 if __name__ == '__main__':
     # get_auth()
-    # scrape(10)
-    scrape_from_url("https://www.linkedin.com/jobs/search/?currentJobId=4370317193&f_TPR=r604800&geoId=103644278&keywords=software%20engineer%20intern&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")
+    scrape(5)
+    # scrape_from_url("https://www.linkedin.com/jobs/search/?currentJobId=4432711572&f_TPR=r604800&geoId=103644278&keywords=software%20engineer%20intern&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true")

@@ -10,17 +10,17 @@ Verify status aggregation counters and live WebSocket pipeline updates.
 
 ### Feature 2.1: Status Aggregation Counters
 *   **Description**: The dashboard aggregates and displays key pipeline metrics:
-    1. **Total Scraped Jobs**: The total count of jobs stored in the PostgreSQL database (matching the number of rows in the `jobs` table without filters).
-    2. **Applied Jobs**: The total count of jobs the user has marked as applied.
-    3. **Recommended Jobs**: The total count of jobs recommended for the user's first resume.
+    1. **Total Scraped Jobs**: The total count of jobs stored in the PostgreSQL database (no filters).
+    2. **Applied Jobs**: The total count of jobs the user has marked as applied (no filters).
+    3. **Recommended Jobs**: The total count of current jobs recommended for each resume (< 30 days and >= 50% score).
 *   **Test Action**: Note down the count values shown in the **Total Scraped Jobs**, **Applied Jobs**, and **Recommended Jobs** cards.
 *   **Verification**:
     *   **Total Scraped Jobs** count should match the number of jobs in PostgreSQL without any filter.
-    *   Navigate to **Applied Jobs**, count the total list items, and verify it matches the **Applied Jobs** count.
-    *   Navigate to **Recommended Jobs**, count the items for the first resume, and verify it matches the **Recommended Jobs** count.
+    *   **Applied Jobs** count should match the number of applied jobs in PostgreSQL without any filter.
+    *   **Recommended Jobs** count should match the number of recommended jobs in with filter.
 
 ### Feature 2.2: Ingestion Task Pipeline
-*   **Description**: Displays dynamic, animated progress status of background jobs added manually or scraped. The stages are Scraping (for URL or site scraper), PostgreSQL Insert, Qdrant Insert, and Recommending. User can clear a task card once completed or failed.
+*   **Description**: Displays dynamic, animated progress status of background jobs added manually or scraped. The stages are Scraping (for URL or site scraper), PostgreSQL Insert, Qdrant Insert, and Recommending. User can clear a task card once completed or failed. Scraped jobs, Inserted jobs, and Skipped jobs counter should match.
 *   **Test Action**: Ingest a new job (via any tab in **Add Job**).
 *   **Verification**:
     *   Observe immediate redirection to the **Dashboard**.
@@ -32,7 +32,7 @@ Verify status aggregation counters and live WebSocket pipeline updates.
         4. `Recommending` (running $\rightarrow$ success)
     *   Once the state is `completed` (success) or `failed`, verify that a close icon button (`X`) appears on the top-right of the progress card.
     *   Click `X` and verify the card is removed from the DOM and does not reappear on page reload.
-
+    * Verify Scraped jobs, Inserted jobs, and Skipped jobs counter match. 
 ---
 
 ## 3. Job Listings Management (`/jobs`)
@@ -40,11 +40,13 @@ Verify status aggregation counters and live WebSocket pipeline updates.
 Verify pagination, item details rendering, and core job modifications.
 
 ### Feature 3.1: Job Directory Layout & Pagination
-*   **Description**: Left panel lists all jobs with pagination and selection highlights. Right panel shows details of the selected job, resetting scroll position when swapping items.
+*   **Description**: Left panel lists all jobs with pagination and selection highlights. Right panel shows details of the selected job, resetting scroll position when swapping items. Only jobs with posting date within 30 days are shown in the left panel. Only unapplied jobs are shown in the left panel.
 *   **Test Action**: Select different jobs on the left-side panel.
 *   **Verification**:
     *   Verify the selected card is highlighted (in light blue) and details load on the right panel.
     *   Verify the scroll position of the right details pane resets to the top when switching jobs.
+    *   Verify that only jobs with posting date within 30 days are shown in the left panel.
+    *   Verify that only unapplied jobs are shown in the left panel.
 
 ### Feature 3.2: Job Details & Keyword Highlighting
 *   **Description**: Displays selected job details (title, company, location, dates, description). Highlights extracted skill keywords dynamically, and links out to the original application via "Apply Now".
@@ -91,11 +93,12 @@ Verify the three job ingestion channels, duplicate prevention (de-duplication), 
     *   Once complete, verify the job is present on the **Jobs** tab and that keywords/skills are extracted.
 
 ### Feature 4.2: Single URL Scrape & Ingest
-*   **Description**: Provide a URL to automatically scrape job details (LinkedIn, Jobright, etc.) and launch the insertion pipeline.
+*   **Description**: Provide a URL to automatically scrape job details (LinkedIn, Jobright, etc.) and launch the insertion pipeline. If jobsite is not supported, it should be shown on progress bar.
 *   **Test Action**: Go to **From URL**, input a valid LinkedIn job URL, and click **Add Job**.
 *   **Verification**:
     *   Confirm the dashboard progress bar updates through the `Scraping` phase.
     *   Verify the job properties (company, title, location, description) are populated correctly.
+    *   If jobsite is not supported, verify it is shown error on progress bar.
 
 ### Feature 4.3: Mass Jobsite Scraper
 *   **Description**: Scrapes multiple jobs from LinkedIn or JobRight according to a specified count.
@@ -163,12 +166,15 @@ Verify resume-to-job pairing logic, scoring accuracy, and navigation.
     *   Verify the job list immediately reloads and shows only recommendations corresponding to the selected resume.
 
 ### Feature 6.2: Recommendation Ranking & Visual Scores
-*   **Description**: Displays recommendations sorted by score descending, with a gold Gauge matching the match percentage.
+*   **Description**: Displays recommendations sorted by score descending, with a gold Gauge matching the match percentage. Only jobs with posting date within 30 days are shown in the left panel. Only jobs with > 50% score are shown in the right panel. Only unapplied jobs are shown in the left panel. Only unapplied jobs are shown in the right panel.
 *   **Test Action**: Inspect the recommendation list.
 *   **Verification**:
     *   Verify each job card shows a gold radial Gauge representing the match percentage.
     *   Confirm the jobs are sorted in descending order of the match percentage (`final_score`).
     *   Verify that jobs marked as applied are excluded from this list.
+    *   Verify that only jobs with posting date within 30 days are shown in the left panel.
+    *   Verify that only jobs with > 50% score are shown in the right panel.
+    *   Verify that only unapplied jobs are shown in the left panel.
 
 ---
 
@@ -177,11 +183,12 @@ Verify resume-to-job pairing logic, scoring accuracy, and navigation.
 Verify tracking of candidate actions and application listings.
 
 ### Feature 7.1: Applied Jobs Catalog
-*   **Description**: Isolates applied listings in a directory view without showing match scores.
+*   **Description**: Isolates applied listings in a directory view without showing match scores. All jobs should be shown regardless of post date.
 *   **Test Action**: Visit the **Applied Jobs** page.
 *   **Verification**:
     *   Verify that only jobs marked as applied are displayed.
     *   Confirm that no Gauges (scores) are shown next to the cards (only the standard title, company, location, post date).
+    *   Verify that jobs older than 30 days are also shown in the applied jobs list.
 
 ### Feature 7.2: Quick Application Removal
 *   **Description**: Easily unmark applied jobs, removing them from the Applied view immediately.

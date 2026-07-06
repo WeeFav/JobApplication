@@ -1,0 +1,31 @@
+Machine Learning Engineer
+Verdant Robotics
+Fremont, CA
+https://www.linkedin.com/jobs/search/?currentJobId=4427222603&f_TPR=r604800&geoId=103644278&keywords=software%20engineer%20intern&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true
+
+About the job
+This is a full-time, on-site Machine Learning Engineer role based in Hayward, CA. 
+
+
+
+Verdant Robotics builds a computer vision and robotic system that targets weeds with millimeter accuracy, controlling weeds with up to 99% reduction in chemical use while fully sparing the crop, thus improving yields. Our clients are relying on our machines for a wide variety of crops across the US. Over the next few decades, agriculture must overcome multiple major and contradictory challenges: increasing food demand, labor shortages, increasing input costs, limits on chemical use, and climate change. We think that remaining competitive in this shifting landscape will require decision-making at the level of individual plants, made possible at scale with robotics. 
+
+
+
+The Machine Learning team is responsible for the performance of the robot’s visual decision-making and all the data, training pipelines, and research to support that goal. As a small team, we do everything, from designing the next deep learning algorithm to talking to farmers in the field, so we are looking for someone with a broad background. We are looking for a software engineer with experience in industrial machine learning, robotics, and data systems who can lead projects focused on most of the following areas:
+Deep Learning (python)
+Perception
+GPU optimization
+Real time software (C++)
+Data collection, labeling, and training pipelines
+Database management
+
+
+An advanced degree in Computer Science and several years of industry experience is one path to these skills but experience can come in many forms. AgTech is a young field that requires new ideas and different perspectives. Our engineers have a wide range of experience in robotics, space, autonomous driving, and agriculture. 
+
+
+
+Our office is located in Hayward, CA about 25-30 mins average commute from most places in the Bay Area. To learn more, visit www.verdantrobotics.com.
+
+
+Salary range: $140,000–$200,000 depending on experience.
