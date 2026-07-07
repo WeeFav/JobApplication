@@ -15,13 +15,13 @@ const DashboardPage = () => {
   const { progressList, clearJobProgress } = useContext(ProgressContext);
   const [totalJobs, setTotalJobs] = useState(0);
   const [totalApplications, setTotalApplications] = useState(0);
-  const [totalRecommendations, setTotalRecommendations] = useState(0);
+  const [resumeRecommendations, setResumeRecommendations] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
   const fetchStats = async () => {
     try {
       // 1. Fetch scraped jobs
-      const jobsRes = await fetch('/server_api/jobs');
+      const jobsRes = await fetch('/server_api/jobs?all=true');
       const jobsData = await jobsRes.json();
       setTotalJobs(jobsData.length);
 
@@ -30,16 +30,22 @@ const DashboardPage = () => {
       const appsData = await appsRes.json();
       setTotalApplications(appsData.length);
 
-      // 3. Fetch resumes and recommendations for first resume (if any)
+      // 3. Fetch resumes and recommendations for each resume (if any)
       const resumesRes = await fetch('/server_api/resumes');
       const resumesData = await resumesRes.json();
-      if (resumesData && resumesData.length > 0) {
-        const recsRes = await fetch(`/server_api/recommendations?resumeId=${resumesData[0].id}`);
+      const date = getThirtyDaysAgo();
+      
+      const recsPromises = (resumesData || []).map(async (resume) => {
+        const recsRes = await fetch(`/server_api/recommendations?date=${date}&resumeId=${resume.id}&score=0.5`);
         const recsData = await recsRes.json();
-        setTotalRecommendations(recsData.length);
-      } else {
-        setTotalRecommendations(0);
-      }
+        return {
+          id: resume.id,
+          name: resume.name,
+          count: recsData.length
+        };
+      });
+      const recsResults = await Promise.all(recsPromises);
+      setResumeRecommendations(recsResults);
     } catch (e) {
       console.error('Error fetching dashboard stats:', e);
     } finally {
@@ -139,16 +145,25 @@ const DashboardPage = () => {
           </div>
 
           {/* Recommended Jobs */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-center gap-5 transition-all hover:shadow-md">
-            <div className="w-14 h-14 rounded-xl bg-amber-50 text-website-gold flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-start gap-5 transition-all hover:shadow-md">
+            <div className="w-14 h-14 rounded-xl bg-amber-50 text-website-gold flex items-center justify-center flex-shrink-0">
               <FiThumbsUp className="w-7 h-7" />
             </div>
-            <div>
+            <div className="flex-grow min-w-0">
               <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Recommended Jobs</p>
               {loadingStats ? (
                 <div className="h-8 w-16 bg-gray-100 animate-pulse rounded mt-1" />
+              ) : resumeRecommendations.length === 0 ? (
+                <h3 className="text-3xl font-bold text-gray-800 mt-1">0</h3>
               ) : (
-                <h3 className="text-3xl font-bold text-gray-800 mt-1">{totalRecommendations}</h3>
+                <div className="mt-1 space-y-1">
+                  {resumeRecommendations.map((rec) => (
+                    <div key={rec.id} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 truncate mr-2" title={rec.name}>{rec.name}</span>
+                      <span className="font-bold text-gray-800">{rec.count}</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -284,22 +299,20 @@ const DashboardPage = () => {
                     </div>
 
                     {/* Ingestion counts details */}
-                    {item.type !== 'manual' && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-500 font-medium">
-                        <div>
-                          <span className="text-gray-400">Scraped jobs:</span>{' '}
-                          <span className="text-gray-700 font-bold">{item.scrapedCount || 0}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Inserted jobs:</span>{' '}
-                          <span className="text-green-600 font-bold">{item.insertedCount || 0}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Skipped jobs:</span>{' '}
-                          <span className="text-amber-600 font-bold">{item.skippedCount || 0}</span>
-                        </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-500 font-medium">
+                      <div>
+                        <span className="text-gray-400">Scraped jobs:</span>{' '}
+                        <span className="text-gray-700 font-bold">{item.scrapedCount || 0}</span>
                       </div>
-                    )}
+                      <div>
+                        <span className="text-gray-400">Inserted jobs:</span>{' '}
+                        <span className="text-green-600 font-bold">{item.insertedCount || 0}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Skipped jobs:</span>{' '}
+                        <span className="text-amber-600 font-bold">{item.skippedCount || 0}</span>
+                      </div>
+                    </div>
 
                     {/* Error Banner */}
                     {item.status === 'failed' && (
@@ -322,6 +335,14 @@ const DashboardPage = () => {
       </div>
     </div>
   );
+};
+
+const getThirtyDaysAgo = () => {
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const formatted = thirtyDaysAgo.toISOString().split('T')[0];
+  return formatted;
 };
 
 export default DashboardPage;

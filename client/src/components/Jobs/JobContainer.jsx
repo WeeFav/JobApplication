@@ -4,7 +4,7 @@ import JobList from "./JobList";
 import JobDetails from "./JobDetails";
 import ResumeToggle from "./ResumeToggle";
 
-const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=null}) => {
+const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=null, tab="all"}) => {
   const [jobs, setJobs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -27,9 +27,9 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
     }
   }, [jobs])
 
-  const onSearchClick = async (jobTitle, company) => {
+  const onSearchClick = async (jobTitle, company, score) => {
     setLoading(true);
-    setJobs(await searchJobHandler(jobTitle, company, activeId));
+    setJobs(await searchJobHandler(jobTitle, company, activeId, score));
     setLoading(false);
   }; 
 
@@ -53,23 +53,27 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      {loading ? <h2>Loading...</h2> :
-        <>
-        {/* Top Search Bar */}
-        <div className="px-7 my-6">
-          <JobSearchBar onSearchClick={onSearchClick} tab="all" />
-        </div>
+      {/* Top Search Bar */}
+      <div className="px-7 my-6">
+        <JobSearchBar onSearchClick={onSearchClick} tab={tab} />
+      </div>
 
-        {(activeId !== null && setActiveId) ? 
-        <div className="flex items-center justify-center mb-3">
-          <ResumeToggle activeId={activeId} setActiveId={setActiveId}/>
-        </div>
-        :
-        <></>
-        }
+      {(activeId !== null && setActiveId) ? 
+      <div className="flex items-center justify-center mb-3">
+        <ResumeToggle activeId={activeId} setActiveId={setActiveId}/>
+      </div>
+      :
+      <></>
+      }
 
-        {/* Main Layout */}
-        <div className="flex flex-1 overflow-hidden">
+      {/* Main Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {loading ? (
+          <div className="flex flex-1 items-center justify-center bg-white">
+            <h2 className="text-xl font-semibold text-gray-500 animate-pulse">Loading...</h2>
+          </div>
+        ) : (
+          <>
           {/* Left Job List */}
           <div className="w-1/3 border-r overflow-y-auto bg-white">
             <JobList jobs={jobs} onSelectJob={setSelectedJob} selectedJob={selectedJob} />
@@ -85,9 +89,9 @@ const JobContainer = ({loadJobs, searchJobHandler, activeId=null, setActiveId=nu
               </div>
             )}
           </div>
-        </div>
-        </>
-      }
+          </>
+        )}
+      </div>
     </div>
   )  
 }

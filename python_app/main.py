@@ -89,6 +89,7 @@ def ws_scrape_url(ws):
             raise NotImplementedError(f"Scraping source '{source}' is not supported.")
         
         jobs = [job]
+        ws.send(json.dumps({"type": "scrape", "action": "update"}))
         ws.send(json.dumps({"type": "scrape", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
@@ -120,19 +121,19 @@ def ws_manual_job(ws):
     recommend_by_job(new_jobs, ws)
     
     
-# @sock.route('/update_job')
-# def ws_update_job(ws):
-#     raw = ws.receive()
-#     data = json.loads(raw)
+@sock.route('/update_job')
+def ws_update_job(ws):
+    raw = ws.receive()
+    data = json.loads(raw)
         
-#     ### Update Job ###
-#     new_ids = insert_jobs_ws(ws, None, None, isUpdate=True, data=data)
+    ### Update Job ###
+    new_ids = insert_jobs(ws, None, None, isUpdate=True, data=data)
     
-#     if not data['descriptionUpdated']:
-#         ws.close()
+    if not data['descriptionUpdated']:
+        ws.close()
     
-#     ### Recommend Job ###
-#     recommend_jobs_ws(ws, new_ids)    
+    ### Recommend Job ###
+    recommend_jobs_ws(ws, new_ids)    
 
 
 @sock.route('/resumes')

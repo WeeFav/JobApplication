@@ -159,6 +159,8 @@ def insert_resumes(updatedResumes):
     embeddings = list(embedding_model.embed([r[2] for r in update_all]))
     for r, emb in zip(update_all, embeddings):
         r.append(emb.tolist())
+
+    print(f"compute embedding for full update completed")
     
     # 1. Update name only
     if update_name:

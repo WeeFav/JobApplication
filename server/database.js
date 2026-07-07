@@ -39,18 +39,24 @@ export async function get_jobs(search) {
   let query = `
   SELECT jobs.*
   FROM jobs
-  LEFT JOIN applications
-  ON jobs.id = applications.job_id
   `;
 
-  query += "WHERE applications.job_id IS NULL";
-
-  if (search.date) {
-    query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
-  }
-
-  if (conditions.length > 0) {
-    query += ` AND ${conditions.join(" AND ")}`
+  if (search.all === 'true' || search.all === true) {
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(" AND ")}`;
+    }
+  } else {
+    query += `
+    LEFT JOIN applications
+    ON jobs.id = applications.job_id
+    WHERE applications.job_id IS NULL
+    `;
+    if (search.date) {
+      query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
+    }
+    if (conditions.length > 0) {
+      query += ` AND ${conditions.join(" AND ")}`
+    }
   }
 
   query += " ORDER BY post_date IS NULL, post_date DESC"
@@ -175,8 +181,8 @@ export async function get_recommendations(search) {
     params.push(`%${search.company}%`)
   }
   if (search.score) {
-    conditions.push(`score >= $${idx++}`)
-    params.push(search.score)
+    conditions.push(`fr.final_score > $${idx++}`)
+    params.push(parseFloat(search.score))
   } 
  
 

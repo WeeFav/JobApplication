@@ -297,7 +297,10 @@ export const ProgressProvider = ({ children }) => {
         qdrant: "pending",
         recommending: "pending"
       },
-      error: null
+      error: null,
+      scrapedCount: 0,
+      insertedCount: 0,
+      skippedCount: 0
     };
 
     setProgressList(prev => [newItem, ...prev]);
@@ -326,6 +329,12 @@ export const ProgressProvider = ({ children }) => {
               updated.stages.postgres = "success";
               updated.stages.qdrant = "running";
               updated.currentStage = "qdrant";
+            } else if (msg.action === "completed") {
+              updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0) + 1;
+              updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0);
+            } else if (msg.action === "skipped") {
+              updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0);
+              updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0) + 1;
             } else if (msg.action === "success") {
               updated.stages.postgres = "success";
               updated.stages.qdrant = "success";
@@ -334,7 +343,7 @@ export const ProgressProvider = ({ children }) => {
               updated.stages[active] = "failed";
               updated.currentStage = "failed";
               updated.status = "failed";
-              updated.error = `Insertion failed during ${active}`;
+              updated.error = msg.error || `Insertion failed during ${active}`;
             }
           } else if (msg.type === "recommend") {
             if (msg.action === "start") {
