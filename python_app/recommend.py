@@ -242,13 +242,18 @@ def compute_skill_embeddings_similarity(r_embeddings: dict, j_embeddings: dict, 
 def keyword_scoring(r_majors, r_skills, r_embeddings, j_majors, j_skills, j_embeddings):        
     print("calculating keyword scores")
     
-    # Normalized keyword match
-    cosine_score = cosine_similarity_freq(r_skills, j_skills)
-    jaccard_score = adjusted_jaccard(r_skills, j_skills)
-    freq_score = (0.5 * cosine_score) + (0.5 * jaccard_score)    
+    if len(r_skills) == 0 or len(j_skills) == 0 or len(r_embeddings) == 0 or len(j_embeddings) == 0:
+        print("WRAN: job or resume skill list or embedding list empty!!! Skipping embedding score")
+        freq_score = 0
+        embed_score = 0
+    else:
+        # Normalized keyword match
+        cosine_score = cosine_similarity_freq(r_skills, j_skills)
+        jaccard_score = adjusted_jaccard(r_skills, j_skills)
+        freq_score = (0.5 * cosine_score) + (0.5 * jaccard_score)    
 
-    # Embedding similarity (pairwise similarity matrix using sentence_transformers.util.cos_sim)
-    embed_score = compute_skill_embeddings_similarity(r_embeddings, j_embeddings, r_skills, j_skills)
+        # Embedding similarity (pairwise similarity matrix using sentence_transformers.util.cos_sim)
+        embed_score = compute_skill_embeddings_similarity(r_embeddings, j_embeddings, r_skills, j_skills)
         
     # Major match
     if len(j_majors) > 0 and len(j_majors.intersection(r_majors)) == 0:
@@ -377,6 +382,7 @@ def recommend_by_resume(resumes, ws):
             thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat() # 30 days ago in Unix format
             print(f"Recommend jobs up to {thirty_days_ago}")
     
+            ws.send(json.dumps({"type": "recommend", "action": "qdrant_query_start"}))
             results = client.query_points(
                 collection_name=collection_name,
                 query=ast.literal_eval(resume['embedding']) if isinstance(resume['embedding'], str) else resume['embedding'],
@@ -402,23 +408,25 @@ def recommend_by_resume(resumes, ws):
                 with_payload=True
             )
         
-            
             recommended = {point.id: point.score for point in results.points}
             upsert_params = []
             delete_params = []
             
+            ws.send(json.dumps({"type": "recommend", "action": "qdrant_query_success"}))
             print(f"{resume['name']} have {len(recommended)} recommended jobs")
                         
+            ws.send(json.dumps({"type": "recommend", "action": "extract_start"}))
             r_majors, r_skills, r_raw_skills = extract_keyword(resume['content'])
             cursor.execute("""
                 UPDATE resumes
                 SET majors = %s, skills = %s, raw_skills = %s
                 WHERE id = %s
             """, (list(r_majors), json.dumps(r_skills), list(r_raw_skills), resume['id']))
+            r_embeddings = embed_skills(r_skills)
+            ws.send(json.dumps({"type": "recommend", "action": "extract_success"}))
             print(f"Updated resume {resume['name']} with majors: {r_majors}, skills: {r_skills}")
             
-            r_embeddings = embed_skills(r_skills)
-
+            ws.send(json.dumps({"type": "recommend", "action": "compute_score_start"}))
             # evaluate every job
             for job in jobs:
                 id = job['id']
@@ -470,7 +478,7 @@ def recommend_by_resume(resumes, ws):
                 )                                  
             conn.commit()
             
-        ws.send(json.dumps({"type": "recommend", "action": "success"}))
+        ws.send(json.dumps({"type": "recommend", "action": "compute_score_success"}))
     except Exception as e:
         traceback.print_exc()
         ws.send(json.dumps({"type": "recommend", "action": "fail"}))

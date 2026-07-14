@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react"
-import Alert from '@mui/material/Alert';
-import Snackbar from '@mui/material/Snackbar';
-import CircularProgress from '@mui/material/CircularProgress';
+import { useState, useEffect, useRef, useContext } from "react"
+import { useNavigate } from "react-router-dom"
+import { ProgressContext } from "../../context/ProgressContext"
 
 const findSkillMatches = (text, skills) => {
   if (!text || !skills || skills.length === 0) return [];
@@ -96,19 +95,9 @@ const ResumeTab = () => {
   const [editId, setEditId] = useState(null);
   const [savedSnapshot, setSavedSnapshot] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
-  const wsRef = useRef(null);
-
-  // alert popup
-  const [open, setOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertSeverity, setAlertSeverity] = useState('success');
-  const handleClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-
-    setOpen(false);
-  };
+  
+  const { triggerResumeUpdate } = useContext(ProgressContext);
+  const navigate = useNavigate();
   
   useEffect(() => {
     setLoading(true);
@@ -157,29 +146,56 @@ const ResumeTab = () => {
   };
 
   const detectUpdatedResumes = (current, snapshot) => {
-    return current.map(r => {
+    const results = current.map(r => {
       const old = snapshot.find(s => s.id === r.id);
 
-      // New resume → mark as updated
+      // New resume → count as content updated
       if (!old) {
-        return { ...r, isUpdated: true };
+        return { ...r, isContentUpdated: true, isNameUpdated: false };
       }
 
-      // Content changed → mark as updated
-      if (normalizeNewlines(old.content) !== normalizeNewlines(r.content)) {
-        return { ...r, isUpdated: true };
-      }
+      const isNameUpdated = old.name !== r.name;
+      const isContentUpdated = normalizeNewlines(old.content) !== normalizeNewlines(r.content);
 
-      // No change → keep isUpdated as false
-      return { ...r, isUpdated: false };
+      return {
+        ...r,
+        isNameUpdated,
+        isContentUpdated
+      };
     });
+
+    // Filter out the ones with no change
+    return results.filter(r => r.isNameUpdated || r.isContentUpdated);
   };
 
   const onSaveClick = async () => {
     const updatedResumes = detectUpdatedResumes(resumes, savedSnapshot);
-    await updateResumes(updatedResumes, wsRef, setOpen, setAlertMessage, setAlertSeverity);
+    const isDeleted = resumes.length !== savedSnapshot.length;
+
+    if (updatedResumes.length === 0 && !isDeleted) {
+      console.log("No changes detected.");
+      return;
+    }
+
+    const payload = {
+      updated: updatedResumes,
+      active_ids: resumes.map(r => r.id)
+    };
+
+    const changedNames = [];
+    updatedResumes.forEach(r => changedNames.push(r.name));
+    savedSnapshot.forEach(old => {
+      if (!resumes.some(r => r.id === old.id)) {
+        changedNames.push(`${old.name} (Deleted)`);
+      }
+    });
+
+    triggerResumeUpdate(payload, changedNames);
+    
     // Sync the snapshot with the saved state
-    setSavedSnapshot(resumes.map(r => ({ ...r, isUpdated: false })));
+    setSavedSnapshot(resumes.map(r => ({ ...r, isNameUpdated: false, isContentUpdated: false })));
+    setIsEditing(false);
+    navigate("/dashboard");
   }
 
   const activeResume = resumes.find((r) => r.id === activeId);
@@ -196,14 +212,15 @@ const ResumeTab = () => {
               : "bg-gray-200 hover:bg-gray-300"
               }`}
             onClick={() => {
-              // Only switch tab if NOT in edit mode
               if (editId !== resume.id) {
                 setActiveId(resume.id);
-                setIsEditing(false);
+                setEditId(null);
               }
             }}
             onDoubleClick={() => {
-              setEditId(resume.id); // Enter edit mode
+              if (isEditing) {
+                setEditId(resume.id); // Enter edit mode
+              }
             }}
           >
             {editId === resume.id ? (
@@ -222,7 +239,7 @@ const ResumeTab = () => {
               <span className="font-medium">{resume.name}</span>
             )}
 
-            {resumes.length > 1 && (
+            {isEditing && resumes.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -285,20 +302,6 @@ const ResumeTab = () => {
         </div>
       )}
 
-      <Snackbar open={open} onClose={handleClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert
-          onClose={handleClose}
-          severity={alertSeverity}
-          variant="filled"
-          sx={{ flex: 1 }}
-        >
-          <div className="flex items-center gap-3 overflow-hidden">
-            {alertMessage}
-            {alertSeverity === "success" ? <></> : <CircularProgress size="20px" color="white" />}
-          </div>
-        </Alert>
-      </Snackbar>
-
     </div>
   )
 }
@@ -329,66 +332,5 @@ const loadResumes = async (setResumes, setLoading, setSavedSnapshot, setActiveId
   }
   setSavedSnapshot(JSON.parse(JSON.stringify(normalizedData)));
   setLoading(false);
-};
-
-const updateResumes = (updatedResumes, wsRef, setOpen, setAlertMessage, setAlertSeverity) => {
-  return new Promise((resolve, reject) => {
-    // Create socket
-    const ws = new WebSocket('/ws_api/resumes');
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('Connected to WebSocket');
-      ws.send(JSON.stringify(updatedResumes));
-    };
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "insert") {
-        if (msg.action === "start") {
-          console.log("start insert");
-          setAlertMessage("Inserting resume");
-          setAlertSeverity("info");
-          setOpen(true);
-        }
-        else if (msg.action === "success") {
-          console.log("insert success");
-          setAlertMessage("Resume insert success");
-          setAlertSeverity("success");
-        }
-        else if (msg.action === "fail") {
-          console.log("insert failed");
-          setAlertMessage("Resume insert fail");
-          setAlertSeverity("error");
-        }
-      }
-      else if (msg.type === "recommend") {
-        if (msg.action === "start") {
-          console.log("start recommend");
-          setAlertMessage("Start recommend");
-          setAlertSeverity("info");
-        }
-        else if (msg.action === "success") {
-          console.log("recommend success");
-          setAlertMessage("Recommend success");
-          setAlertSeverity("success");
-        }
-        else if (msg.action === "fail") {
-          console.log("recommend failed");
-          setAlertMessage("Recommend fail");
-          setAlertSeverity("error");
-        }
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('Socket closed');
-      wsRef.current = null;
-      setTimeout(() => {
-        setOpen(false);
-      }, 3000);
-      resolve();
-    };
-  })
 };
 

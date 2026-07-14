@@ -139,13 +139,13 @@ def ws_update_job(ws):
 @sock.route('/resumes')
 def ws_resumes(ws):
     raw = ws.receive()
-    updatedResumes = json.loads(raw)
+    data = json.loads(raw)
     
     ### Insert Resume ###
     ws.send(json.dumps({"type": "insert", "action": "start"}))
     
     try:
-        resumes = insert_resumes(updatedResumes)        
+        resumes = insert_resumes(data)        
         ws.send(json.dumps({"type": "insert", "action": "success"}))                
     except Exception as e:
         traceback.print_exc()
@@ -157,6 +157,8 @@ def ws_resumes(ws):
     ## Recommend ###
     if len(resumes) > 0:
         recommend_by_resume(resumes, ws)
+    else:
+        ws.send(json.dumps({"type": "recommend", "action": "skipped"}))
     
     ws.close()
    

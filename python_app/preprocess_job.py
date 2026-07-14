@@ -7,6 +7,7 @@ from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import re
+from bs4 import BeautifulSoup
 
 load_dotenv()
 
@@ -86,19 +87,37 @@ def extract_description(description):
 def canonicalize_url(url):
     """Canonicalizes a URL by sorting query parameters and optionally removing some."""
     
-    remove_params = set(["utm_source", "utm_medium", "utm_campaign", "ref", "source"])
-
     parsed = urlparse(url)
+    
+    # Trim trailing paths for specific sources
+    source = extract_source_from_url(url)
+    path = parsed.path
+    if source == "ashby":
+        if path.endswith("/application"):
+            path = path[:-12]
+        elif path.endswith("/application/"):
+            path = path[:-13]
+    elif source == "lever":
+        if path.endswith("/apply"):
+            path = path[:-6]
+        elif path.endswith("/apply/"):
+            path = path[:-7]
+
     # Sort and filter query parameters
     query_params = parse_qsl(parsed.query, keep_blank_values=True)
-    filtered_params = [(k, v) for k, v in query_params if k not in remove_params]
+    filtered_params = []
+    for k, v in query_params:
+        k_lower = k.lower()
+        if any(sub in k_lower for sub in ["source", "src", "utm", "ref"]):
+            continue
+        filtered_params.append((k, v))
     sorted_params = sorted(filtered_params)
 
     # Rebuild the query string
     canonical_query = urlencode(sorted_params)
 
     # Rebuild the full URL
-    canonical = parsed._replace(query=canonical_query, fragment="")
+    canonical = parsed._replace(path=path, query=canonical_query, fragment="")
     return urlunparse(canonical)
 
 def extract_post_date(text):
@@ -143,3 +162,12 @@ def extract_source_from_url(url):
         return "jobright"
     netloc = netloc.replace("www.", "")
     return netloc.split(".")[0]
+
+
+def clean_html(text):
+    if not text:
+        return ""
+    soup = BeautifulSoup(text, "html.parser")
+    if bool(soup.find()):
+        return soup.get_text(separator="\n")
+    return text

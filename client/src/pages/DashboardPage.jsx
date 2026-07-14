@@ -11,6 +11,59 @@ import {
   FiAlertTriangle
 } from "react-icons/fi";
 
+const getStagesConfig = (item) => {
+  if (item.type === 'resume') {
+    return [
+      { 
+        key: 'postgres_insert', 
+        label: 'PostgreSQL Insert', 
+        state: item.stages.postgres_insert 
+      },
+      { 
+        key: 'qdrant_query', 
+        label: 'Qdrant Query', 
+        state: item.stages.qdrant_query 
+      },
+      { 
+        key: 'extract_resume', 
+        label: 'Extract Keyword and Embedding & Update Resume', 
+        state: item.stages.extract_resume 
+      },
+      { 
+        key: 'compute_score', 
+        label: 'Compute Score', 
+        state: item.stages.compute_score 
+      }
+    ];
+  } else {
+    return [
+      { 
+        key: 'scraping', 
+        label: item.type === 'manual' ? 'Scraping (Skipped)' : 'Scraping', 
+        state: item.stages.scraping, 
+        sublabel: item.type !== 'manual' && item.scrapedCount > 0 ? ` (${item.scrapedCount} done)` : '' 
+      },
+      { 
+        key: 'postgres', 
+        label: 'PostgreSQL Insert', 
+        state: item.stages.postgres, 
+        sublabel: item.insertedCount > 0 ? ` (${item.insertedCount} inserted)` : '' 
+      },
+      { 
+        key: 'qdrant', 
+        label: 'Qdrant Insert', 
+        state: item.stages.qdrant, 
+        sublabel: item.insertedCount > 0 ? ` (${item.insertedCount} inserted)` : '' 
+      },
+      { 
+        key: 'recommending', 
+        label: 'Recommending', 
+        state: item.stages.recommending 
+      }
+    ];
+  }
+};
+
 const DashboardPage = () => {
   const { progressList, clearJobProgress } = useContext(ProgressContext);
   const [totalJobs, setTotalJobs] = useState(0);
@@ -62,6 +115,16 @@ const DashboardPage = () => {
 
   const getStagePercentage = (item) => {
     if (item.status === 'failed') return 100;
+    if (item.type === 'resume') {
+      switch (item.currentStage) {
+        case 'postgres_insert': return 25;
+        case 'qdrant_query': return 50;
+        case 'extract_resume': return 75;
+        case 'compute_score': return 90;
+        case 'completed': return 100;
+        default: return 0;
+      }
+    }
     switch (item.currentStage) {
       case 'scraping': return 15;
       case 'postgres': return 40;
@@ -91,6 +154,13 @@ const DashboardPage = () => {
       return (
         <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md">
           <FiX className="w-5 h-5" />
+        </div>
+      );
+    }
+    if (state === 'skipped') {
+      return (
+        <div className="w-8 h-8 rounded-full bg-gray-150 text-gray-400 flex items-center justify-center border border-gray-300 bg-gray-100 font-bold">
+          -
         </div>
       );
     }
@@ -207,6 +277,10 @@ const DashboardPage = () => {
                           <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
                             URL Scrape
                           </span>
+                        ) : item.type === 'resume' ? (
+                          <span className="bg-purple-50 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
+                            Resume Update
+                          </span>
                         ) : (
                           <span className="bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
                             Manual Entry
@@ -245,74 +319,40 @@ const DashboardPage = () => {
                       {/* Connecting Line Underneath Icons */}
                       <div className="absolute top-4 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 -z-10" />
 
-                      {/* Step 1: Scraping */}
-                      <div className="flex flex-col items-center">
-                        {renderStepIcon(item.stages.scraping)}
-                        <span className={`text-xs font-semibold mt-2 ${
-                          item.stages.scraping === 'running' ? 'text-website-blue font-bold' :
-                          item.stages.scraping === 'success' ? 'text-green-600' :
-                          item.stages.scraping === 'failed' ? 'text-red-500' : 'text-gray-400'
-                        }`}>
-                          {item.type === 'manual' ? 'Scraping (Skipped)' : 'Scraping'}
-                          {item.scrapedCount > 0 && ` (${item.scrapedCount} done)`}
-                        </span>
-                      </div>
-
-                      {/* Step 2: Database Ingestion */}
-                      <div className="flex flex-col items-center">
-                        {renderStepIcon(item.stages.postgres)}
-                        <span className={`text-xs font-semibold mt-2 ${
-                          item.stages.postgres === 'running' ? 'text-website-blue font-bold' :
-                          item.stages.postgres === 'success' ? 'text-green-600' :
-                          item.stages.postgres === 'failed' ? 'text-red-500' : 'text-gray-400'
-                        }`}>
-                          PostgreSQL Insert
-                          {item.insertedCount > 0 && ` (${item.insertedCount} inserted)`}
-                        </span>
-                      </div>
-
-                      {/* Step 3: Vector DB Ingestion */}
-                      <div className="flex flex-col items-center">
-                        {renderStepIcon(item.stages.qdrant)}
-                        <span className={`text-xs font-semibold mt-2 ${
-                          item.stages.qdrant === 'running' ? 'text-website-blue font-bold' :
-                          item.stages.qdrant === 'success' ? 'text-green-600' :
-                          item.stages.qdrant === 'failed' ? 'text-red-500' : 'text-gray-400'
-                        }`}>
-                          Qdrant Insert
-                          {item.insertedCount > 0 && ` (${item.insertedCount} inserted)`}
-                        </span>
-                      </div>
-
-                      {/* Step 4: Job Recommendation */}
-                      <div className="flex flex-col items-center">
-                        {renderStepIcon(item.stages.recommending)}
-                        <span className={`text-xs font-semibold mt-2 ${
-                          item.stages.recommending === 'running' ? 'text-website-blue font-bold' :
-                          item.stages.recommending === 'success' ? 'text-green-600' :
-                          item.stages.recommending === 'failed' ? 'text-red-500' : 'text-gray-400'
-                        }`}>
-                          Recommending
-                        </span>
-                      </div>
+                      {getStagesConfig(item).map((stage) => (
+                        <div key={stage.key} className="flex flex-col items-center">
+                          {renderStepIcon(stage.state)}
+                          <span className={`text-xs font-semibold mt-2 px-1 max-w-[150px] break-words ${
+                            stage.state === 'running' ? 'text-website-blue font-bold' :
+                            stage.state === 'success' ? 'text-green-600' :
+                            stage.state === 'failed' ? 'text-red-500' :
+                            stage.state === 'skipped' ? 'text-gray-400 italic' : 'text-gray-400'
+                          }`}>
+                            {stage.label}
+                            {stage.sublabel || ''}
+                          </span>
+                        </div>
+                      ))}
 
                     </div>
 
                     {/* Ingestion counts details */}
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-500 font-medium">
-                      <div>
-                        <span className="text-gray-400">Scraped jobs:</span>{' '}
-                        <span className="text-gray-700 font-bold">{item.scrapedCount || 0}</span>
+                    {item.type !== 'resume' && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center gap-6 text-xs text-gray-500 font-medium">
+                        <div>
+                          <span className="text-gray-400">Scraped jobs:</span>{' '}
+                          <span className="text-gray-700 font-bold">{item.scrapedCount || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Inserted jobs:</span>{' '}
+                          <span className="text-green-600 font-bold">{item.insertedCount || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Skipped jobs:</span>{' '}
+                          <span className="text-amber-600 font-bold">{item.skippedCount || 0}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-gray-400">Inserted jobs:</span>{' '}
-                        <span className="text-green-600 font-bold">{item.insertedCount || 0}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Skipped jobs:</span>{' '}
-                        <span className="text-amber-600 font-bold">{item.skippedCount || 0}</span>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Error Banner */}
                     {item.status === 'failed' && (

@@ -6,17 +6,17 @@
 
 [DONE] searched text should remain in the search bar
 [DONE] jobs, recommend, and applied page should show number of results found and should display c
-more rigourours deduplication espcially on src
-when scraping ats, remove html tags from description
+[CHECK] more rigourours deduplication espcially on src
+[CHECK] when scraping ats, remove html tags from description
 
-for edit job, client should send updated job info and whether description is updated. so in insert_jobs(), pass isUpdate=True to let function know to ignore deduplication. also pass isDescriptionUpdate=True to let function know to update qdrant. if isDescriptionUpdate=False, don't need to recommend
+[NOT-IMPLEMENTED] for edit job, client should send updated job info and whether description is updated. so in insert_jobs(), pass isUpdate=True to let function know to ignore deduplication. also pass isDescriptionUpdate=True to let function know to update qdrant. if isDescriptionUpdate=False, don't need to recommend
 
 [DONE] Feature 6.2: radial Gauge have different size
-Feature 8.1: Click the **Delete** button next to a resume tab. Verify it is removed from the database.
-shouldn't be able to edit name in preview mode
-if nothing change, it still shows got 2 name only updates
-keyword_scoring need to handle empty skills list
-resume recommendation change from notification to status in progress bar in dashboard
-full update got stuck
-same resume have different score
+[DONE] Feature 8.1: Click the **Delete** button next to a resume tab. Verify it is removed from the database.
+[DONE] shouldn't be able to edit resume name in preview mode
+[DONE] if nothing change, it still shows got 2 name only updates
+[CHECK] keyword_scoring need to handle empty skills list
+[DONE] resume recommendation change from notification to status in progress bar in dashboard
+[DONE] full update got stuck
+[DONE] same resume have different score
 why some jobs have "WRAN: job skill list empty!!! Skipping embedding score"

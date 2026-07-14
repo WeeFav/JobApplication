@@ -151,6 +151,7 @@ const JobDetails = ({ job, handleDelete }) => {
         <p> Posted: {formatDate(job.post_date)}</p>
         <p> Scraped: {formatDate(job.scrape_date)}</p>
         <p> Applied: {formatDate(job.application_date)}</p>
+        <p> Job ID: {job.id}</p>
       </div>
 
       <hr className="mb-4" />
@@ -169,12 +170,12 @@ const JobDetails = ({ job, handleDelete }) => {
 
       {/* Edit + Delete Buttons */}
       <div className="flex justify-end gap-3">
-        <NavLink
+        {/* <NavLink
           to={`/jobs/edit/${job.id}`}
           className="bg-website-blue text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
         >
           Edit
-        </NavLink>
+        </NavLink> */}
 
         <button
           onClick={handleDelete}

@@ -388,8 +388,150 @@ export const ProgressProvider = ({ children }) => {
     };
   };
 
+  const triggerResumeUpdate = (payload, names) => {
+    const id = Date.now().toString();
+    const newItem = {
+      id,
+      target: `Resume Update (${names.join(', ')})`,
+      type: "resume",
+      status: "running",
+      currentStage: "postgres_insert",
+      stages: {
+        postgres_insert: "running",
+        qdrant_query: "pending",
+        extract_resume: "pending",
+        compute_score: "pending"
+      },
+      error: null,
+      scrapedCount: 0,
+      insertedCount: 0,
+      skippedCount: 0
+    };
+
+    setProgressList(prev => [newItem, ...prev]);
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws_api/resumes`);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify(payload));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        setProgressList(prev => prev.map(item => {
+          if (item.id !== id) return item;
+          
+          let updated = { ...item };
+          updated.stages = { ...item.stages };
+
+          if (msg.type === "insert") {
+            if (msg.action === "start") {
+              updated.stages.postgres_insert = "running";
+              updated.currentStage = "postgres_insert";
+            } else if (msg.action === "success") {
+              updated.stages.postgres_insert = "success";
+              // Prep for next step, though name-only update might close connection here
+              updated.stages.qdrant_query = "running";
+              updated.currentStage = "qdrant_query";
+            } else if (msg.action === "fail") {
+              updated.stages.postgres_insert = "failed";
+              updated.currentStage = "failed";
+              updated.status = "failed";
+              updated.error = msg.error || "Resume database update failed";
+            }
+          } else if (msg.type === "recommend") {
+            if (msg.action === "qdrant_query_start") {
+              updated.stages.postgres_insert = "success";
+              updated.stages.qdrant_query = "running";
+              updated.currentStage = "qdrant_query";
+            } else if (msg.action === "qdrant_query_success") {
+              updated.stages.qdrant_query = "success";
+              updated.stages.extract_resume = "running";
+              updated.currentStage = "extract_resume";
+            } else if (msg.action === "extract_start") {
+              updated.stages.qdrant_query = "success";
+              updated.stages.extract_resume = "running";
+              updated.currentStage = "extract_resume";
+            } else if (msg.action === "extract_success") {
+              updated.stages.extract_resume = "success";
+              updated.stages.compute_score = "running";
+              updated.currentStage = "compute_score";
+            } else if (msg.action === "compute_score_start") {
+              updated.stages.extract_resume = "success";
+              updated.stages.compute_score = "running";
+              updated.currentStage = "compute_score";
+            } else if (msg.action === "compute_score_success" || msg.action === "success") {
+              updated.stages.postgres_insert = "success";
+              updated.stages.qdrant_query = "success";
+              updated.stages.extract_resume = "success";
+              updated.stages.compute_score = "success";
+              updated.currentStage = "completed";
+              updated.status = "success";
+            } else if (msg.action === "skipped") {
+              updated.stages.postgres_insert = "success";
+              updated.stages.qdrant_query = "skipped";
+              updated.stages.extract_resume = "skipped";
+              updated.stages.compute_score = "skipped";
+              updated.currentStage = "completed";
+              updated.status = "success";
+            } else if (msg.action === "fail") {
+              const active = updated.currentStage;
+              if (updated.stages[active]) {
+                updated.stages[active] = "failed";
+              }
+              updated.currentStage = "failed";
+              updated.status = "failed";
+              updated.error = msg.error || `Recommendation failed at stage ${active}`;
+            }
+          }
+          return updated;
+        }));
+      } catch (e) {
+        console.error('Error handling WebSocket message:', e);
+      }
+    };
+
+    ws.onclose = () => {
+      setProgressList(prev => prev.map(item => {
+        if (item.id === id) {
+          if (item.status === "running") {
+            if (item.stages.postgres_insert === "success" && item.currentStage === "qdrant_query") {
+              return {
+                ...item,
+                status: "success",
+                currentStage: "completed",
+                stages: {
+                  ...item.stages,
+                  qdrant_query: "skipped",
+                  extract_resume: "skipped",
+                  compute_score: "skipped"
+                }
+              };
+            } else {
+              console.log(item.stages.postgres_insert);
+              console.log(item.currentStage);
+              return {
+                ...item,
+                status: "failed",
+                currentStage: "failed",
+                stages: {
+                  ...item.stages,
+                  [item.currentStage]: "failed"
+                },
+                error: "Connection closed unexpectedly"
+              };
+            }
+          }
+        }
+        return item;
+      }));
+    };
+  };
+
   return (
-    <ProgressContext.Provider value={{ progressList, addJobByUrl, addJobsiteScrape, addJobManually, clearJobProgress }}>
+    <ProgressContext.Provider value={{ progressList, addJobByUrl, addJobsiteScrape, addJobManually, clearJobProgress, triggerResumeUpdate }}>
       {children}
     </ProgressContext.Provider>
   );

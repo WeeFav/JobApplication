@@ -11,7 +11,7 @@ import traceback
 from dotenv import load_dotenv
 from typing import List, Dict
 from datetime import datetime
-from preprocess_job import extract_description, canonicalize_url
+from preprocess_job import extract_description, canonicalize_url, clean_html
 import json
 
 load_dotenv()
@@ -78,7 +78,7 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
                 continue
             
             # extract description
-            description = df.iloc[i]['description']
+            description = clean_html(df.iloc[i]['description'])
             if job_site == "Jobright":
                 description_extracted = description
             else:
@@ -139,28 +139,33 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
         ws.close()
         raise e
                        
-def insert_resumes(updatedResumes):
+def insert_resumes(data):
+    updatedResumes = data.get("updated", [])
+    active_ids = data.get("active_ids", [])
+    
     update_name = []
     update_all = []
     
     # split resume into name only update or full update
     for r in updatedResumes:
-        if r["isUpdated"] == False:
-            update_name.append((r["name"], r["id"]))
-        else:
-            # resume with content updated or new resume will have isUpdated = True
+        if r.get("isContentUpdated", False):
+            # resume with content updated or new resume
             update_all.append([r["id"], r["name"], r["content"], False])
+        elif r.get("isNameUpdated", False):
+            # name only update
+            update_name.append((r["name"], r["id"]))
 
     print(f"got {len(update_name)} name only updates")
     print(f"got {len(update_all)} full updates")
 
     # compute embedding for full update
-    embedding_model = TextEmbedding(model_name=model_name)    
-    embeddings = list(embedding_model.embed([r[2] for r in update_all]))
-    for r, emb in zip(update_all, embeddings):
-        r.append(emb.tolist())
+    if update_all:
+        embedding_model = TextEmbedding(model_name=model_name)    
+        embeddings = list(embedding_model.embed([r[2] for r in update_all]))
+        for r, emb in zip(update_all, embeddings):
+            r.append(emb.tolist())
 
-    print(f"compute embedding for full update completed")
+        print(f"compute embedding for full update completed")
     
     # 1. Update name only
     if update_name:
@@ -192,14 +197,12 @@ def insert_resumes(updatedResumes):
         )        
 
     # 3. Delete rows not in current resumes
-    ids = [r["id"] for r in updatedResumes]
-
     delete_query = """
     DELETE FROM resumes
     WHERE id NOT IN (SELECT UNNEST(%s::int[]))
     """
 
-    cursor.execute(delete_query, (ids,))
+    cursor.execute(delete_query, (active_ids,))
     conn.commit()
     
     print(f"inserted into postgres")
