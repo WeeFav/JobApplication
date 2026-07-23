@@ -147,8 +147,9 @@ def extract_post_date(text):
     return post_date.strftime('%Y-%m-%d')
 
 def extract_source_from_url(url):
-    netloc = urlparse(url).netloc.lower()
-    if "myworkdayjobs.com" in netloc:
+    parsed = urlparse(url)
+    netloc = parsed.netloc.lower()
+    if "myworkdayjobs.com" in netloc or "myworkdaysite.com" in netloc:
         return "workday"
     if "greenhouse.io" in netloc:
         return "greenhouse"
@@ -160,6 +161,13 @@ def extract_source_from_url(url):
         return "linkedin"
     if "jobright.ai" in netloc:
         return "jobright"
+    # Check query parameters for specific source signatures
+    query_dict = dict(parse_qsl(parsed.query))
+    if "gh_jid" in query_dict:
+        return "greenhouse"
+    if "ashby_jid" in query_dict:
+        return "ashby"
+        
     netloc = netloc.replace("www.", "")
     return netloc.split(".")[0]
 

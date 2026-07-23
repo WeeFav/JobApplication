@@ -19,4 +19,4 @@
 [DONE] resume recommendation change from notification to status in progress bar in dashboard
 [DONE] full update got stuck
 [DONE] same resume have different score
-why some jobs have "WRAN: job skill list empty!!! Skipping embedding score"
+[CHECK] why some jobs have "WARN: job or resume skill list or embedding list empty!!! Skipping embedding score"

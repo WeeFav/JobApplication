@@ -152,9 +152,9 @@ def scrape(company, ws=None):
 
 if __name__ == '__main__':
     # Test scrape_from_url
-    print("Testing scrape_from_url...")
-    job = scrape_from_url("https://jobs.ashbyhq.com/openai/de06790a-7243-4e33-a6f1-e7bd34009588")
-    print(f"Scraped job: {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
+    # print("Testing scrape_from_url...")
+    # job = scrape_from_url("https://jobs.ashbyhq.com/openai/de06790a-7243-4e33-a6f1-e7bd34009588")
+    # print(f"Scraped job: {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
     
     # Test scrape
     print("\nTesting scrape...")

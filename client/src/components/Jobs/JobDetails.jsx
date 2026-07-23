@@ -146,12 +146,26 @@ const JobDetails = ({ job, handleDelete }) => {
       </div>
 
       {/* Location + Dates */}
-      <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-4">
+      <div className="flex flex-wrap gap-4 items-center text-sm text-gray-500 mb-4">
         <p>{job.location}</p>
         <p> Posted: {formatDate(job.post_date)}</p>
         <p> Scraped: {formatDate(job.scrape_date)}</p>
         <p> Applied: {formatDate(job.application_date)}</p>
         <p> Job ID: {job.id}</p>
+        {(job.source || job.method) && (
+          <div className="flex gap-2 ml-auto">
+            {job.source && (
+              <span className="bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
+                {job.source}
+              </span>
+            )}
+            {job.method && (
+              <span className="bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
+                {job.method}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <hr className="mb-4" />

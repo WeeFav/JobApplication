@@ -12,7 +12,8 @@ CREATE TABLE jobs (
     educations TEXT[],
     majors TEXT[],
     skills JSONB,
-    raw_skills TEXT[]
+    raw_skills TEXT[],
+    source VARCHAR(150)
 );
 
 CREATE TABLE applications (
@@ -60,4 +61,8 @@ CREATE TABLE embeddings (
   embedding TEXT NOT NULL
 );
 
-
+CREATE TABLE company_ats (
+    company VARCHAR(150) PRIMARY KEY,
+    ats VARCHAR(150) NOT NULL,
+    meta TEXT
+);

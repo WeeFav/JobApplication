@@ -120,7 +120,7 @@ export async function get_applications(search) {
   }
 
   let query = `
-    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, jobs.raw_skills, application_date 
+    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, jobs.raw_skills, jobs.source, jobs.method, application_date 
     FROM applications
     INNER JOIN jobs
     ON applications.job_id = jobs.id
@@ -192,7 +192,7 @@ export async function get_recommendations(search) {
     FROM recommendations
     WHERE resume_id = ${resumeId}
   )
-  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.url, jobs.description_extracted, jobs.raw_skills, fr.final_score
+  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.url, jobs.description_extracted, jobs.raw_skills, jobs.source, jobs.method, fr.final_score
   FROM filtered_recommendations fr
   INNER JOIN jobs
     ON fr.job_id = jobs.id

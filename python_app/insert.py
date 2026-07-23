@@ -29,7 +29,7 @@ client = QdrantClient("http://qdrant:6333")
 collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
-def insert_jobs(jobs: List[Dict], job_site, ws):
+def insert_jobs(jobs: List[Dict], job_site, ws, method='scrape'):
     ws.send(json.dumps({"type": "insert", "action": "start"}))
     print(f"got {len(jobs)} jobs from {job_site}")
     new_jobs = []
@@ -87,11 +87,11 @@ def insert_jobs(jobs: List[Dict], job_site, ws):
                         
             # insert into postgres
             cursor.execute("""
-                INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO jobs (hash, title, company, url, location, post_date, description, description_extracted, source, method) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id, scrape_date
                 """,
-                (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted)
+                (hash, df.iloc[i]['title'], df.iloc[i]['company'], url_norm, df.iloc[i]['location'], df.iloc[i]['post_date'], description, description_extracted, job_site, method)
             )
             conn.commit()
             print(f"inserted into postgres")

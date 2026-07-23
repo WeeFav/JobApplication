@@ -55,7 +55,7 @@ def ws_scrape_jobsite(ws):
         return
 
     ### Insert Jobs ###
-    new_ids = insert_jobs(jobs, source, ws)
+    new_ids = insert_jobs(jobs, source, ws, method='scrape')
         
     ### Recommend Jobs ###
     recommend_by_job(new_ids, ws)
@@ -99,7 +99,7 @@ def ws_scrape_url(ws):
         return
         
     ### Insert Job ###
-    new_ids = insert_jobs(jobs, source, ws)
+    new_ids = insert_jobs(jobs, source, ws, method='url')
     
     ### Recommend Jobs ###
     recommend_by_job(new_ids, ws)
@@ -115,7 +115,7 @@ def ws_manual_job(ws):
     source = data['type']
     
     ### Insert Job ###
-    new_jobs = insert_jobs(jobs, source, ws)
+    new_jobs = insert_jobs(jobs, source, ws, method='manual')
     
     ### Recommend Job ###
     recommend_by_job(new_jobs, ws)

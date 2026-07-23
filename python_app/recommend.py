@@ -214,11 +214,7 @@ def adjusted_jaccard(resume, jd):
 def compute_skill_embeddings_similarity(r_embeddings: dict, j_embeddings: dict, r_skills: dict, j_skills: dict):
     j_skills_list = list(j_embeddings.keys())
     r_skills_list = list(r_embeddings.keys())
-    
-    if len(j_skills_list) == 0:
-        print("WRAN: job skill list empty!!! Skipping embedding score")
-        return 0
-    
+        
     similarity_matrix = cos_sim([j_embeddings[skill].astype(np.float32) for skill in j_skills_list], [r_embeddings[skill].astype(np.float32) for skill in r_skills_list])
     
     total_weight = sum(j_skills.values())  # Normalization factor
@@ -243,7 +239,7 @@ def keyword_scoring(r_majors, r_skills, r_embeddings, j_majors, j_skills, j_embe
     print("calculating keyword scores")
     
     if len(r_skills) == 0 or len(j_skills) == 0 or len(r_embeddings) == 0 or len(j_embeddings) == 0:
-        print("WRAN: job or resume skill list or embedding list empty!!! Skipping embedding score")
+        print("WARN: job or resume skill list or embedding list empty!!! Skipping embedding score")
         freq_score = 0
         embed_score = 0
     else:
