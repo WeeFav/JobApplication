@@ -1,14 +1,69 @@
 import requests
 from urllib.parse import urlparse
 import json
+import os
+import psycopg2
+from dotenv import load_dotenv
 
-COMPANY_TO_BOARD = {
-    "SpaceX": "spacex"
-}
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-BOARD_TO_COMPANY = {
-    "spacex": "SpaceX"
-}
+def get_db_connection():
+    db_host = os.environ.get("POSTGRES_HOST", "postgres")
+    try:
+        return psycopg2.connect(
+            host=db_host,
+            user=os.environ.get("POSTGRES_USER"),
+            password=os.environ.get("POSTGRES_PASSWORD"),
+            database=os.environ.get("POSTGRES_DB"),
+            port=os.environ.get("POSTGRES_PORT")
+        )
+    except psycopg2.OperationalError:
+        if db_host != "localhost":
+            return psycopg2.connect(
+                host="localhost",
+                user=os.environ.get("POSTGRES_USER"),
+                password=os.environ.get("POSTGRES_PASSWORD"),
+                database=os.environ.get("POSTGRES_DB"),
+                port=os.environ.get("POSTGRES_PORT")
+            )
+        raise
+
+def get_greenhouse_company_by_board(board):
+    """Finds company name for a given board from postgres company_ats table."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT company FROM company_ats WHERE ats = 'greenhouse' AND LOWER(board) = LOWER(%s)",
+            (board,)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return row[0]
+    except Exception as e:
+        print(f"DB query error: {e}")
+    return None
+
+def get_greenhouse_board_by_company(company):
+    """Finds board for a given company from postgres company_ats table."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT board FROM company_ats WHERE ats = 'greenhouse' AND (company = %s OR LOWER(company) = LOWER(%s))",
+            (company, company)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row and row[0]:
+            return row[0]
+    except Exception as e:
+        print(f"DB query error: {e}")
+    return None
 
 def is_usa_location(location_name):
     loc_lower = location_name.lower()
@@ -57,13 +112,16 @@ def scrape_from_url(url):
         job_id = path_parts[2]
         url_api = f"https://boards-api.greenhouse.io/v1/boards/{company_board_name}/jobs/{job_id}"
     
-    if company_board_name not in BOARD_TO_COMPANY:
+    db_company = get_greenhouse_company_by_board(company_board_name)
+    if not db_company:
         raise ValueError(f"Company board '{company_board_name}' is not supported under Greenhouse.")
     
     return extract_page(url_api)
 
 def scrape(company, ws=None):
-    board_name = COMPANY_TO_BOARD.get(company, company.lower())
+    board_name = get_greenhouse_board_by_company(company)
+    if not board_name:
+        board_name = company.lower()
     url_api = f"https://boards-api.greenhouse.io/v1/boards/{board_name}/jobs"
     print(f"Querying jobs from {url_api}...")
     

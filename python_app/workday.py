@@ -4,21 +4,69 @@ from urllib.parse import urlparse, urljoin
 import requests
 import json
 
-COMPANY_TO_URL = {
-    "Motorola Solutions": "https://motorolasolutions.wd5.myworkdayjobs.com/wday/cxs/motorolasolutions/Careers",
-    "NVIDIA": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite",
-    "Blue Origin": "https://blueorigin.wd5.myworkdayjobs.com/wday/cxs/blueorigin/BlueOrigin",
-    "NXP": "https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers",
-    "Boeing": "https://boeing.wd1.myworkdayjobs.com/wday/cxs/boeing/EXTERNAL_CAREERS",
-}
+import os
+import psycopg2
+from dotenv import load_dotenv
 
-BOARD_TO_COMPANY = {
-    "motorolasolutions": "Motorola Solutions",
-    "nvidia": "NVIDIA",
-    "blueorigin": "Blue Origin",
-    "nxp": "NXP",
-    "boeing": "Boeing",
-}
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+def get_db_connection():
+    db_host = os.environ.get("POSTGRES_HOST", "postgres")
+    try:
+        return psycopg2.connect(
+            host=db_host,
+            user=os.environ.get("POSTGRES_USER"),
+            password=os.environ.get("POSTGRES_PASSWORD"),
+            database=os.environ.get("POSTGRES_DB"),
+            port=os.environ.get("POSTGRES_PORT")
+        )
+    except psycopg2.OperationalError:
+        if db_host != "localhost":
+            return psycopg2.connect(
+                host="localhost",
+                user=os.environ.get("POSTGRES_USER"),
+                password=os.environ.get("POSTGRES_PASSWORD"),
+                database=os.environ.get("POSTGRES_DB"),
+                port=os.environ.get("POSTGRES_PORT")
+            )
+        raise
+
+def get_workday_company_by_board(board):
+    """Finds (company, workday_url) for a given board from postgres company_ats table."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT company, workday_url FROM company_ats WHERE ats = 'workday' AND LOWER(board) = LOWER(%s)",
+            (board,)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return row[0], row[1]
+    except Exception as e:
+        print(f"DB query error: {e}")
+    return None, None
+
+def get_workday_info_by_company(company):
+    """Finds (board, workday_url) for a given company from postgres company_ats table."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT board, workday_url FROM company_ats WHERE ats = 'workday' AND LOWER(company) = LOWER(%s)",
+            (company,)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return row[0], row[1]
+    except Exception as e:
+        print(f"DB query error: {e}")
+    return None, None
 
 usa_results = []
 intern_results = []
@@ -78,7 +126,8 @@ def extract_page(url):
     parsed_url = urlparse(url)
     path_parts = parsed_url.path.strip("/").split("/")
     company_tag = path_parts[2]
-    company = BOARD_TO_COMPANY.get(company_tag, company_tag.capitalize())
+    db_company, _ = get_workday_company_by_board(company_tag)
+    company = db_company if db_company else company_tag.capitalize()
 
     # Construct the user-facing URL
     site = path_parts[3]
@@ -103,20 +152,17 @@ def scrape_from_url(url):
     netloc = netloc.replace("www.", "")
     company_tag = netloc.split(".")[0]
     
-    if company_tag not in BOARD_TO_COMPANY:
+    company_name, base_url = get_workday_company_by_board(company_tag)
+    if not company_name and not base_url:
         raise ValueError(f"Company board '{company_tag}' is not supported under Workday.")
     
+    if not company_name:
+        company_name = company_tag.capitalize()
+        
     # Extract the job title
     path_parts = parsed.path.strip("/").split("/")
     job_title = path_parts[-1]
     
-    # Look up BOARD_TO_COMPANY to get company name
-    company_name = BOARD_TO_COMPANY.get(company_tag)
-    if not company_name:
-        company_name = company_tag.capitalize()
-        
-    # Get the base API URL from COMPANY_TO_URL
-    base_url = COMPANY_TO_URL.get(company_name)
     if not base_url:
         site = path_parts[1]
         base_url = f"{parsed.scheme}://{parsed.netloc}/wday/cxs/{company_tag}/{site}"
@@ -133,9 +179,9 @@ def scrape_from_url(url):
 def scrape(company, ws=None):
     usa_results.clear()
     intern_results.clear()
-    base_api_url = COMPANY_TO_URL.get(company)
+    _, base_api_url = get_workday_info_by_company(company)
     if not base_api_url:
-        print(f"Company {company} not found in COMPANY_TO_URL.")
+        print(f"Company {company} not found in company_ats table for Workday.")
         return []
     
     query_url = f"{base_api_url}/jobs"

@@ -2,16 +2,69 @@ import requests
 import json
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+import os
+import psycopg2
+from dotenv import load_dotenv
 
-BOARD_TO_COMPANY = {
-    "zoox": "Zoox",
-    "shieldai": "Shield AI"
-}
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-COMPANY_TO_BOARD = {
-    "Zoox": "zoox",
-    "Shield AI": "shieldai"
-}
+def get_db_connection():
+    db_host = os.environ.get("POSTGRES_HOST", "postgres")
+    try:
+        return psycopg2.connect(
+            host=db_host,
+            user=os.environ.get("POSTGRES_USER"),
+            password=os.environ.get("POSTGRES_PASSWORD"),
+            database=os.environ.get("POSTGRES_DB"),
+            port=os.environ.get("POSTGRES_PORT")
+        )
+    except psycopg2.OperationalError:
+        if db_host != "localhost":
+            return psycopg2.connect(
+                host="localhost",
+                user=os.environ.get("POSTGRES_USER"),
+                password=os.environ.get("POSTGRES_PASSWORD"),
+                database=os.environ.get("POSTGRES_DB"),
+                port=os.environ.get("POSTGRES_PORT")
+            )
+        raise
+
+def get_lever_company_by_board(board):
+    """Finds company name for a given board from postgres company_ats table."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT company FROM company_ats WHERE ats = 'lever' AND LOWER(board) = LOWER(%s)",
+            (board,)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return row[0]
+    except Exception as e:
+        print(f"DB query error: {e}")
+    return None
+
+def get_lever_board_by_company(company):
+    """Finds board for a given company from postgres company_ats table."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT board FROM company_ats WHERE ats = 'lever' AND (company = %s OR LOWER(company) = LOWER(%s))",
+            (company, company)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row and row[0]:
+            return row[0]
+    except Exception as e:
+        print(f"DB query error: {e}")
+    return None
 
 def extract_page(raw_job_dict):
     title = raw_job_dict.get("text", "")
@@ -21,7 +74,8 @@ def extract_page(raw_job_dict):
     # Extract company from URL path
     parsed = urlparse(url)
     company_tag = parsed.path.strip("/").split("/")[0]
-    company = BOARD_TO_COMPANY.get(company_tag, company_tag.capitalize())
+    db_company = get_lever_company_by_board(company_tag)
+    company = db_company if db_company else company_tag.capitalize()
     
     description = ""
     post_date = ""
@@ -53,13 +107,14 @@ def scrape_from_url(url):
     print(f"scraping {url}")
     parsed = urlparse(url)
     path_parts = parsed.path.strip("/").split("/")
-    company = path_parts[0]
+    company_tag = path_parts[0]
     job_id = path_parts[1]
     
-    if company not in BOARD_TO_COMPANY:
-        raise ValueError(f"Company board '{company}' is not supported under Lever.")
+    db_company = get_lever_company_by_board(company_tag)
+    if not db_company:
+        raise ValueError(f"Company board '{company_tag}' is not supported under Lever.")
     
-    api_url = f"https://api.lever.co/v0/postings/{company}?mode=json"
+    api_url = f"https://api.lever.co/v0/postings/{company_tag}?mode=json"
     jobs = requests.get(api_url).json()
     
     raw_job_dict = None
@@ -69,13 +124,15 @@ def scrape_from_url(url):
             break
             
     if not raw_job_dict:
-        print(f"Job posting {job_id} not found in {company} postings.")
+        print(f"Job posting {job_id} not found in {company_tag} postings.")
         return None
         
     return extract_page(raw_job_dict)
 
 def scrape(company, ws=None):
-    company_board = COMPANY_TO_BOARD.get(company, company.lower())
+    company_board = get_lever_board_by_company(company)
+    if not company_board:
+        company_board = company.lower()
     api_url = f"https://api.lever.co/v0/postings/{company_board}?mode=json"
     print(f"Querying jobs from {api_url}...")
     

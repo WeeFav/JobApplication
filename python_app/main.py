@@ -16,9 +16,67 @@ from recommend import recommend_by_job, recommend_by_resume
 from misc import delete_job, add_application, delete_application, system_check
 from preprocess_job import extract_source_from_url
 
+import os
+import psycopg2
+from dotenv import load_dotenv
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
 app = flask.Flask(__name__)
 CORS(app)
 sock = Sock(app)
+
+def get_db_connection():
+    db_host = os.environ.get("POSTGRES_HOST", "postgres")
+    try:
+        return psycopg2.connect(
+            host=db_host,
+            user=os.environ.get("POSTGRES_USER"),
+            password=os.environ.get("POSTGRES_PASSWORD"),
+            database=os.environ.get("POSTGRES_DB"),
+            port=os.environ.get("POSTGRES_PORT")
+        )
+    except psycopg2.OperationalError:
+        if db_host != "localhost":
+            return psycopg2.connect(
+                host="localhost",
+                user=os.environ.get("POSTGRES_USER"),
+                password=os.environ.get("POSTGRES_PASSWORD"),
+                database=os.environ.get("POSTGRES_DB"),
+                port=os.environ.get("POSTGRES_PORT")
+            )
+        raise
+
+def get_company_ats_provider(company):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ats FROM company_ats WHERE company = %s OR LOWER(company) = LOWER(%s)",
+            (company, company)
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return row[0]
+    except Exception as e:
+        print(f"DB query error: {e}")
+    return None
+
+def get_all_companies():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT company FROM company_ats ORDER BY company")
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [row[0] for row in rows]
+    except Exception as e:
+        print(f"DB query error: {e}")
+        return []
 
   
 @sock.route('/scrape_jobsite')
@@ -31,20 +89,22 @@ def ws_scrape_jobsite(ws):
     source = data['jobsite']
     
     try:
-        if source in workday.COMPANY_TO_URL:
-            jobs = workday.scrape(source, ws)
-        elif source in greenhouse.COMPANY_TO_BOARD:
-            jobs = greenhouse.scrape(source, ws)
-        elif source in lever.COMPANY_TO_BOARD:
-            jobs = lever.scrape(source, ws)
-        elif source in ashby.COMPANY_TO_BOARD:
-            jobs = ashby.scrape(source, ws)
-        elif source == 'linkedin':
+        if source == 'linkedin':
             jobs = linkedin.scrape(data['numJobs'], ws)
         elif source == 'jobright': 
             jobs = jobright.scrape(data['numJobs'], ws) 
         else:
-            raise NotImplementedError(f"Scraping source/company '{source}' is not supported.")
+            ats_provider = get_company_ats_provider(source)
+            if ats_provider == 'workday':
+                jobs = workday.scrape(source, ws)
+            elif ats_provider == 'greenhouse':
+                jobs = greenhouse.scrape(source, ws)
+            elif ats_provider == 'lever':
+                jobs = lever.scrape(source, ws)
+            elif ats_provider == 'ashby':
+                jobs = ashby.scrape(source, ws)
+            else:
+                raise NotImplementedError(f"Scraping source/company '{source}' is not supported.")
         
         ws.send(json.dumps({"type": "scrape", "action": "success"}))                
     except Exception as e:
@@ -211,12 +271,7 @@ def app_delete_application():
 @app.route('/companies', methods=['GET'])
 def app_get_companies():
     try:
-        companies = []
-        companies.extend(workday.COMPANY_TO_URL.keys())
-        companies.extend(greenhouse.COMPANY_TO_BOARD.keys())
-        companies.extend(lever.COMPANY_TO_BOARD.keys())
-        companies.extend(ashby.COMPANY_TO_BOARD.keys())
-        companies.sort()
+        companies = get_all_companies()
         return flask.jsonify(companies), 200
     except Exception as e:
         traceback.print_exc()

@@ -50,7 +50,7 @@ def convert_workday_url(url):
         site = "External_Careers"
         
     base_api_url = f"{parsed.scheme}://{parsed.netloc}/wday/cxs/{company_tag}/{site}"
-    return base_api_url
+    return company_tag, base_api_url
 
 def extract_ashby_board_name(url):
     """
@@ -173,6 +173,7 @@ def extract_page(page):
     
     source = None
     board = None
+    base_api_url = None
     if apply_text == "Apply":
         try:
             with page.expect_popup() as popup_info:
@@ -183,7 +184,8 @@ def extract_page(page):
 
             source = extract_source_from_url(url)
             if source == 'workday':
-               board = convert_workday_url(url)
+                company_tag, base_api_url = convert_workday_url(url)
+                board = company_tag
             elif source == 'greenhouse':
                 board = extract_greenhouse_board_name(url)
             elif source == 'lever':
@@ -203,7 +205,8 @@ def extract_page(page):
         "company": company,
         "url": url,
         "source": source,
-        "board": board
+        "board": board,
+        "workday_url": base_api_url if source == 'workday' else None
     }
     
 def scrape(jobs_to_scrape, ws=None):
@@ -292,14 +295,15 @@ def scrape(jobs_to_scrape, ws=None):
                     if comp_name and comp_name not in existing_companies and ats_val in ['workday', 'ashby', 'lever', 'greenhouse']:
                         if len(ats_val) > 150:
                             ats_val = ats_val[:150]
-                        meta_val = job.get("board")
+                        board_val = job.get("board")
+                        workday_url_val = job.get("workday_url")
                         try:
                             cursor.execute(
-                                "INSERT INTO company_ats (company, ats, meta) VALUES (%s, %s, %s)",
-                                (comp_name, ats_val, meta_val)
+                                "INSERT INTO company_ats (company, ats, board, workday_url) VALUES (%s, %s, %s, %s)",
+                                (comp_name, ats_val, board_val, workday_url_val)
                             )
                             existing_companies.add(comp_name)
-                            print(f"Saved to DB: {comp_name} | {ats_val} | {meta_val}")
+                            print(f"Saved to DB: {comp_name} | {ats_val} | {board_val} | {workday_url_val}")
                         except Exception as db_err:
                             print(f"Database insert error for '{comp_name}': {db_err}")
                 

@@ -64,5 +64,6 @@ CREATE TABLE embeddings (
 CREATE TABLE company_ats (
     company VARCHAR(150) PRIMARY KEY,
     ats VARCHAR(150) NOT NULL,
-    meta TEXT
+    board VARCHAR(150) NOT NULL,
+    workday_url TEXT
 );
