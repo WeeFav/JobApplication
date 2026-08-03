@@ -67,13 +67,23 @@ def get_greenhouse_board_by_company(company):
 
 def is_usa_location(location_name):
     loc_lower = location_name.lower()
+    
     if "usa" in loc_lower or "united states" in loc_lower:
         return True
+
     # Standard US state abbreviations
-    states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"]
-    for state in states:
+    states_abbrv = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"]
+    # Full state names
+    states_full = ["alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota", "mississippi", "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming", "district of columbia"]
+    
+    for state in states_abbrv:
         if f", {state}" in location_name or f" - {state}" in location_name or location_name.endswith(f" {state}") or "flexible" in loc_lower:
             return True
+        
+    for state in states_full:
+        if f", {state}" in loc_lower or f" - {state}" in loc_lower or loc_lower.endswith(f" {state}") or "flexible" in loc_lower:
+            return True
+
     return False
 
 def extract_page(url_api):
@@ -129,6 +139,8 @@ def scrape(company, ws=None):
     data = r.json()
     
     jobs = data.get("jobs", [])
+    print(f"Found {len(jobs)} jobs.")
+
     filtered_jobs = []
     
     for job in jobs:
@@ -165,13 +177,13 @@ def scrape(company, ws=None):
 
 if __name__ == '__main__':
     # Test scrape_from_url
-    print("Testing scrape_from_url...")
-    job = scrape_from_url("https://job-boards.greenhouse.io/spacex/jobs/8399574002?gh_jid=8399574002")
-    print(f"Scraped job: {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
+    # print("Testing scrape_from_url...")
+    # job = scrape_from_url("https://job-boards.greenhouse.io/spacex/jobs/8399574002?gh_jid=8399574002")
+    # print(f"Scraped job: {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
     
     # Test scrape
-    print("\nTesting scrape('SpaceX')...")
-    spacex_jobs = scrape("SpaceX")
-    print(f"Found {len(spacex_jobs)} jobs:")
-    for j in spacex_jobs:
+    print("\nTesting scrape...")
+    jobs = scrape("Nuro")
+    print(f"Found {len(jobs)} jobs:")
+    for j in jobs:
         print(f" - {j['title']} | {j['location']} | {j['url']}")

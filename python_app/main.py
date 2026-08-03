@@ -94,7 +94,7 @@ def ws_scrape_jobsite(ws):
         elif source == 'jobright': 
             jobs = jobright.scrape(data['numJobs'], ws) 
         else:
-            ats_provider = get_company_ats_provider(source)
+            ats_provider = get_company_ats_provider(source).lower()
             if ats_provider == 'workday':
                 jobs = workday.scrape(source, ws)
             elif ats_provider == 'greenhouse':
