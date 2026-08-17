@@ -3,104 +3,10 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse, urljoin
 import requests
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import os
-import psycopg2
-from dotenv import load_dotenv
+from scrape_ats_helper import get_company_by_board, get_board_by_company, is_valid_job
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
-
-def get_db_connection():
-    db_host = os.environ.get("POSTGRES_HOST", "postgres")
-    try:
-        return psycopg2.connect(
-            host=db_host,
-            user=os.environ.get("POSTGRES_USER"),
-            password=os.environ.get("POSTGRES_PASSWORD"),
-            database=os.environ.get("POSTGRES_DB"),
-            port=os.environ.get("POSTGRES_PORT")
-        )
-    except psycopg2.OperationalError:
-        if db_host != "localhost":
-            return psycopg2.connect(
-                host="localhost",
-                user=os.environ.get("POSTGRES_USER"),
-                password=os.environ.get("POSTGRES_PASSWORD"),
-                database=os.environ.get("POSTGRES_DB"),
-                port=os.environ.get("POSTGRES_PORT")
-            )
-        raise
-
-def get_workday_company_by_board(board):
-    """Finds (company, workday_url) for a given board from postgres company_ats table."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT company, workday_url FROM company_ats WHERE ats = 'workday' AND LOWER(board) = LOWER(%s)",
-            (board,)
-        )
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row:
-            return row[0], row[1]
-    except Exception as e:
-        print(f"DB query error: {e}")
-    return None, None
-
-def get_workday_info_by_company(company):
-    """Finds (board, workday_url) for a given company from postgres company_ats table."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT board, workday_url FROM company_ats WHERE ats = 'workday' AND LOWER(company) = LOWER(%s)",
-            (company,)
-        )
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row:
-            return row[0], row[1]
-    except Exception as e:
-        print(f"DB query error: {e}")
-    return None, None
-
-usa_results = []
-intern_results = []
-
-def collect_descriptors(obj, current_facet=None):
-    if isinstance(obj, dict):
-        if "facetParameter" in obj:
-            current_facet = obj["facetParameter"]
-
-        if "descriptor" in obj and "id" in obj:
-            desc = obj["descriptor"]
-            # Check USA terms
-            if any(term in desc for term in ["USA", "United States", "United States of America"]):
-                usa_results.append({
-                    "facet": current_facet,
-                    "descriptor": desc,
-                    "id": obj["id"],
-                    "count": obj.get("count", 0)
-                })
-            # Check Intern term
-            if "Intern" in desc:
-                intern_results.append({
-                    "facet": current_facet,
-                    "descriptor": desc,
-                    "id": obj["id"],
-                    "count": obj.get("count", 0)
-                })
-
-        for value in obj.values():
-            collect_descriptors(value, current_facet)
-
-    elif isinstance(obj, list):
-        for item in obj:
-            collect_descriptors(item, current_facet)
 
 def extract_page(url):
     r = requests.get(url)
@@ -126,7 +32,7 @@ def extract_page(url):
     parsed_url = urlparse(url)
     path_parts = parsed_url.path.strip("/").split("/")
     company_tag = path_parts[2]
-    db_company, _ = get_workday_company_by_board(company_tag)
+    db_company, _ = get_company_by_board('workday', company_tag)
     company = db_company if db_company else company_tag.capitalize()
 
     # Construct the user-facing URL
@@ -143,6 +49,7 @@ def extract_page(url):
         "post_date": post_date
     }
 
+
 def scrape_from_url(url):
     print(f"scraping {url}")
     parsed = urlparse(url)
@@ -152,7 +59,7 @@ def scrape_from_url(url):
     netloc = netloc.replace("www.", "")
     company_tag = netloc.split(".")[0]
     
-    company_name, base_url = get_workday_company_by_board(company_tag)
+    company_name, base_url = get_company_by_board('workday', company_tag)
     if not company_name and not base_url:
         raise ValueError(f"Company board '{company_tag}' is not supported under Workday.")
     
@@ -176,85 +83,85 @@ def scrape_from_url(url):
 
     return job
 
+
 def scrape(company, ws=None):
-    usa_results.clear()
-    intern_results.clear()
-    _, base_api_url = get_workday_info_by_company(company)
+    _, base_api_url = get_board_by_company('workday', company)
     if not base_api_url:
         print(f"Company {company} not found in company_ats table for Workday.")
         return []
     
-    query_url = f"{base_api_url}/jobs"
+    query_url = f"{base_api_url.rstrip('/')}/jobs"
     print(f"Querying jobs from {query_url}...")
     
-    payload = {
+    limit = 20 # workday API max limit is 20, or else will return 400
+    
+    # First request to get total count & initial page
+    initial_payload = {
         "appliedFacets": {},
+        "limit": limit,
+        "offset": 0,
         "searchText": ""
     }
     
     try:
-        r = requests.post(query_url, json=payload)
-        data = r.json()
+        r = requests.post(query_url, json=initial_payload, timeout=15)
+        data = r.json() if r.status_code == 200 else {}
     except Exception as e:
-        print(f"Failed to query {query_url}: {e}")
-        return []
+        print(f"Failed initial query to {query_url}: {e}")
+        data = {}
+        
+    job_postings = data.get("jobPostings", [])
+    total_jobs = data.get("total", 0)
+    print(f"Total jobs count: {total_jobs}. Initial page fetched {len(job_postings)} jobs.")
 
-    collect_descriptors(data)
-
-    best_usa = max(usa_results, key=lambda x: x["count"]) if usa_results else None
-    best_intern = max(intern_results, key=lambda x: x["count"]) if intern_results else None
-
-    print("--- Best USA Match ---")
-    print(f"Facet: {best_usa['facet']}")
-    print(f"Descriptor: {best_usa['descriptor']}")
-    print(f"Count: {best_usa['count']}")
-
-    print("--- Best Intern Match ---")
-    print(f"Facet: {best_intern['facet']}")
-    print(f"Descriptor: {best_intern['descriptor']}")
-    print(f"Count: {best_intern['count']}")
-
-    filters = {}
-    if best_usa:
-        filters[best_usa["facet"]] = [best_usa["id"]]
-    if best_intern:
-        filters[best_intern["facet"]] = [best_intern["id"]]
-
-    limit = 20
-    offset = 0
-    job_postings = []
+    # Fetch remaining pages in parallel
+    offsets = list(range(limit, total_jobs, limit))
     
-    while True:
-        payload2 = {
-            "appliedFacets": filters,
+    def fetch_offset(off):
+        payload = {
+            "appliedFacets": {},
             "limit": limit,
-            "offset": offset,
+            "offset": off,
             "searchText": ""
         }
         try:
-            r2 = requests.post(query_url, json=payload2)
-            data2 = r2.json()
+            resp = requests.post(query_url, json=payload, timeout=15)
+            if resp.status_code == 200:
+                postings = resp.json().get("jobPostings", [])
+                print(f"Fetched offset {off}, got {len(postings)} jobs")
+                return postings
+            else:
+                print(f"Failed offset {off}: HTTP {resp.status_code}")
         except Exception as e:
-            print(f"Failed to query filtered jobs at offset {offset}: {e}")
-            break
+            print(f"Error fetching offset {off}: {e}")
+        return []
+
+    if offsets:
+        print(f"Fetching {len(offsets)} remaining pages in parallel...")
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(fetch_offset, off) for off in offsets]
+            for future in as_completed(futures):
+                job_postings.extend(future.result())
+
+    print(f"Found {len(job_postings)} total jobs.")
+    
+    filtered_jobs = []
+    for job in job_postings:
+        title = job.get("title", "")
+        locations_text = job.get("locationsText", "")
+        external_path = job.get("externalPath", "")
+                
+        if is_valid_job(title, locations_text):
+            filtered_jobs.append(job)
             
-        postings = data2.get('jobPostings', [])
-        job_postings.extend(postings)
-        
-        total = data2.get('total', 0)
-        if len(job_postings) >= total or not postings:
-            break
-            
-        offset += limit
-        
-    print(f"Found {len(job_postings)} jobs matching filters.")
+    print(f"Found {len(filtered_jobs)} matching jobs.")
     
     scraped_jobs = []
-    for job_dict in job_postings:
-        external_path = job_dict['externalPath']
+    for job_dict in filtered_jobs:
+        external_path = job_dict.get("externalPath", "")
         parts = external_path.split("/")
         clean_external_path = f"/job/{parts[-1]}"
-        job_api_url = base_api_url + clean_external_path
+        job_api_url = base_api_url.rstrip("/") + clean_external_path
         try:
             print(f"Scraping details for {job_dict.get('title')}...")
             job_info = extract_page(job_api_url)
@@ -267,9 +174,6 @@ def scrape(company, ws=None):
             
     return scraped_jobs
 
-if __name__ == '__main__':    
-    # scrape_from_url("https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/Principal-Software-Engineer--Rack-Scale-System-Software---CSP-Engagements_JR2020316?source=jobboardlinkedin&locationHierarchy1=2fcb99c455831013ea52fb338f2932d8")
-    
-    print("\n" + "="*50 + "\nTesting scrape...\n" + "="*50)
-    nxp_jobs = scrape("NVIDIA")
-    print(f"\nScraped {len(nxp_jobs)} jobs:")
+
+if __name__ == '__main__':
+    pass

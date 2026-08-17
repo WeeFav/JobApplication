@@ -5,6 +5,9 @@ import json
 import traceback
 import time
 import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from insert import insert_jobs, insert_resumes, update_job
 import linkedin
 import jobright
@@ -69,7 +72,9 @@ def get_all_companies():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT company FROM company_ats ORDER BY company")
+        cursor.execute(
+            "SELECT DISTINCT company FROM company_ats WHERE LOWER(ats) IN ('workday', 'lever', 'ashby', 'greenhouse') ORDER BY company"
+        )
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -78,7 +83,97 @@ def get_all_companies():
         print(f"DB query error: {e}")
         return []
 
+def get_jobs_by_ids(job_ids):
+    if not job_ids:
+        return []
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, company, title, url FROM jobs WHERE id = ANY(%s)",
+            (job_ids,)
+        )
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [{"id": r[0], "company": r[1], "title": r[2], "url": r[3]} for r in rows]
+    except Exception as e:
+        print(f"Error fetching jobs by ids: {e}")
+        return []
   
+
+def send_jobs_email(jobs_details, recipient_email=None):
+    if not jobs_details:
+        print("No new jobs to send via email.")
+        return False
+        
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    sender_email = os.environ.get("SMTP_USER", "")
+    sender_password = os.environ.get("SMTP_PASSWORD", "")
+    
+    if not recipient_email:
+        recipient_email = os.environ.get("RECIPIENT_EMAIL", sender_email)
+        
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"New Job Postings Alert ({len(jobs_details)} new jobs)"
+    msg["From"] = sender_email
+    msg["To"] = recipient_email
+    
+    text_content = "New Jobs Scraped:\n\n"
+    for job in jobs_details:
+        text_content += f"- [{job['company']}] {job['title']}\n  URL: {job['url']}\n\n"
+        
+    html_content = """
+    <html>
+    <body>
+        <h2>New Job Postings Alert</h2>
+        <p>The following new jobs were scraped and added:</p>
+        <ul>
+    """
+    for job in jobs_details:
+        html_content += f"""
+            <li>
+                <strong>{job['company']}</strong> - {job['title']}<br>
+                <a href="{job['url']}">{job['url']}</a>
+            </li>
+        """
+    html_content += """
+        </ul>
+    </body>
+    </html>
+    """
+    
+    msg.attach(MIMEText(text_content, "plain"))
+    msg.attach(MIMEText(html_content, "html"))
+    
+    try:
+        server = smtplib.SMTP(smtp_host, smtp_port)
+        server.starttls()
+        if sender_password:
+            server.login(sender_email, sender_password)
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+        server.quit()
+        print(f"Email sent successfully to {recipient_email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
+
+def log_daily_scrape(status, new_jobs=None):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO daily_scrape_log (log_date, status, new_jobs) VALUES (NOW(), %s, %s)",
+            (status, new_jobs)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error saving to daily_scrape_log: {e}")
+
 @sock.route('/scrape_jobsite')
 def ws_scrape_jobsite(ws):
     raw = ws.receive()
@@ -276,6 +371,77 @@ def app_get_companies():
     except Exception as e:
         traceback.print_exc()
         return str(e), 500
+
+
+@app.route('/scrape_ats', methods=['GET'])
+def app_scrape_predefined_companies():
+    """
+    GET API function to scrape a list of predefined companies,
+    insert new jobs, look up job company, title, and url by new IDs,
+    and send the job information via email.
+    """
+    try:
+        companies = ['NVIDIA', 'Intel', 'ASML', 'Applied Materials', 'Sony', 'Spotify', 'OpenAI', 'Nuro']
+        
+        all_new_ids = []
+        company_results = {}
+        
+        for company in companies:
+            try:
+                ats_provider = get_company_ats_provider(company)
+                if not ats_provider:
+                    print(f"Skipping company '{company}': No ATS provider found.")
+                    continue
+                
+                ats_provider = ats_provider.lower()
+                
+                if ats_provider == 'workday':
+                    jobs = workday.scrape(company)
+                elif ats_provider == 'greenhouse':
+                    jobs = greenhouse.scrape(company)
+                elif ats_provider == 'lever':
+                    jobs = lever.scrape(company)
+                elif ats_provider == 'ashby':
+                    jobs = ashby.scrape(company)
+                else:
+                    print(f"Skipping unsupported ATS provider '{ats_provider}' for company '{company}'.")
+                    continue
+                
+                if jobs:
+                    new_jobs = insert_jobs(jobs, company, method='scrape')
+                    company_new_ids = [j['id'] for j in new_jobs if isinstance(j, dict) and 'id' in j]
+                    all_new_ids.extend(company_new_ids)
+                    company_results[company] = {"scraped": len(jobs), "new": len(company_new_ids)}
+                else:
+                    company_results[company] = {"scraped": 0, "new": 0}
+            except Exception as e:
+                print(f"Error scraping company '{company}': {e}")
+                traceback.print_exc()
+                company_results[company] = {"error": str(e)}
+                
+        # Look up job details (company, title, url) by new IDs
+        jobs_details = get_jobs_by_ids(all_new_ids)
+        
+        # Send email if new jobs were found
+        email_sent = False
+        if jobs_details:
+            email_sent = send_jobs_email(jobs_details)
+            
+        jobs_sent_count = len(jobs_details) if email_sent else 0
+        log_daily_scrape("Success", jobs_sent_count)
+
+        return flask.jsonify({
+            "status": "success",
+            "total_new_jobs": len(all_new_ids),
+            "jobs": jobs_details,
+            "company_results": company_results,
+            "email_sent": email_sent
+        }), 200
+    except Exception as e:
+        traceback.print_exc()
+        error_msg = str(e)
+        log_daily_scrape(error_msg, None)
+        return flask.jsonify({"status": "error", "error": error_msg}), 500
 
 
 if __name__ == '__main__':

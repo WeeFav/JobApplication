@@ -67,3 +67,9 @@ CREATE TABLE company_ats (
     board VARCHAR(150) NOT NULL,
     workday_url TEXT
 );
+
+CREATE TABLE daily_scrape_log (
+    log_date TIMESTAMP NOT NULL,
+    status TEXT,
+    new_jobs INT
+);

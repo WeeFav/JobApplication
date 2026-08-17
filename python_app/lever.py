@@ -2,69 +2,8 @@ import requests
 import json
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
-import os
-import psycopg2
-from dotenv import load_dotenv
+from scrape_ats_helper import get_company_by_board, get_board_by_company, is_valid_job
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
-
-def get_db_connection():
-    db_host = os.environ.get("POSTGRES_HOST", "postgres")
-    try:
-        return psycopg2.connect(
-            host=db_host,
-            user=os.environ.get("POSTGRES_USER"),
-            password=os.environ.get("POSTGRES_PASSWORD"),
-            database=os.environ.get("POSTGRES_DB"),
-            port=os.environ.get("POSTGRES_PORT")
-        )
-    except psycopg2.OperationalError:
-        if db_host != "localhost":
-            return psycopg2.connect(
-                host="localhost",
-                user=os.environ.get("POSTGRES_USER"),
-                password=os.environ.get("POSTGRES_PASSWORD"),
-                database=os.environ.get("POSTGRES_DB"),
-                port=os.environ.get("POSTGRES_PORT")
-            )
-        raise
-
-def get_lever_company_by_board(board):
-    """Finds company name for a given board from postgres company_ats table."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT company FROM company_ats WHERE ats = 'lever' AND LOWER(board) = LOWER(%s)",
-            (board,)
-        )
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row:
-            return row[0]
-    except Exception as e:
-        print(f"DB query error: {e}")
-    return None
-
-def get_lever_board_by_company(company):
-    """Finds board for a given company from postgres company_ats table."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT board FROM company_ats WHERE ats = 'lever' AND (company = %s OR LOWER(company) = LOWER(%s))",
-            (company, company)
-        )
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row and row[0]:
-            return row[0]
-    except Exception as e:
-        print(f"DB query error: {e}")
-    return None
 
 def extract_page(raw_job_dict):
     title = raw_job_dict.get("text", "")
@@ -74,7 +13,7 @@ def extract_page(raw_job_dict):
     # Extract company from URL path
     parsed = urlparse(url)
     company_tag = parsed.path.strip("/").split("/")[0]
-    db_company = get_lever_company_by_board(company_tag)
+    db_company = get_company_by_board('lever', company_tag)
     company = db_company if db_company else company_tag.capitalize()
     
     description = ""
@@ -110,7 +49,7 @@ def scrape_from_url(url):
     company_tag = path_parts[0]
     job_id = path_parts[1]
     
-    db_company = get_lever_company_by_board(company_tag)
+    db_company = get_company_by_board('lever', company_tag)
     if not db_company:
         raise ValueError(f"Company board '{company_tag}' is not supported under Lever.")
     
@@ -130,7 +69,7 @@ def scrape_from_url(url):
     return extract_page(raw_job_dict)
 
 def scrape(company, ws=None):
-    company_board = get_lever_board_by_company(company)
+    company_board = get_board_by_company('lever', company)
     if not company_board:
         company_board = company.lower()
     api_url = f"https://api.lever.co/v0/postings/{company_board}?mode=json"
@@ -140,16 +79,12 @@ def scrape(company, ws=None):
     
     filtered_jobs = []
     for job in jobs:
-        # Filter for location in US using "country" field
-        country = job.get("country") or ""
-        is_us = country.lower() == "us" or country.lower() == "united states"
-        
-        # Filter for intern in "text" field (job title)
         title = job.get("text") or ""
-        title_lower = title.lower()
-        is_intern = "intern" in title_lower and "internal" not in title_lower and "international" not in title_lower
+        country = job.get("country") or ""
+        categories = job.get("categories", {}) if isinstance(job.get("categories"), dict) else {}
+        location = categories.get("location") or country or ""
         
-        if is_us and is_intern:
+        if is_valid_job(title, location):
             filtered_jobs.append(job)
             
     print(f"Found {len(filtered_jobs)} matching jobs.")

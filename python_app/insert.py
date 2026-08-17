@@ -29,8 +29,9 @@ client = QdrantClient("http://qdrant:6333")
 collection_name = "jobapplication"
 model_name = "BAAI/bge-base-en-v1.5"
 
-def insert_jobs(jobs: List[Dict], job_site, ws, method='scrape'):
-    ws.send(json.dumps({"type": "insert", "action": "start"}))
+def insert_jobs(jobs: List[Dict], job_site, ws=None, method='scrape'):
+    if ws:
+        ws.send(json.dumps({"type": "insert", "action": "start"}))
     print(f"got {len(jobs)} jobs from {job_site}")
     new_jobs = []
 
@@ -41,12 +42,13 @@ def insert_jobs(jobs: List[Dict], job_site, ws, method='scrape'):
         skipped_count = 0
         
         for i in range(len(df)):
-            ws.send(json.dumps({
-                "type": "insert", 
-                "action": "postgres",
-                "inserted_count": inserted_count,
-                "skipped_count": skipped_count
-            }))
+            if ws:
+                ws.send(json.dumps({
+                    "type": "insert", 
+                    "action": "postgres",
+                    "inserted_count": inserted_count,
+                    "skipped_count": skipped_count
+                }))
             
             # canonicalize url
             url_norm = canonicalize_url(df.iloc[i]['url'])
@@ -69,12 +71,13 @@ def insert_jobs(jobs: List[Dict], job_site, ws, method='scrape'):
             if res:
                 print(f"[!] Duplicate hash detected: {hash}, nothing inserted.")
                 skipped_count += 1
-                ws.send(json.dumps({
-                    "type": "insert", 
-                    "action": "skipped",
-                    "inserted_count": inserted_count,
-                    "skipped_count": skipped_count
-                }))
+                if ws:
+                    ws.send(json.dumps({
+                        "type": "insert", 
+                        "action": "skipped",
+                        "inserted_count": inserted_count,
+                        "skipped_count": skipped_count
+                    }))
                 continue
             
             # extract description
@@ -96,12 +99,13 @@ def insert_jobs(jobs: List[Dict], job_site, ws, method='scrape'):
             conn.commit()
             print(f"inserted into postgres")
             
-            ws.send(json.dumps({
-                "type": "insert", 
-                "action": "qdrant",
-                "inserted_count": inserted_count,
-                "skipped_count": skipped_count
-            }))
+            if ws:
+                ws.send(json.dumps({
+                    "type": "insert", 
+                    "action": "qdrant",
+                    "inserted_count": inserted_count,
+                    "skipped_count": skipped_count
+                }))
             
             id, scrape_date = cursor.fetchone()
             
@@ -123,20 +127,23 @@ def insert_jobs(jobs: List[Dict], job_site, ws, method='scrape'):
             
             new_jobs.append({"id": id, "description_extracted": description_extracted})
             inserted_count += 1
-            ws.send(json.dumps({
-                "type": "insert", 
-                "action": "completed",
-                "inserted_count": inserted_count,
-                "skipped_count": skipped_count
-            }))
+            if ws:
+                ws.send(json.dumps({
+                    "type": "insert", 
+                    "action": "completed",
+                    "inserted_count": inserted_count,
+                    "skipped_count": skipped_count
+                }))
             print(f"processed job {i + 1}")
             
-        ws.send(json.dumps({"type": "insert", "action": "success"}))
+        if ws:
+            ws.send(json.dumps({"type": "insert", "action": "success"}))
         return new_jobs
     except Exception as e:
         traceback.print_exc()
-        ws.send(json.dumps({"type": "insert", "action": "fail"}))
-        ws.close()
+        if ws:
+            ws.send(json.dumps({"type": "insert", "action": "fail"}))
+            ws.close()
         raise e
                        
 def insert_resumes(data):

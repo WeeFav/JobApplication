@@ -1,90 +1,8 @@
 import requests
 from urllib.parse import urlparse
 import json
-import os
-import psycopg2
-from dotenv import load_dotenv
+from scrape_ats_helper import get_company_by_board, get_board_by_company, is_valid_job
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
-
-def get_db_connection():
-    db_host = os.environ.get("POSTGRES_HOST", "postgres")
-    try:
-        return psycopg2.connect(
-            host=db_host,
-            user=os.environ.get("POSTGRES_USER"),
-            password=os.environ.get("POSTGRES_PASSWORD"),
-            database=os.environ.get("POSTGRES_DB"),
-            port=os.environ.get("POSTGRES_PORT")
-        )
-    except psycopg2.OperationalError:
-        if db_host != "localhost":
-            return psycopg2.connect(
-                host="localhost",
-                user=os.environ.get("POSTGRES_USER"),
-                password=os.environ.get("POSTGRES_PASSWORD"),
-                database=os.environ.get("POSTGRES_DB"),
-                port=os.environ.get("POSTGRES_PORT")
-            )
-        raise
-
-def get_greenhouse_company_by_board(board):
-    """Finds company name for a given board from postgres company_ats table."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT company FROM company_ats WHERE ats = 'greenhouse' AND LOWER(board) = LOWER(%s)",
-            (board,)
-        )
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row:
-            return row[0]
-    except Exception as e:
-        print(f"DB query error: {e}")
-    return None
-
-def get_greenhouse_board_by_company(company):
-    """Finds board for a given company from postgres company_ats table."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT board FROM company_ats WHERE ats = 'greenhouse' AND (company = %s OR LOWER(company) = LOWER(%s))",
-            (company, company)
-        )
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row and row[0]:
-            return row[0]
-    except Exception as e:
-        print(f"DB query error: {e}")
-    return None
-
-def is_usa_location(location_name):
-    loc_lower = location_name.lower()
-    
-    if "usa" in loc_lower or "united states" in loc_lower:
-        return True
-
-    # Standard US state abbreviations
-    states_abbrv = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"]
-    # Full state names
-    states_full = ["alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan", "minnesota", "mississippi", "missouri", "montana", "nebraska", "nevada", "new hampshire", "new jersey", "new mexico", "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", "virginia", "washington", "west virginia", "wisconsin", "wyoming", "district of columbia"]
-    
-    for state in states_abbrv:
-        if f", {state}" in location_name or f" - {state}" in location_name or location_name.endswith(f" {state}") or "flexible" in loc_lower:
-            return True
-        
-    for state in states_full:
-        if f", {state}" in loc_lower or f" - {state}" in loc_lower or loc_lower.endswith(f" {state}") or "flexible" in loc_lower:
-            return True
-
-    return False
 
 def extract_page(url_api):
     r = requests.get(url_api)
@@ -122,14 +40,14 @@ def scrape_from_url(url):
         job_id = path_parts[2]
         url_api = f"https://boards-api.greenhouse.io/v1/boards/{company_board_name}/jobs/{job_id}"
     
-    db_company = get_greenhouse_company_by_board(company_board_name)
+    db_company = get_company_by_board('greenhouse', company_board_name)
     if not db_company:
         raise ValueError(f"Company board '{company_board_name}' is not supported under Greenhouse.")
     
     return extract_page(url_api)
 
 def scrape(company, ws=None):
-    board_name = get_greenhouse_board_by_company(company)
+    board_name = get_board_by_company('greenhouse', company)
     if not board_name:
         board_name = company.lower()
     url_api = f"https://boards-api.greenhouse.io/v1/boards/{board_name}/jobs"
@@ -148,14 +66,7 @@ def scrape(company, ws=None):
         location_data = job.get("location", {})
         location_name = location_data.get("name", "") if isinstance(location_data, dict) else str(location_data)
         
-        # Check if title has 'intern' (excluding 'international' and 'internal')
-        title_lower = title.lower()
-        is_intern = "intern" in title_lower and "internal" not in title_lower and "international" not in title_lower
-        
-        # Check if location name indicates USA
-        is_usa = is_usa_location(location_name)
-        
-        if is_intern and is_usa:
+        if is_valid_job(title, location_name):
             filtered_jobs.append(job)
             
     print(f"Found {len(filtered_jobs)} matching jobs.")
