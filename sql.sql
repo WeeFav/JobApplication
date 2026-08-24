@@ -63,13 +63,17 @@ CREATE TABLE embeddings (
 
 CREATE TABLE company_ats (
     company VARCHAR(150) PRIMARY KEY,
-    ats VARCHAR(150) NOT NULL,
-    board VARCHAR(150) NOT NULL,
+    ats VARCHAR(150),
+    board VARCHAR(150),
     workday_url TEXT
 );
 
-CREATE TABLE daily_scrape_log (
-    log_date TIMESTAMP NOT NULL,
+CREATE TABLE logs (
+    log_time TIMESTAMPTZ NOT NULL,
+    type VARCHAR(150),
     status TEXT,
-    new_jobs INT
+    total_jobs INT,
+    dup_jobs INT,
+    new_jobs INT,
+    company VARCHAR(150)
 );

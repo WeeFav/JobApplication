@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse, urljoin
 import requests
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from scrape_ats_helper import get_company_by_board, get_board_by_company, is_valid_job
@@ -103,12 +104,23 @@ def scrape(company, ws=None):
         "searchText": ""
     }
     
-    try:
-        r = requests.post(query_url, json=initial_payload, timeout=15)
-        data = r.json() if r.status_code == 200 else {}
-    except Exception as e:
-        print(f"Failed initial query to {query_url}: {e}")
-        data = {}
+    data = {}
+    for attempt in range(5):
+        try:
+            r = requests.post(query_url, json=initial_payload, timeout=15)
+            if r.status_code == 200:
+                data = r.json()
+                break
+            elif r.status_code == 429:
+                wait_time = 2 ** attempt
+                print(f"Rate limited (HTTP 429) on initial query to {query_url}, retrying in {wait_time}s... (attempt {attempt + 1}/5)")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed initial query to {query_url}: HTTP {r.status_code}")
+                break
+        except Exception as e:
+            print(f"Failed initial query to {query_url}: {e}")
+            time.sleep(1)
         
     job_postings = data.get("jobPostings", [])
     total_jobs = data.get("total", 0)
@@ -124,24 +136,32 @@ def scrape(company, ws=None):
             "offset": off,
             "searchText": ""
         }
-        try:
-            resp = requests.post(query_url, json=payload, timeout=15)
-            if resp.status_code == 200:
-                postings = resp.json().get("jobPostings", [])
-                print(f"Fetched offset {off}, got {len(postings)} jobs")
-                return postings
-            else:
-                print(f"Failed offset {off}: HTTP {resp.status_code}")
-        except Exception as e:
-            print(f"Error fetching offset {off}: {e}")
+        for attempt in range(5):
+            try:
+                resp = requests.post(query_url, json=payload, timeout=15)
+                if resp.status_code == 200:
+                    postings = resp.json().get("jobPostings", [])
+                    print(f"Fetched offset {off}, got {len(postings)} jobs")
+                    return postings
+                elif resp.status_code == 429:
+                    wait_time = 2 ** attempt
+                    print(f"Rate limited (HTTP 429) on offset {off}, retrying in {wait_time}s... (attempt {attempt + 1}/5)")
+                    time.sleep(wait_time)
+                else:
+                    print(f"Failed offset {off}: HTTP {resp.status_code}")
+                    break
+            except Exception as e:
+                print(f"Error fetching offset {off}: {e}")
+                time.sleep(1)
         return []
 
     if offsets:
         print(f"Fetching {len(offsets)} remaining pages in parallel...")
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(fetch_offset, off) for off in offsets]
             for future in as_completed(futures):
                 job_postings.extend(future.result())
+
 
     print(f"Found {len(job_postings)} total jobs.")
     
@@ -176,4 +196,4 @@ def scrape(company, ws=None):
 
 
 if __name__ == '__main__':
-    pass
+    pass       

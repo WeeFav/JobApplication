@@ -2,7 +2,7 @@ from psycopg2.extras import execute_batch
 import argparse
 from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
-from qdrant_client.models import NamedVector, SearchRequest, Filter, FieldCondition, Range, HasIdCondition, DatetimeRange, MatchValue
+from qdrant_client.models import Filter, FieldCondition, HasIdCondition, DatetimeRange, MatchValue
 from datetime import datetime, timedelta
 import os
 import math

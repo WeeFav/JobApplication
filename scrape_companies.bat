@@ -15,8 +15,8 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo.
-echo Waiting 5 seconds for services to initialize...
-timeout /t 5 /nobreak >nul
+echo Waiting 60 seconds for services to initialize...
+timeout /t 60 /nobreak >nul
 
 echo.
 echo ===================================

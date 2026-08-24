@@ -19,9 +19,14 @@ from recommend import recommend_by_job, recommend_by_resume
 from misc import delete_job, add_application, delete_application, system_check
 from preprocess_job import extract_source_from_url
 
+from datetime import datetime
 import os
 import psycopg2
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+
+insert_lock = threading.Lock()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -83,6 +88,31 @@ def get_all_companies():
         print(f"DB query error: {e}")
         return []
 
+def get_random_companies(limit=50):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT company FROM (
+                SELECT DISTINCT company FROM company_ats 
+                WHERE LOWER(ats) IN ('workday', 'lever', 'ashby', 'greenhouse')
+            ) sub 
+            ORDER BY RANDOM() 
+            LIMIT %s
+            """,
+            (limit,)
+        )
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return [row[0] for row in rows]
+    except Exception as e:
+        print(f"DB query error: {e}")
+        return []
+
+
+
 def get_jobs_by_ids(job_ids):
     if not job_ids:
         return []
@@ -101,12 +131,77 @@ def get_jobs_by_ids(job_ids):
         print(f"Error fetching jobs by ids: {e}")
         return []
   
+def log_scrape_to_db(log_time, log_type, status, total_jobs, dup_jobs, new_jobs, company=None):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO logs (log_time, type, status, total_jobs, dup_jobs, new_jobs, company)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (log_time, log_type, status, total_jobs, dup_jobs, new_jobs, company)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error logging to db: {e}")
+
+def _scrape_single_company(company):
+    scrape_start_time = datetime.now()
+    try:
+        ats_provider = get_company_ats_provider(company)
+        if not ats_provider:
+            msg = f"Skipping company '{company}': No ATS provider found."
+            print(msg)
+            log_scrape_to_db(scrape_start_time, 'daily scrape', msg, 0, 0, 0, company)
+            return company, None, []
+        
+        ats_provider = ats_provider.lower()
+        
+        if ats_provider == 'workday':
+            jobs = workday.scrape(company)
+        elif ats_provider == 'greenhouse':
+            jobs = greenhouse.scrape(company)
+        elif ats_provider == 'lever':
+            jobs = lever.scrape(company)
+        elif ats_provider == 'ashby':
+            jobs = ashby.scrape(company)
+        else:
+            msg = f"Skipping unsupported ATS provider '{ats_provider}' for company '{company}'."
+            print(msg)
+            log_scrape_to_db(scrape_start_time, 'daily scrape', msg, 0, 0, 0, company)
+            return company, None, []
+        
+        total_jobs = len(jobs) if jobs else 0
+        
+        if jobs:
+            with insert_lock:
+                new_jobs_list = insert_jobs(jobs, company, method='scrape')
+            company_new_ids = [j['id'] for j in new_jobs_list if isinstance(j, dict) and 'id' in j]
+            new_jobs = len(company_new_ids)
+            dup_jobs = total_jobs - new_jobs
+            
+            log_scrape_to_db(scrape_start_time, 'daily scrape', 'success', total_jobs, dup_jobs, new_jobs, company)
+            return company, {"scraped": total_jobs, "new": new_jobs}, company_new_ids
+        else:
+            log_scrape_to_db(scrape_start_time, 'daily scrape', 'success', 0, 0, 0, company)
+            return company, {"scraped": 0, "new": 0}, []
+    except Exception as e:
+        err_msg = traceback.format_exc()
+        print(f"Error scraping company '{company}': {e}")
+        traceback.print_exc()
+        log_scrape_to_db(scrape_start_time, 'daily scrape', err_msg, 0, 0, 0, company)
+        return company, {"error": str(e)}, []
+
+
 
 def send_jobs_email(jobs_details, recipient_email=None):
     if not jobs_details:
         print("No new jobs to send via email.")
         return False
-        
+
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.environ.get("SMTP_PORT", 587))
     sender_email = os.environ.get("SMTP_USER", "")
@@ -165,14 +260,16 @@ def log_daily_scrape(status, new_jobs=None):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO daily_scrape_log (log_date, status, new_jobs) VALUES (NOW(), %s, %s)",
-            (status, new_jobs)
+            "INSERT INTO logs (log_time, type, status, total_jobs, dup_jobs, new_jobs, company) VALUES (NOW(), %s, %s, %s, %s, %s, %s)",
+            ('daily scrape summary', status, None, None, new_jobs, None)
         )
         conn.commit()
         cursor.close()
         conn.close()
     except Exception as e:
-        print(f"Error saving to daily_scrape_log: {e}")
+        print(f"Error saving to logs: {e}")
+
+
 
 @sock.route('/scrape_jobsite')
 def ws_scrape_jobsite(ws):
@@ -376,48 +473,29 @@ def app_get_companies():
 @app.route('/scrape_ats', methods=['GET'])
 def app_scrape_predefined_companies():
     """
-    GET API function to scrape a list of predefined companies,
+    GET API function to scrape a list of predefined companies concurrently,
     insert new jobs, look up job company, title, and url by new IDs,
     and send the job information via email.
     """
     try:
-        companies = ['NVIDIA', 'Intel', 'ASML', 'Applied Materials', 'Sony', 'Spotify', 'OpenAI', 'Nuro']
-        
+        companies = get_random_companies(limit=50)
+        if not companies:
+            print("No companies found to scrape.")
+            return flask.jsonify({"status": "success", "total_new_jobs": 0, "company_results": {}, "email_sent": False}), 200
+
         all_new_ids = []
         company_results = {}
         
-        for company in companies:
-            try:
-                ats_provider = get_company_ats_provider(company)
-                if not ats_provider:
-                    print(f"Skipping company '{company}': No ATS provider found.")
-                    continue
-                
-                ats_provider = ats_provider.lower()
-                
-                if ats_provider == 'workday':
-                    jobs = workday.scrape(company)
-                elif ats_provider == 'greenhouse':
-                    jobs = greenhouse.scrape(company)
-                elif ats_provider == 'lever':
-                    jobs = lever.scrape(company)
-                elif ats_provider == 'ashby':
-                    jobs = ashby.scrape(company)
-                else:
-                    print(f"Skipping unsupported ATS provider '{ats_provider}' for company '{company}'.")
-                    continue
-                
-                if jobs:
-                    new_jobs = insert_jobs(jobs, company, method='scrape')
-                    company_new_ids = [j['id'] for j in new_jobs if isinstance(j, dict) and 'id' in j]
+        max_workers = min(len(companies), 10)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_company = {executor.submit(_scrape_single_company, company): company for company in companies}
+            for future in as_completed(future_to_company):
+                company, res_dict, company_new_ids = future.result()
+                if res_dict is not None:
+                    company_results[company] = res_dict
+                if company_new_ids:
                     all_new_ids.extend(company_new_ids)
-                    company_results[company] = {"scraped": len(jobs), "new": len(company_new_ids)}
-                else:
-                    company_results[company] = {"scraped": 0, "new": 0}
-            except Exception as e:
-                print(f"Error scraping company '{company}': {e}")
-                traceback.print_exc()
-                company_results[company] = {"error": str(e)}
                 
         # Look up job details (company, title, url) by new IDs
         jobs_details = get_jobs_by_ids(all_new_ids)
