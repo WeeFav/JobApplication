@@ -129,8 +129,7 @@ def scrape(company, ws=None):
                 ws.send(json.dumps({"type": "scrape", "action": "update"}))
         except Exception as e:
             print(f"Failed to extract details for job {job_id}: {e}")
-            
-    return scraped_jobs
+    return scraped_jobs, len(job_postings), len(filtered_jobs)
 
 if __name__ == '__main__':
     # Test scrape_from_url

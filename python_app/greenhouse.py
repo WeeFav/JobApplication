@@ -83,8 +83,7 @@ def scrape(company, ws=None):
                 ws.send(json.dumps({"type": "scrape", "action": "update"}))
         except Exception as e:
             print(f"Failed to extract details for job {job_id}: {e}")
-            
-    return scraped_jobs
+    return scraped_jobs, len(jobs), len(filtered_jobs)
 
 if __name__ == '__main__':
     # Test scrape_from_url
@@ -93,8 +92,4 @@ if __name__ == '__main__':
     # print(f"Scraped job: {job['title']} | {job['company']} | {job['location']} | {job['post_date']}")
     
     # Test scrape
-    print("\nTesting scrape...")
-    jobs = scrape("Nuro")
-    print(f"Found {len(jobs)} jobs:")
-    for j in jobs:
-        print(f" - {j['title']} | {j['location']} | {j['url']}")
+    print(extract_page())

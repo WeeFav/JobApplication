@@ -1,4 +1,5 @@
-from preprocess_job import extract_post_date
+import hashlib
+from preprocess_job import extract_post_date, canonicalize_url
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, urljoin
 import requests
@@ -6,7 +7,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from scrape_ats_helper import get_company_by_board, get_board_by_company, is_valid_job
+from scrape_ats_helper import get_company_by_board, get_board_by_company, is_valid_job, get_db_connection
 
 
 def extract_page(url):
@@ -165,25 +166,73 @@ def scrape(company, ws=None):
 
     print(f"Found {len(job_postings)} total jobs.")
     
-    filtered_jobs = []
+    parsed_base = urlparse(base_api_url)
+    path_parts = parsed_base.path.strip("/").split("/")
+    company_tag = path_parts[2] if len(path_parts) > 2 else ""
+    site = path_parts[3] if len(path_parts) > 3 else ""
+
+    db_company, _ = get_company_by_board('workday', company_tag) if company_tag else (None, None)
+    canonical_company = db_company if db_company else (company if company else company_tag.capitalize())
+
+    candidates = []
+    hashes_to_check = []
     for job in job_postings:
         title = job.get("title", "")
         locations_text = job.get("locationsText", "")
         external_path = job.get("externalPath", "")
                 
         if is_valid_job(title, locations_text):
-            filtered_jobs.append(job)
+            job_slug = external_path.split("/")[-1]
+            clean_external_path = f"/job/{job_slug}"
+            job_api_url = base_api_url.rstrip("/") + clean_external_path
+
+            if site:
+                user_url = f"{parsed_base.scheme}://{parsed_base.netloc}/en-US/{site}/job/{job_slug}"
+            else:
+                user_url = f"{parsed_base.scheme}://{parsed_base.netloc}/job/{job_slug}"
+
+            url_norm = canonicalize_url(user_url)
+            title_norm = title.strip().lower()
+            company_norm = canonical_company.strip().lower()
+            combined = title_norm + company_norm + url_norm
+            job_hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()
+
+            candidates.append({
+                "job_dict": job,
+                "job_api_url": job_api_url,
+                "hash": job_hash,
+                "title": title,
+                "url": user_url
+            })
+            hashes_to_check.append(job_hash)
             
-    print(f"Found {len(filtered_jobs)} matching jobs.")
+    print(f"Found {len(candidates)} matching valid jobs.")
+    
+    existing_hashes = set()
+    if hashes_to_check:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT hash FROM jobs WHERE hash = ANY(%s)", (hashes_to_check,))
+            rows = cursor.fetchall()
+            existing_hashes = {row[0] for row in rows}
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"Error checking existing jobs in DB: {e}")
+
+    new_jobs_to_scrape = [c for c in candidates if c["hash"] not in existing_hashes]
+    skipped_count = len(candidates) - len(new_jobs_to_scrape)
+    if skipped_count > 0:
+        print(f"Skipping {skipped_count} jobs already in DB.")
+    print(f"Fetching details for {len(new_jobs_to_scrape)} new jobs...")
     
     scraped_jobs = []
-    for job_dict in filtered_jobs:
-        external_path = job_dict.get("externalPath", "")
-        parts = external_path.split("/")
-        clean_external_path = f"/job/{parts[-1]}"
-        job_api_url = base_api_url.rstrip("/") + clean_external_path
+    for item in new_jobs_to_scrape:
+        job_api_url = item["job_api_url"]
+        title = item["title"]
         try:
-            print(f"Scraping details for {job_dict.get('title')}...")
+            print(f"Scraping details for {title}...")
             job_info = extract_page(job_api_url)
             scraped_jobs.append(job_info)
             if ws is not None:
@@ -192,7 +241,7 @@ def scrape(company, ws=None):
         except Exception as e:
             print(f"Error extracting page for {job_api_url}: {e}")
             
-    return scraped_jobs
+    return scraped_jobs, len(job_postings), len(candidates)
 
 
 if __name__ == '__main__':

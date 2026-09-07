@@ -1,9 +1,9 @@
 CREATE TABLE jobs (
     id SERIAL PRIMARY KEY,
     hash VARCHAR(260) NOT NULL,
-    title VARCHAR(150),
-    company VARCHAR(150),
-    location VARCHAR(150),
+    title TEXT,
+    company TEXT,
+    location TEXT,
     post_date DATE,
     scrape_date DATE NOT NULL DEFAULT CURRENT_DATE,
     url TEXT NOT NULL,
@@ -13,7 +13,8 @@ CREATE TABLE jobs (
     majors TEXT[],
     skills JSONB,
     raw_skills TEXT[],
-    source VARCHAR(150)
+    source TEXT,
+    method TEXT
 );
 
 CREATE TABLE applications (
@@ -72,8 +73,13 @@ CREATE TABLE logs (
     log_time TIMESTAMPTZ NOT NULL,
     type VARCHAR(150),
     status TEXT,
-    total_jobs INT,
-    dup_jobs INT,
+    scraped_jobs INT,
+    filtered_jobs INT,
+    duplicated_jobs INT,
     new_jobs INT,
+    duration REAL,
     company VARCHAR(150)
 );
+
+SET timezone = 'America/Chicago';
+SELECT * FROM logs order by log_time desc;
