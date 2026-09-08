@@ -7,7 +7,7 @@ cd /d "%~dp0"
 echo ===================================
 echo 1. Starting Docker Containers...
 echo ===================================
-docker compose up -d
+docker compose up -d --no-build
 
 if %ERRORLEVEL% neq 0 (
     echo Error: Failed to start Docker containers.

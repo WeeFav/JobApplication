@@ -2,3 +2,4 @@ job_dataset/
 .vscode/
 __pycache__/
 .env
+python_app/workday_comparison_report.json
