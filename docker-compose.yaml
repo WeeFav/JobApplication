@@ -61,12 +61,13 @@ services:
       context: ./python_app
       dockerfile: Dockerfile
       network: host
+    shm_size: "2gb"
     ports:
       - "8080:8080"
     volumes:
       - ./python_app:/app
       - ./python_app/model_cache:/tmp/fastembed_cache
-    
+      
 volumes:
   jobapplication_postgres:
     external: true

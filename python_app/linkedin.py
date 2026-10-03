@@ -15,6 +15,21 @@ USER_DATA_DIR = os.path.join(BASE_DIR, "user-data")
 # Load environment variables from .env
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
+# Headless Chrome must not see DISPLAY: in Docker it points to an unreachable
+# X server, which stalls rendering (clicks never "stable", screenshots time out).
+HEADLESS_ENV = {k: v for k, v in os.environ.items() if k != "DISPLAY"}
+
+def save_screenshot(page, name):
+    """Save a full-page screenshot to python_app/debug/<timestamp>_<name>.png"""
+    debug_dir = os.path.join(BASE_DIR, "debug")
+    os.makedirs(debug_dir, exist_ok=True)
+    path = os.path.join(debug_dir, f"{time.strftime('%Y%m%d_%H%M%S')}_{name}.png")
+    try:
+        page.screenshot(path=path, full_page=True)
+        print(f"Saved screenshot: {path}")
+    except Exception as e:
+        print(f"Failed to save screenshot {path}: {e}")
+
 def sign_in(page, url):
     """Automate signing into LinkedIn using credentials from .env"""
     print("Signing into LinkedIn")
@@ -32,11 +47,14 @@ def sign_in(page, url):
     except Exception:
         print("Sign-in button not found. Already signed in or on an authenticated page.")
         return
-        
-    sign_in_btn.click()
-    page.locator("#csm-v2_session_key").filter(visible=True).fill(email)
-    page.locator("#csm-v2_session_password").filter(visible=True).fill(password)
-    page.locator(".sign-in-form__submit-btn--full-width").filter(visible=True).click()
+    
+    try:
+        sign_in_btn.click()
+        page.locator("#csm-v2_session_key").filter(visible=True).fill(email)
+        page.locator("#csm-v2_session_password").filter(visible=True).fill(password)
+        page.locator(".sign-in-form__submit-btn--full-width").filter(visible=True).click()
+    except Exception:
+        raise
     page.goto(url, wait_until="domcontentloaded")
 
 def get_auth():
@@ -95,6 +113,25 @@ def extract_page(page):
             "post_date": post_date
     }
     
+def wait_for_job_list(lis, expected=25, timeout=15, settle=2.0):
+    """LinkedIn appends <li> items progressively after the <ul> appears.
+    Poll until we see `expected` items, or the count stops changing for `settle` seconds
+    (e.g. last page with fewer jobs), or `timeout` is reached."""
+    deadline = time.time() + timeout
+    last_count = -1
+    last_change = time.time()
+    while time.time() < deadline:
+        count = lis.count()
+        if count >= expected:
+            return count
+        if count != last_count:
+            last_count = count
+            last_change = time.time()
+        elif count > 0 and time.time() - last_change >= settle:
+            return count
+        time.sleep(0.25)
+    return lis.count()
+
 def scrape(jobs_to_scrape, ws=None):
     print("Start LinkedIn scrape")
     jobs_per_page = 25
@@ -105,11 +142,12 @@ def scrape(jobs_to_scrape, ws=None):
         browser = playwright.chromium.launch(
             channel="chrome",
             headless=True,
-            args=["--disable-blink-features=AutomationControlled"]
+            env=HEADLESS_ENV,
+            args=["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"]
         )
         context = browser.new_context(
             storage_state=os.path.join(BASE_DIR, "auth", "linkedin_auth.json"),
-            no_viewport=True
+            viewport={"width": 1920, "height": 1080}
         )
         page = context.new_page()
 
@@ -122,12 +160,13 @@ def scrape(jobs_to_scrape, ws=None):
             ul_locator = page.locator("xpath=//div[contains(@class, 'scaffold-layout__list ')]/div/ul")
             ul_locator.wait_for()
             
-            # get job list
+            # get job list (wait for LinkedIn to finish populating it)
             lis = ul_locator.locator("xpath=/li")
+            num_jobs = wait_for_job_list(lis, expected=jobs_per_page)
 
-            print(f"number of job on this page: {lis.count()}")
+            print(f"number of job on this page: {num_jobs}")
             
-            for i in range(lis.count()):
+            for i in range(num_jobs):
                 if jobs_to_scrape == 0:
                     break
                 li_locator = lis.nth(i) 
@@ -159,11 +198,12 @@ def scrape_from_url(url):
         browser = playwright.chromium.launch(
             channel="chrome",
             headless=True,
-            args=["--disable-blink-features=AutomationControlled"]
+            env=HEADLESS_ENV,
+            args=["--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage"]
         )
         context = browser.new_context(
             storage_state=os.path.join(BASE_DIR, "auth", "linkedin_auth.json"),
-            no_viewport=True
+            viewport={"width": 1920, "height": 1080}
         )
         page = context.new_page()
 

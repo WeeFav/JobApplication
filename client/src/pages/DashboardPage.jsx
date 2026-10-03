@@ -36,6 +36,19 @@ const getStagesConfig = (item) => {
       }
     ];
   } else {
+    let insertState = item.stages.insert;
+    if (!insertState) {
+      if (item.stages.postgres === 'failed' || item.stages.qdrant === 'failed') {
+        insertState = 'failed';
+      } else if (item.stages.postgres === 'running' || item.stages.qdrant === 'running') {
+        insertState = 'running';
+      } else if (item.stages.postgres === 'success' || item.stages.qdrant === 'success') {
+        insertState = 'success';
+      } else {
+        insertState = 'pending';
+      }
+    }
+
     return [
       { 
         key: 'scraping', 
@@ -44,15 +57,9 @@ const getStagesConfig = (item) => {
         sublabel: item.type !== 'manual' && item.scrapedCount > 0 ? ` (${item.scrapedCount} done)` : '' 
       },
       { 
-        key: 'postgres', 
-        label: 'PostgreSQL Insert', 
-        state: item.stages.postgres, 
-        sublabel: item.insertedCount > 0 ? ` (${item.insertedCount} inserted)` : '' 
-      },
-      { 
-        key: 'qdrant', 
-        label: 'Qdrant Insert', 
-        state: item.stages.qdrant, 
+        key: 'insert', 
+        label: 'PostgreSQL & Qdrant Insert', 
+        state: insertState, 
         sublabel: item.insertedCount > 0 ? ` (${item.insertedCount} inserted)` : '' 
       },
       { 
@@ -126,9 +133,10 @@ const DashboardPage = () => {
       }
     }
     switch (item.currentStage) {
-      case 'scraping': return 15;
-      case 'postgres': return 40;
-      case 'qdrant': return 70;
+      case 'scraping': return 20;
+      case 'insert':
+      case 'postgres':
+      case 'qdrant': return 60;
       case 'recommending': return 90;
       case 'completed': return 100;
       default: return 0;
@@ -264,6 +272,8 @@ const DashboardPage = () => {
             <div className="space-y-6">
               {progressList.map((item) => {
                 const pct = getStagePercentage(item);
+                const stages = getStagesConfig(item);
+                const numStages = stages.length;
                 return (
                   <div 
                     key={item.id} 
@@ -314,12 +324,20 @@ const DashboardPage = () => {
                     </div>
 
                     {/* Timeline Steps */}
-                    <div className="grid grid-cols-4 relative mt-2 text-center">
-                      
+                    <div 
+                      className="grid relative mt-2 text-center"
+                      style={{ gridTemplateColumns: `repeat(${numStages}, minmax(0, 1fr))` }}
+                    >
                       {/* Connecting Line Underneath Icons */}
-                      <div className="absolute top-4 left-[12.5%] right-[12.5%] h-0.5 bg-gray-200 -z-10" />
+                      <div 
+                        className="absolute top-4 h-0.5 bg-gray-200 -z-10" 
+                        style={{ 
+                          left: `${100 / (numStages * 2)}%`, 
+                          right: `${100 / (numStages * 2)}%` 
+                        }}
+                      />
 
-                      {getStagesConfig(item).map((stage) => (
+                      {stages.map((stage) => (
                         <div key={stage.key} className="flex flex-col items-center">
                           {renderStepIcon(stage.state)}
                           <span className={`text-xs font-semibold mt-2 px-1 max-w-[150px] break-words ${

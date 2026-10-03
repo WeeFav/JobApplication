@@ -3,3 +3,8 @@ job_dataset/
 __pycache__/
 .env
 python_app/workday_comparison_report.json
+fix.txt
+.venv/
+company_ats.csv
+python_app/debug/
+system.sh

@@ -53,8 +53,7 @@ export const ProgressProvider = ({ children }) => {
       currentStage: "scraping",
       stages: {
         scraping: "running",
-        postgres: "pending",
-        qdrant: "pending",
+        insert: "pending",
         recommending: "pending"
       },
       error: null,
@@ -96,14 +95,10 @@ export const ProgressProvider = ({ children }) => {
               updated.error = msg.error || "Scraping failed";
             }
           } else if (msg.type === "insert") {
-            if (msg.action === "postgres") {
+            if (msg.action === "postgres" || msg.action === "qdrant") {
               updated.stages.scraping = "success";
-              updated.stages.postgres = "running";
-              updated.currentStage = "postgres";
-            } else if (msg.action === "qdrant") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "running";
-              updated.currentStage = "qdrant";
+              updated.stages.insert = "running";
+              updated.currentStage = "insert";
             } else if (msg.action === "completed") {
               updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0) + 1;
               updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0);
@@ -111,19 +106,16 @@ export const ProgressProvider = ({ children }) => {
               updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0);
               updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0) + 1;
             } else if (msg.action === "success") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "success";
+              updated.stages.insert = "success";
             } else if (msg.action === "fail") {
-              const active = updated.currentStage === "qdrant" ? "qdrant" : "postgres";
-              updated.stages[active] = "failed";
+              updated.stages.insert = "failed";
               updated.currentStage = "failed";
               updated.status = "failed";
-              updated.error = msg.error || `Insertion failed during ${active}`;
+              updated.error = msg.error || "Insertion failed";
             }
           } else if (msg.type === "recommend") {
             if (msg.action === "start") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "success";
+              updated.stages.insert = "success";
               updated.stages.recommending = "running";
               updated.currentStage = "recommending";
             } else if (msg.action === "success") {
@@ -173,8 +165,7 @@ export const ProgressProvider = ({ children }) => {
       currentStage: "scraping",
       stages: {
         scraping: "running",
-        postgres: "pending",
-        qdrant: "pending",
+        insert: "pending",
         recommending: "pending"
       },
       error: null,
@@ -216,14 +207,10 @@ export const ProgressProvider = ({ children }) => {
               updated.error = msg.error || "Scraping failed";
             }
           } else if (msg.type === "insert") {
-            if (msg.action === "postgres") {
+            if (msg.action === "postgres" || msg.action === "qdrant") {
               updated.stages.scraping = "success";
-              updated.stages.postgres = "running";
-              updated.currentStage = "postgres";
-            } else if (msg.action === "qdrant") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "running";
-              updated.currentStage = "qdrant";
+              updated.stages.insert = "running";
+              updated.currentStage = "insert";
             } else if (msg.action === "completed") {
               updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0) + 1;
               updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0);
@@ -231,19 +218,16 @@ export const ProgressProvider = ({ children }) => {
               updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0);
               updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0) + 1;
             } else if (msg.action === "success") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "success";
+              updated.stages.insert = "success";
             } else if (msg.action === "fail") {
-              const active = updated.currentStage === "qdrant" ? "qdrant" : "postgres";
-              updated.stages[active] = "failed";
+              updated.stages.insert = "failed";
               updated.currentStage = "failed";
               updated.status = "failed";
-              updated.error = msg.error || `Insertion failed during ${active}`;
+              updated.error = msg.error || "Insertion failed";
             }
           } else if (msg.type === "recommend") {
             if (msg.action === "start") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "success";
+              updated.stages.insert = "success";
               updated.stages.recommending = "running";
               updated.currentStage = "recommending";
             } else if (msg.action === "success") {
@@ -290,11 +274,10 @@ export const ProgressProvider = ({ children }) => {
       target: `${newJob.title} at ${newJob.company}`,
       type: "manual",
       status: "running",
-      currentStage: "postgres",
+      currentStage: "insert",
       stages: {
         scraping: "success", // Manual addition has no scraping stage
-        postgres: "running",
-        qdrant: "pending",
+        insert: "running",
         recommending: "pending"
       },
       error: null,
@@ -322,13 +305,9 @@ export const ProgressProvider = ({ children }) => {
           updated.stages = { ...item.stages };
 
           if (msg.type === "insert") {
-            if (msg.action === "postgres") {
-              updated.stages.postgres = "running";
-              updated.currentStage = "postgres";
-            } else if (msg.action === "qdrant") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "running";
-              updated.currentStage = "qdrant";
+            if (msg.action === "postgres" || msg.action === "qdrant") {
+              updated.stages.insert = "running";
+              updated.currentStage = "insert";
             } else if (msg.action === "completed") {
               updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0) + 1;
               updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0);
@@ -336,19 +315,16 @@ export const ProgressProvider = ({ children }) => {
               updated.insertedCount = msg.inserted_count !== undefined ? msg.inserted_count : (updated.insertedCount || 0);
               updated.skippedCount = msg.skipped_count !== undefined ? msg.skipped_count : (updated.skippedCount || 0) + 1;
             } else if (msg.action === "success") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "success";
+              updated.stages.insert = "success";
             } else if (msg.action === "fail") {
-              const active = updated.currentStage === "qdrant" ? "qdrant" : "postgres";
-              updated.stages[active] = "failed";
+              updated.stages.insert = "failed";
               updated.currentStage = "failed";
               updated.status = "failed";
-              updated.error = msg.error || `Insertion failed during ${active}`;
+              updated.error = msg.error || "Insertion failed";
             }
           } else if (msg.type === "recommend") {
             if (msg.action === "start") {
-              updated.stages.postgres = "success";
-              updated.stages.qdrant = "success";
+              updated.stages.insert = "success";
               updated.stages.recommending = "running";
               updated.currentStage = "recommending";
             } else if (msg.action === "success") {
