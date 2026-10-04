@@ -23,6 +23,7 @@ HEADERS = {
     "Accept": "application/json, text/plain, */*"
 }
 
+TEST_COMPANY = ['Cadence', 'Comcast', 'Magna', 'Motorola Solutions', 'NXP', 'Oshkosh', 'Philips', 'S&P Global', 'The Toro Company', 'Tokyo Electron']
 
 def get_db_connection():
     """Establishes connection to PostgreSQL database with fallback to localhost."""
@@ -234,7 +235,7 @@ def scrape_ashby_no_filter(company: str, board: str):
     return jobs
 
 
-def check_company_ats(start_row: int = 1, max_jobs: int = None):
+def check_company_ats(start_row: int = 1, max_jobs: int = None, test_only: bool = False):
     """
     Checks company_ats table for companies using workday, greenhouse, lever, or ashby.
     Scrapes jobs without any filter.
@@ -243,21 +244,34 @@ def check_company_ats(start_row: int = 1, max_jobs: int = None):
     
     :param start_row: 1-indexed row number to start processing from (default: 1).
     :param max_jobs: optional limit on maximum jobs to fetch per company.
+    :param test_only: if True, only test companies defined in TEST_COMPANY list.
     """
     conn = get_db_connection()
     cur = conn.cursor()
 
-    query = """
-        SELECT company, ats, board, workday_url
-        FROM company_ats
-        WHERE LOWER(ats) IN ('workday', 'greenhouse', 'lever', 'ashby')
-        ORDER BY ats, company;
-    """
-    cur.execute(query)
+    if test_only:
+        query = """
+            SELECT company, ats, board, workday_url
+            FROM company_ats
+            WHERE LOWER(ats) IN ('workday', 'greenhouse', 'lever', 'ashby')
+              AND LOWER(company) = ANY(%s)
+            ORDER BY ats, company;
+        """
+        cur.execute(query, ([c.lower() for c in TEST_COMPANY],))
+    else:
+        query = """
+            SELECT company, ats, board, workday_url
+            FROM company_ats
+            WHERE LOWER(ats) IN ('workday', 'greenhouse', 'lever', 'ashby')
+            ORDER BY ats, company;
+        """
+        cur.execute(query)
     rows = cur.fetchall()
     cur.close()
     conn.close()
 
+    if test_only:
+        print(f"Running in test mode for TEST_COMPANY: {TEST_COMPANY}", flush=True)
     print(f"Found {len(rows)} company_ats entries matching Workday, Greenhouse, Lever, or Ashby.", flush=True)
 
     if start_row < 1:
@@ -345,5 +359,11 @@ if __name__ == "__main__":
         default=None,
         help="Maximum jobs to scrape per company before stopping pagination (optional)"
     )
+    parser.add_argument(
+        "--test", "-t", "--test-company", "--test-companies",
+        action="store_true",
+        dest="test_only",
+        help="Only test companies in TEST_COMPANY list"
+    )
     args = parser.parse_args()
-    check_company_ats(start_row=args.start_row, max_jobs=args.max_jobs)
+    check_company_ats(start_row=args.start_row, max_jobs=args.max_jobs, test_only=args.test_only)

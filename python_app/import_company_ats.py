@@ -6,12 +6,12 @@ import psycopg2
 import requests
 from dotenv import load_dotenv
 
-# Ensure BASE_DIR is in path so company_ats_linkedin can be imported
+# Ensure BASE_DIR is in path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-from company_ats_linkedin import convert_workday_url
+from scrape_ats_helper import convert_workday_url
 
 # Load environment variables from .env file
 load_dotenv(os.path.join(BASE_DIR, ".env"))

@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import urlparse
 import psycopg2
 from dotenv import load_dotenv
 
@@ -302,3 +303,54 @@ def is_tech_title(title):
 def is_valid_job(title, location_name):
     """Filters jobs to only include US-based software/AI/data/quant/hardware/robotics/tech internship positions."""
     return is_intern_title(title) and is_tech_title(title) and is_usa_location(location_name)
+
+
+def convert_workday_url(url):
+    """
+    Converts a standard Workday job URL to its corresponding API URL format.
+    E.g., https://cadence.wd1.myworkdayjobs.com/External_Careers/job/AUSTIN-03/Software-Engineer-I_R53009-1
+    Returns: (company_tag, base_api_url)
+    """
+    parsed = urlparse(url)
+    netloc = parsed.netloc.lower().replace("www.", "")
+    company_tag = netloc.split(".")[0]
+    
+    path_parts = [p for p in parsed.path.split("/") if p]
+    site = None
+    if "job" in path_parts:
+        job_idx = path_parts.index("job")
+        if job_idx > 0:
+            site = path_parts[job_idx - 1]
+    else:
+        if len(path_parts) > 0:
+            site = path_parts[0]
+            
+    if not site:
+        site = "External_Careers"
+        
+    base_api_url = f"{parsed.scheme}://{parsed.netloc}/wday/cxs/{company_tag}/{site}"
+    return company_tag, base_api_url
+
+
+def extract_ashby_board_name(url):
+    """
+    Extracts the company board name from an Ashby job URL.
+    """
+    parsed = urlparse(url)
+    netloc = parsed.netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+        
+    if "ashbyhq.com" in netloc:
+        path_parts = [p for p in parsed.path.split("/") if p]
+        if path_parts:
+            return path_parts[0]
+        return None
+    else:
+        parts = netloc.split(".")
+        subdomains_to_drop = {"careers", "jobs", "work", "recruiting", "about", "company", "info", "corp"}
+        filtered = [p for p in parts[:-1] if p not in subdomains_to_drop]
+        if filtered:
+            return filtered[-1]
+        return parts[0]
+

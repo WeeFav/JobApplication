@@ -93,10 +93,7 @@ def insert_jobs(jobs: List[Dict], job_site, ws=None, method='scrape'):
             
             # extract description
             description = clean_html(df.iloc[i]['description'])
-            if job_site == "Jobright":
-                description_extracted = description
-            else:
-                description_extracted = extract_description(description)
+            description_extracted = extract_description(description)
             print(f"description extracted, got {len(description_extracted)} characters")
                         
             # insert into postgres

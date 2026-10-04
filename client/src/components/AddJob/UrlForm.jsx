@@ -28,7 +28,7 @@ const UrlForm = () => {
             id="url"
             name="url"
             className="border rounded w-full py-2 px-3 mb-2"
-            placeholder="e.g. https://www.linkedin.com/jobs/view/..."
+            placeholder="e.g. https://boards.greenhouse.io/... or https://jobs.lever.co/..."
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}

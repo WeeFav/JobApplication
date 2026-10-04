@@ -157,10 +157,6 @@ def extract_source_from_url(url):
         return "lever"
     if "ashbyhq.com" in netloc:
         return "ashby"
-    if "linkedin.com" in netloc:
-        return "linkedin"
-    if "jobright.ai" in netloc:
-        return "jobright"
     # Check query parameters for specific source signatures
     query_dict = dict(parse_qsl(parsed.query))
     if "gh_jid" in query_dict:

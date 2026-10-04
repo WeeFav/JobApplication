@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ProgressContext } from "../../context/ProgressContext";
 
 const ScrapeForm = () => {
-  const [jobsite, setJobsite] = useState("linkedin");
-  const [numJobs, setNumJobs] = useState(10);
+  const [jobsite, setJobsite] = useState("");
   const [companies, setCompanies] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -20,7 +19,11 @@ const ScrapeForm = () => {
         const res = await fetch("/python_api/companies");
         if (res.ok) {
           const data = await res.json();
-          setCompanies(data.map(name => ({ label: name, value: name, isCompany: true })));
+          const options = data.map(name => ({ label: name, value: name, isCompany: true }));
+          setCompanies(options);
+          if (options.length > 0) {
+            setJobsite(options[0].value);
+          }
         }
       } catch (error) {
         console.error("Error fetching companies:", error);
@@ -40,30 +43,25 @@ const ScrapeForm = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const defaultOptions = [
-    { label: "LinkedIn", value: "linkedin", isCompany: false },
-    { label: "JobRight", value: "jobright", isCompany: false }
-  ];
-
-  const allOptions = [...defaultOptions, ...companies];
-  const filteredOptions = allOptions.filter(opt =>
+  const filteredOptions = companies.filter(opt =>
     opt.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedOption = allOptions.find(opt => opt.value === jobsite) || defaultOptions[0];
+  const selectedOption = companies.find(opt => opt.value === jobsite) || { label: "Select a company...", value: "" };
 
   const handleScrape = (e) => {
     e.preventDefault();
-    addJobsiteScrape(jobsite, selectedOption.isCompany ? 0 : Number(numJobs));
+    if (!jobsite) return;
+    addJobsiteScrape(jobsite, 0);
     navigate('/dashboard');
   };
 
   return (
     <form onSubmit={handleScrape} className="space-y-4">
-      {/* Choose Jobsite */}
+      {/* Choose Company */}
       <div className="mb-4 relative" ref={dropdownRef}>
         <label className="block text-gray-700 font-bold mb-2">
-          Choose Jobsite / Company
+          Choose Company (ATS)
         </label>
         
         {/* Dropdown Button */}
@@ -85,7 +83,7 @@ const ScrapeForm = () => {
             <div className="sticky top-0 bg-white p-2 border-b border-gray-100">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search companies..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full border rounded py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-website-blue"
@@ -108,45 +106,24 @@ const ScrapeForm = () => {
                     }`}
                   >
                     <span>{opt.label}</span>
-                    {opt.isCompany && (
-                      <span className="text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full uppercase">
-                        ATS Company
-                      </span>
-                    )}
                   </li>
                 ))
               ) : (
-                <li className="px-3 py-2 text-sm text-gray-500 text-center">No options found</li>
+                <li className="px-3 py-2 text-sm text-gray-500 text-center">No companies found</li>
               )}
             </ul>
           </div>
         )}
       </div>
 
-      {/* Number of Jobs (Only visible if not a company board) */}
-      {!selectedOption.isCompany && (
-        <div className="mb-4">
-          <label className="block text-gray-700 font-bold mb-2">
-            Number of Jobs
-          </label>
-          <input
-            type="number"
-            value={numJobs}
-            min={1}
-            onChange={(e) => setNumJobs(e.target.value)}
-            className="border rounded w-full py-2 px-3 text-black focus:outline-none focus:ring-2 focus:ring-website-blue"
-            required
-          />
-        </div>
-      )}
-
       {/* Submit Button */}
       <div>
         <button
           type="submit"
-          className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline flex items-center justify-center transition-colors"
+          disabled={!jobsite}
+          className="bg-website-blue hover:bg-website-gold text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline flex items-center justify-center transition-colors disabled:opacity-50"
         >
-          Scrape jobs
+          Scrape Company Jobs
         </button>
       </div>
     </form>
@@ -154,3 +131,4 @@ const ScrapeForm = () => {
 };
 
 export default ScrapeForm;
+

@@ -191,35 +191,50 @@ def scrape(company, ws=None):
     job_postings = []
     
     if applied_facets:
-        print(f"[{company}] Applying discovered intern facets: {applied_details}")
-        facet_payload = {
-            "appliedFacets": applied_facets,
-            "limit": limit,
-            "offset": 0,
-            "searchText": ""
-        }
-        facet_data = _post_with_retry(session, query_url, facet_payload) or {}
-        total_jobs = facet_data.get("total", 0)
-        job_postings = list(facet_data.get("jobPostings", []))
-        print(f"[{company}] Scoping down to {total_jobs} facet-matching jobs.")
+        print(f"[{company}] Applying discovered intern facets 1 by 1: {applied_details}")
+        all_postings_map = {}
 
-        offsets = list(range(limit, total_jobs, limit))
-        if offsets:
-            def fetch_facet_offset(off):
-                payload = {
-                    "appliedFacets": applied_facets,
-                    "limit": limit,
-                    "offset": off,
-                    "searchText": ""
-                }
-                res = _post_with_retry(session, query_url, payload)
-                return res.get("jobPostings", []) if res else []
+        for param, val_ids in applied_facets.items():
+            single_facet = {param: val_ids}
+            facet_payload = {
+                "appliedFacets": single_facet,
+                "limit": limit,
+                "offset": 0,
+                "searchText": ""
+            }
+            facet_data = _post_with_retry(session, query_url, facet_payload) or {}
+            total_jobs = facet_data.get("total", 0)
+            initial_postings = facet_data.get("jobPostings", [])
+            for p in initial_postings:
+                key = p.get("externalPath") or p.get("title")
+                if key:
+                    all_postings_map[key] = p
 
-            workers = min(len(offsets), 5)
-            with ThreadPoolExecutor(max_workers=workers) as executor:
-                futures = [executor.submit(fetch_facet_offset, off) for off in offsets]
-                for future in as_completed(futures):
-                    job_postings.extend(future.result())
+            print(f"[{company}] Facet [{param}]: found {total_jobs} jobs.")
+
+            offsets = list(range(limit, total_jobs, limit))
+            if offsets:
+                def fetch_facet_offset(off, cur_facet=single_facet):
+                    payload = {
+                        "appliedFacets": cur_facet,
+                        "limit": limit,
+                        "offset": off,
+                        "searchText": ""
+                    }
+                    res = _post_with_retry(session, query_url, payload)
+                    return res.get("jobPostings", []) if res else []
+
+                workers = min(len(offsets), 5)
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    futures = [executor.submit(fetch_facet_offset, off) for off in offsets]
+                    for future in as_completed(futures):
+                        for p in future.result():
+                            key = p.get("externalPath") or p.get("title")
+                            if key:
+                                all_postings_map[key] = p
+
+        job_postings = list(all_postings_map.values())
+        print(f"[{company}] Total unique facet-matching jobs gathered: {len(job_postings)}")
     else:
         # Fallback to standard offset scan when no intern facets exist
         total_jobs = initial_data.get("total", 0)

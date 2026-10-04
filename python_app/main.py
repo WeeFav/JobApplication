@@ -9,8 +9,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from insert import insert_jobs, insert_resumes, update_job
-import linkedin
-import jobright
 import workday
 import greenhouse
 import lever
@@ -289,27 +287,22 @@ def ws_scrape_jobsite(ws):
     source = data['jobsite']
     
     try:
-        if source == 'linkedin':
-            jobs = linkedin.scrape(data['numJobs'], ws)
-        elif source == 'jobright': 
-            jobs = jobright.scrape(data['numJobs'], ws) 
+        ats_provider = get_company_ats_provider(source).lower()
+        if ats_provider == 'workday':
+            jobs_res = workday.scrape(source, ws)
+        elif ats_provider == 'greenhouse':
+            jobs_res = greenhouse.scrape(source, ws)
+        elif ats_provider == 'lever':
+            jobs_res = lever.scrape(source, ws)
+        elif ats_provider == 'ashby':
+            jobs_res = ashby.scrape(source, ws)
         else:
-            ats_provider = get_company_ats_provider(source).lower()
-            if ats_provider == 'workday':
-                jobs_res = workday.scrape(source, ws)
-            elif ats_provider == 'greenhouse':
-                jobs_res = greenhouse.scrape(source, ws)
-            elif ats_provider == 'lever':
-                jobs_res = lever.scrape(source, ws)
-            elif ats_provider == 'ashby':
-                jobs_res = ashby.scrape(source, ws)
-            else:
-                raise NotImplementedError(f"Scraping source/company '{source}' is not supported.")
-            
-            if isinstance(jobs_res, tuple):
-                jobs = jobs_res[0]
-            else:
-                jobs = jobs_res
+            raise NotImplementedError(f"Scraping source/company '{source}' is not supported.")
+        
+        if isinstance(jobs_res, tuple):
+            jobs = jobs_res[0]
+        else:
+            jobs = jobs_res
         
         ws.send(json.dumps({"type": "scrape", "action": "success"}))                
     except Exception as e:
@@ -338,11 +331,7 @@ def ws_scrape_url(ws):
             
     ### Scrape URL ###
     try:
-        if source == 'linkedin':
-            job = linkedin.scrape_from_url(url)
-        elif source == 'jobright': 
-            job = jobright.scrape_from_url(url) 
-        elif source == 'workday':
+        if source == 'workday':
             job = workday.scrape_from_url(url)
         elif source == 'greenhouse':
             job = greenhouse.scrape_from_url(url)
@@ -351,7 +340,7 @@ def ws_scrape_url(ws):
         elif source == 'ashby':
             job = ashby.scrape_from_url(url)
         else:
-            raise NotImplementedError(f"Scraping source '{source}' is not supported.")
+            raise NotImplementedError(f"Scraping source '{source}' is not supported. Only ATS platforms (Workday, Greenhouse, Lever, Ashby) are supported.")
         
         jobs = [job]
         ws.send(json.dumps({"type": "scrape", "action": "update"}))
