@@ -18,18 +18,12 @@ import json
 import numpy as np
 import ast
 import traceback
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from pydantic import BaseModel, Field
-from typing import List
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.util import cos_sim
+from preprocess_job import get_llm, switch_to_next_api_key, is_daily_limit_error, GoogleRateLimitError, ResourceExhausted
+import time
+
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.1-flash-lite",
-    temperature=0,
-)
+llm = get_llm()
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -101,8 +95,26 @@ def extract_keyword(description_extracted):
         
     print("extracting keyword")
     
-    structured_llm = llm.with_structured_output(JobKeywords)
-    result = structured_llm.invoke(EXTRACTION_PROMPT.format(description=description_extracted))
+    while True:
+        try:
+            current_llm = get_llm()
+            structured_llm = current_llm.with_structured_output(JobKeywords)
+            result = structured_llm.invoke(EXTRACTION_PROMPT.format(description=description_extracted))
+            break
+        except Exception as e:
+            err_str = str(e)
+            if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str or isinstance(e, (ResourceExhausted, GoogleRateLimitError)):
+                if is_daily_limit_error(e):
+                    if switch_to_next_api_key():
+                        continue
+                    else:
+                        print("[!] All available Google API keys have exceeded their daily 500 request quota.")
+                        raise e
+                else:
+                    print(f"Rate limit hit (per-minute). Retrying in 60 seconds... ({e})")
+                    time.sleep(60)
+            else:
+                raise e
     
     # Merge abbreviations
     abbr = {**skills_abbreviations, **education_abbreviations}
