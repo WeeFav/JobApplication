@@ -1,4 +1,6 @@
 version: "3.9"
+name: jobapplication
+
 services:
   # backend
   server:
@@ -6,10 +8,10 @@ services:
       context: ./server
       dockerfile: Dockerfile
     ports:
-      - 8000:8000
+      - "8000:8000"
     volumes:
-      - ./server:/app # overrides /app from COPY in Dockerfile
-      - jobapplication_server_node_modules:/app/node_modules # create docker volume
+      - ./server:/app
+      - jobapplication_server_node_modules:/app/node_modules
 
   # frontend
   client:
@@ -17,7 +19,7 @@ services:
       context: ./client
       dockerfile: Dockerfile
     ports:
-      - 5000:5000
+      - "5000:5000"
     volumes:
       - ./client:/app
       - jobapplication_client_node_modules:/app/node_modules
@@ -32,7 +34,7 @@ services:
     volumes:
       - jobapplication_postgres:/var/lib/postgresql/data
     ports:
-      - "5432:5432" 
+      - "5432:5432"
 
   # pgadmin
   pgadmin:
@@ -48,26 +50,24 @@ services:
   # qdrant
   qdrant:
     image: qdrant/qdrant
-    container_name: qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
     volumes:
       - jobapplication_qdrant:/qdrant/storage
-      
+
   # python
   python:
     build:
       context: ./python_app
       dockerfile: Dockerfile
-      network: host
     shm_size: "2gb"
     ports:
       - "8080:8080"
     volumes:
       - ./python_app:/app
       - ./python_app/model_cache:/tmp/fastembed_cache
-      
+
 volumes:
   jobapplication_postgres:
     external: true

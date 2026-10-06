@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-RUN playwright install chrome
+RUN playwright install --with-deps chromium
 
 COPY . .
 

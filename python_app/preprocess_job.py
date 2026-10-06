@@ -9,12 +9,62 @@ from datetime import datetime, timedelta
 import re
 from bs4 import BeautifulSoup
 
+try:
+    from langchain_google_genai.chat_models import GoogleRateLimitError
+except ImportError:
+    class GoogleRateLimitError(Exception):
+        pass
+
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.1-flash-lite",
-    temperature=0,
-)
+def _get_api_keys():
+    keys = []
+    k1 = os.environ.get("GOOGLE_API_KEY")
+    if k1 and k1.strip():
+        keys.append(k1.strip())
+    k2 = os.environ.get("GOOGLE_API_KEY_2")
+    if k2 and k2.strip():
+        keys.append(k2.strip())
+    return keys
+
+API_KEYS = _get_api_keys()
+current_key_index = 0
+
+def get_current_api_key():
+    global current_key_index, API_KEYS
+    if not API_KEYS:
+        API_KEYS = _get_api_keys()
+    if API_KEYS and 0 <= current_key_index < len(API_KEYS):
+        return API_KEYS[current_key_index]
+    return os.environ.get("GOOGLE_API_KEY")
+
+def get_llm(model="gemini-3.1-flash-lite", temperature=0):
+    key = get_current_api_key()
+    return ChatGoogleGenerativeAI(
+        model=model,
+        temperature=temperature,
+        google_api_key=key,
+    )
+
+def switch_to_next_api_key():
+    global current_key_index, llm, API_KEYS
+    if not API_KEYS:
+        API_KEYS = _get_api_keys()
+    if current_key_index < len(API_KEYS) - 1:
+        current_key_index += 1
+        new_key = API_KEYS[current_key_index]
+        key_name = f"GOOGLE_API_KEY_{current_key_index + 1}" if current_key_index > 0 else "GOOGLE_API_KEY"
+        print(f"[!] Daily 500 request quota reached. Switching to {key_name}...")
+        os.environ["GOOGLE_API_KEY"] = new_key
+        llm = get_llm()
+        return True
+    return False
+
+def is_daily_limit_error(e: Exception) -> bool:
+    err_str = str(e).lower()
+    return "limit: 500" in err_str or "limit 500" in err_str or "generaterequestsperday" in err_str or "free_tier_requests" in err_str
+
+llm = get_llm()
 
 PROMPT = """
 You are an information extraction system.
@@ -70,6 +120,7 @@ Job Description:
 
 def extract_description(description):
     """extract job description"""
+    global llm
     messages = [
         ("human", PROMPT.format(job_description=description))
     ]
@@ -78,10 +129,26 @@ def extract_description(description):
         try:
             ai_msg = llm.invoke(messages)
             description_extracted = ai_msg.content
-            return description_extracted[0]['text']
-        except ResourceExhausted as e:
-            print(f"Retrying in 60 seconds...")
-            time.sleep(60)
+            if isinstance(description_extracted, list) and len(description_extracted) > 0:
+                first = description_extracted[0]
+                if isinstance(first, dict) and 'text' in first:
+                    return first['text']
+                return str(first)
+            return str(description_extracted)
+        except Exception as e:
+            err_str = str(e)
+            if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str or isinstance(e, (ResourceExhausted, GoogleRateLimitError)):
+                if is_daily_limit_error(e):
+                    if switch_to_next_api_key():
+                        continue
+                    else:
+                        print("[!] All available Google API keys have exceeded their daily 500 request quota.")
+                        raise e
+                else:
+                    print(f"Rate limit hit (per-minute). Retrying in 60 seconds... ({e})")
+                    time.sleep(60)
+            else:
+                raise e
 
 
 def canonicalize_url(url):

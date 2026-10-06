@@ -13,6 +13,7 @@ import workday
 import greenhouse
 import lever
 import ashby
+import extract_job_from_url
 from recommend import recommend_by_job, recommend_by_resume
 from misc import delete_job, add_application, delete_application, system_check
 from preprocess_job import extract_source_from_url
@@ -340,7 +341,17 @@ def ws_scrape_url(ws):
         elif source == 'ashby':
             job = ashby.scrape_from_url(url)
         else:
-            raise NotImplementedError(f"Scraping source '{source}' is not supported. Only ATS platforms (Workday, Greenhouse, Lever, Ashby) are supported.")
+            extracted = extract_job_from_url.extract_job(url)
+            raw_post_date = extracted.get("date_posted", "")
+            post_date = raw_post_date.split("T")[0] if "T" in raw_post_date else raw_post_date
+            job = {
+                "title": extracted.get("job_title", ""),
+                "company": extracted.get("company", ""),
+                "description": extracted.get("description", ""),
+                "url": extracted.get("url", url),
+                "location": extracted.get("location", ""),
+                "post_date": post_date
+            }
         
         jobs = [job]
         ws.send(json.dumps({"type": "scrape", "action": "update"}))
@@ -356,7 +367,7 @@ def ws_scrape_url(ws):
     new_ids = insert_jobs(jobs, source, ws, method='url')
     
     ### Recommend Jobs ###
-    recommend_by_job(new_ids, ws)
+    # recommend_by_job(new_ids, ws)
 
     ws.close()
 
