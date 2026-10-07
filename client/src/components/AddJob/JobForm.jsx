@@ -9,6 +9,7 @@ const JobForm = () => {
   const [url, setUrl] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
+  const [source, setSource] = useState('linkedin');
   const { addJobManually } = useContext(ProgressContext);
   const navigate = useNavigate();
   
@@ -24,7 +25,7 @@ const JobForm = () => {
       post_date: date
     };
 
-    addJobManually(newJob);
+    addJobManually(newJob, source);
 
     // Reset fields
     setTitle('');
@@ -33,6 +34,7 @@ const JobForm = () => {
     setUrl('');
     setLocation('');
     setDate('');
+    setSource('linkedin');
 
     navigate('/dashboard');
   };
@@ -116,6 +118,25 @@ const JobForm = () => {
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="source" className="block text-gray-700 font-bold mb-2">
+            Source
+          </label>
+          <select
+            id="source"
+            name="source"
+            className="border rounded w-full py-2 px-3 mb-2 bg-white"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+          >
+            <option value="linkedin">LinkedIn</option>
+            <option value="github">GitHub</option>
+            <option value="jobright">Jobright</option>
+            <option value="ats">ATS</option>
+            <option value="other">Other</option>
+          </select>
         </div>
 
         <div className="mb-4">

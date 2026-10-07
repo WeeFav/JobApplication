@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import JobContainer from "../components/Jobs/JobContainer";
 
 const JobsPage = () => {
   return (
-    <JobContainer loadJobs={loadJobs} searchJobHandler={searchJobHandler}/>
-  )
-}
+    <JobContainer fetchJobs={fetchJobs} tab="all" />
+  );
+};
 
-export default JobsPage
+export default JobsPage;
 
 /* 
 ===============================================================================
@@ -19,23 +19,24 @@ const getThirtyDaysAgo = () => {
   const today = new Date();
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(today.getDate() - 30);
-  const formatted = thirtyDaysAgo.toISOString().split('T')[0];
-  return formatted
-}
+  return thirtyDaysAgo.toISOString().split('T')[0];
+};
 
-// function to load company jobs
-const loadJobs = async (setJobs, setLoading) => {
+const fetchJobs = async ({ page = 1, limit = 25, jobTitle = '', company = '' } = {}) => {
   const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}`);
-  const data = await res.json();
-  setJobs(data);
-  setLoading(false);
-}
+  const queryParams = new URLSearchParams({
+    date,
+    page: String(page),
+    limit: String(limit)
+  });
 
-// function to search job
-const searchJobHandler = async (jobTitle, company) => {
-  const date = getThirtyDaysAgo();
-  const res = await fetch(`/server_api/jobs?date=${date}&jobTitle=${jobTitle}&company=${company}`);
-  const data = await res.json();
-  return data;
-}
+  if (jobTitle && jobTitle.trim()) {
+    queryParams.append('jobTitle', jobTitle.trim());
+  }
+  if (company && company.trim()) {
+    queryParams.append('company', company.trim());
+  }
+
+  const res = await fetch(`/server_api/jobs?${queryParams.toString()}`);
+  return await res.json();
+};

@@ -152,16 +152,16 @@ const JobDetails = ({ job, handleDelete }) => {
         <p> Scraped: {formatDate(job.scrape_date)}</p>
         <p> Applied: {formatDate(job.application_date)}</p>
         <p> Job ID: {job.id}</p>
-        {(job.source || job.method) && (
+        {(job.method || job.source) && (
           <div className="flex gap-2 ml-auto">
-            {job.source && (
-              <span className="bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
-                {job.source}
-              </span>
-            )}
             {job.method && (
               <span className="bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
                 {job.method}
+              </span>
+            )}
+            {job.source && (
+              <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap">
+                {job.source}
               </span>
             )}
           </div>

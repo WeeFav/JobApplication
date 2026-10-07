@@ -20,6 +20,11 @@ import ast
 import traceback
 from preprocess_job import get_llm, switch_to_next_api_key, is_daily_limit_error, GoogleRateLimitError, ResourceExhausted
 import time
+from dotenv import load_dotenv
+from typing import List, Dict, Set, Optional, Tuple, Any
+from pydantic import BaseModel, Field
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.util import cos_sim
 
 load_dotenv()
 
