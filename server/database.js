@@ -24,20 +24,25 @@ export async function get_jobs(search) {
   let idx = 1;
 
   if (search.job_id) {
-    conditions.push(`id = $${idx++}`)
+    conditions.push(`jobs.id = $${idx++}`)
     params.push(search.job_id)
   }
   if (search.company) {
-    conditions.push(`company ILIKE $${idx++}`)
+    conditions.push(`jobs.company ILIKE $${idx++}`)
     params.push(`%${search.company}%`)
   }
   if (search.jobTitle) {
-    conditions.push(`title ILIKE $${idx++}`)
+    conditions.push(`jobs.title ILIKE $${idx++}`)
     params.push(`%${search.jobTitle}%`)
   }
 
+  const isPaginated = search.page !== undefined;
+  const page = parseInt(search.page, 10) || 1;
+  const limit = parseInt(search.limit, 10) || 25;
+  const offset = (page - 1) * limit;
+
   let query = `
-  SELECT jobs.*
+  SELECT jobs.*${isPaginated ? ', COUNT(*) OVER()::int AS full_count' : ''}
   FROM jobs
   `;
 
@@ -52,22 +57,36 @@ export async function get_jobs(search) {
     WHERE applications.job_id IS NULL
     `;
     if (search.date) {
-      query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
+      query += ` AND ((jobs.post_date >= '${search.date}') OR (jobs.post_date IS NULL AND jobs.scrape_date >= '${search.date}'))`
     }
     if (conditions.length > 0) {
       query += ` AND ${conditions.join(" AND ")}`
     }
   }
 
-  query += " ORDER BY post_date IS NULL, post_date DESC"
+  query += " ORDER BY jobs.post_date IS NULL, jobs.post_date DESC"
 
-  if (search.limit && search.limit > 0) {
-    query += ` LIMIT $${idx++}`;
-    params.push(parseInt(search.limit));
+  if (isPaginated) {
+    query += ` LIMIT $${idx++} OFFSET $${idx++}`;
+    params.push(limit, offset);
+    const res = await db.query(query, params);
+    const total = res.rows.length > 0 ? parseInt(res.rows[0].full_count, 10) : 0;
+    const jobs = res.rows.map(({ full_count, ...job }) => job);
+    return {
+      jobs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  } else {
+    if (search.limit && parseInt(search.limit, 10) > 0) {
+      query += ` LIMIT $${idx++}`;
+      params.push(parseInt(search.limit, 10));
+    }
+    const res = await db.query(query, params);
+    return res.rows;
   }
-
-  const res = await db.query(query, params);
-  return res.rows;
 }
 
 export async function get_job(id) {
@@ -119,26 +138,45 @@ export async function get_applications(search) {
     params.push(`%${search.company}%`)
   }
 
+  const isPaginated = search.page !== undefined;
+  const page = parseInt(search.page, 10) || 1;
+  const limit = parseInt(search.limit, 10) || 25;
+  const offset = (page - 1) * limit;
+
   let query = `
-    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, jobs.raw_skills, jobs.source, jobs.method, application_date 
+    SELECT jobs.id, jobs.title, jobs.company, jobs.url, jobs.description, jobs.description_extracted, jobs.post_date, jobs.scrape_date, jobs.location, jobs.raw_skills, jobs.source, jobs.method, applications.application_date${isPaginated ? ', COUNT(*) OVER()::int AS full_count' : ''} 
     FROM applications
     INNER JOIN jobs
     ON applications.job_id = jobs.id
   `;
 
   if (conditions.length > 0) {
-    query += `WHERE ${conditions.join(" AND ")}`
+    query += ` WHERE ${conditions.join(" AND ")}`
   }
-
-  if (search.limit && search.limit > 0) {
-    query += `LIMIT $${idx++}`;
-    params.push(parseInt(search.limit));
-  } 
 
   query += " ORDER BY applications.application_date DESC";
 
-  const res = await db.query(query, params);
-  return res.rows;
+  if (isPaginated) {
+    query += ` LIMIT $${idx++} OFFSET $${idx++}`;
+    params.push(limit, offset);
+    const res = await db.query(query, params);
+    const total = res.rows.length > 0 ? parseInt(res.rows[0].full_count, 10) : 0;
+    const jobs = res.rows.map(({ full_count, ...job }) => job);
+    return {
+      jobs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  } else {
+    if (search.limit && parseInt(search.limit, 10) > 0) {
+      query += ` LIMIT $${idx++}`;
+      params.push(parseInt(search.limit, 10));
+    }
+    const res = await db.query(query, params);
+    return res.rows;
+  }
 }
 
 export async function add_application(job_id) {
@@ -164,8 +202,13 @@ recommendations
 */
 export async function get_recommendations(search) {
   const resumeId = parseInt(search.resumeId);
+  const isPaginated = search.page !== undefined;
+  const page = parseInt(search.page, 10) || 1;
+  const limit = parseInt(search.limit, 10) || 25;
+  const offset = (page - 1) * limit;
+
   if (isNaN(resumeId)) {
-    return [];
+    return isPaginated ? { jobs: [], total: 0, page, limit, totalPages: 0 } : [];
   }
 
   let conditions = [];
@@ -184,7 +227,6 @@ export async function get_recommendations(search) {
     conditions.push(`fr.final_score > $${idx++}`)
     params.push(parseFloat(search.score))
   } 
- 
 
   let query = `
   WITH filtered_recommendations AS (
@@ -192,7 +234,7 @@ export async function get_recommendations(search) {
     FROM recommendations
     WHERE resume_id = ${resumeId}
   )
-  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.url, jobs.description_extracted, jobs.raw_skills, jobs.source, jobs.method, fr.final_score
+  SELECT jobs.id, jobs.title, jobs.company, jobs.location, jobs.post_date, jobs.scrape_date, jobs.url, jobs.description_extracted, jobs.raw_skills, jobs.source, jobs.method, fr.final_score${isPaginated ? ', COUNT(*) OVER()::int AS full_count' : ''}
   FROM filtered_recommendations fr
   INNER JOIN jobs
     ON fr.job_id = jobs.id
@@ -203,7 +245,7 @@ export async function get_recommendations(search) {
   query += "WHERE applications.job_id IS NULL";
 
   if (search.date) {
-    query += ` AND ((post_date >= '${search.date}') OR (post_date IS NULL AND scrape_date >= '${search.date}'))`
+    query += ` AND ((jobs.post_date >= '${search.date}') OR (jobs.post_date IS NULL AND jobs.scrape_date >= '${search.date}'))`
   }
 
   if (conditions.length > 0) {
@@ -211,9 +253,24 @@ export async function get_recommendations(search) {
   }
 
   query += " ORDER BY fr.final_score DESC, jobs.post_date IS NULL, jobs.post_date DESC"
-  
-  const res = await db.query(query, params);
-  return res.rows;
+
+  if (isPaginated) {
+    query += ` LIMIT $${idx++} OFFSET $${idx++}`;
+    params.push(limit, offset);
+    const res = await db.query(query, params);
+    const total = res.rows.length > 0 ? parseInt(res.rows[0].full_count, 10) : 0;
+    const jobs = res.rows.map(({ full_count, ...job }) => job);
+    return {
+      jobs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  } else {
+    const res = await db.query(query, params);
+    return res.rows;
+  }
 }
 
 /* 

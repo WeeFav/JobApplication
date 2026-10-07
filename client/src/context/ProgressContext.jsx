@@ -43,7 +43,7 @@ export const ProgressProvider = ({ children }) => {
     setProgressList(prev => prev.filter(item => item.id !== id));
   };
 
-  const addJobByUrl = (url) => {
+  const addJobByUrl = (url, source = "other") => {
     const id = Date.now().toString();
     const newItem = {
       id,
@@ -68,7 +68,7 @@ export const ProgressProvider = ({ children }) => {
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws_api/scrape_url`);
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({ url }));
+      ws.send(JSON.stringify({ url, source }));
     };
 
     ws.onmessage = (event) => {
@@ -267,7 +267,7 @@ export const ProgressProvider = ({ children }) => {
     };
   };
 
-  const addJobManually = (newJob) => {
+  const addJobManually = (newJob, source = "other") => {
     const id = Date.now().toString();
     const newItem = {
       id,
@@ -292,7 +292,7 @@ export const ProgressProvider = ({ children }) => {
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws_api/manual_job`);
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({ newJobs: [newJob], type: "manual" }));
+      ws.send(JSON.stringify({ newJobs: [newJob], type: "manual", source }));
     };
 
     ws.onmessage = (event) => {

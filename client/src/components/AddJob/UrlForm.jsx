@@ -4,13 +4,14 @@ import { ProgressContext } from "../../context/ProgressContext"
 
 const UrlForm = () => {
   const [url, setUrl] = useState('');
+  const [source, setSource] = useState('linkedin');
   const { addJobByUrl } = useContext(ProgressContext);
   const navigate = useNavigate();
 
   const onSubmitFormClick = (e) => {
     e.preventDefault();
     if (url.trim()) {
-      addJobByUrl(url.trim());
+      addJobByUrl(url.trim(), source);
       setUrl('');
       navigate('/dashboard');
     }
@@ -20,7 +21,7 @@ const UrlForm = () => {
     <>
       <form onSubmit={onSubmitFormClick}>
         <div className="mb-4">
-          <label className="block text-gray-700 font-bold mb-2">
+          <label htmlFor="url" className="block text-gray-700 font-bold mb-2">
             URL
           </label>
           <input
@@ -35,6 +36,25 @@ const UrlForm = () => {
           />
         </div>
 
+        <div className="mb-4">
+          <label htmlFor="source" className="block text-gray-700 font-bold mb-2">
+            Source
+          </label>
+          <select
+            id="source"
+            name="source"
+            className="border rounded w-full py-2 px-3 mb-2 bg-white"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+          >
+            <option value="linkedin">LinkedIn</option>
+            <option value="github">GitHub</option>
+            <option value="jobright">Jobright</option>
+            <option value="ats">ATS</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
         {/* Add Job Button */}
         <div>
           <button
@@ -46,7 +66,7 @@ const UrlForm = () => {
         </div>
       </form>
     </>
-  )
-}
+  );
+};
 
 export default UrlForm

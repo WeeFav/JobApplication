@@ -160,7 +160,7 @@ def _scrape_single_company(company):
         
         if jobs:
             with insert_lock:
-                new_jobs_list = insert_jobs(jobs, company, method='scrape')
+                new_jobs_list = insert_jobs(jobs, 'ats', method='scrape')
             company_new_ids = [j['id'] for j in new_jobs_list if isinstance(j, dict) and 'id' in j]
             new_jobs = len(company_new_ids)
             dup_jobs = filtered_jobs_count - new_jobs
@@ -314,7 +314,7 @@ def ws_scrape_jobsite(ws):
         return
 
     ### Insert Jobs ###
-    new_ids = insert_jobs(jobs, source, ws, method='scrape')
+    new_ids = insert_jobs(jobs, 'ats', ws, method='scrape')
         
     ### Recommend Jobs ###
     recommend_by_job(new_ids, ws)
@@ -326,19 +326,20 @@ def ws_scrape_url(ws):
     data = json.loads(raw)
     
     url = data['url']
-    source = extract_source_from_url(url)
+    source = data.get('source', 'other')
+    url_site = extract_source_from_url(url)
     
     ws.send(json.dumps({"type": "scrape", "action": "start"}))
             
     ### Scrape URL ###
     try:
-        if source == 'workday':
+        if url_site == 'workday':
             job = workday.scrape_from_url(url)
-        elif source == 'greenhouse':
+        elif url_site == 'greenhouse':
             job = greenhouse.scrape_from_url(url)
-        elif source == 'lever':
+        elif url_site == 'lever':
             job = lever.scrape_from_url(url)
-        elif source == 'ashby':
+        elif url_site == 'ashby':
             job = ashby.scrape_from_url(url)
         else:
             extracted = extract_job_from_url.extract_job(url)
@@ -377,7 +378,7 @@ def ws_manual_job(ws):
     data = json.loads(raw)
     
     jobs = data['newJobs']
-    source = data['type']
+    source = data.get('source', 'other')
     
     ### Insert Job ###
     new_jobs = insert_jobs(jobs, source, ws, method='manual')
